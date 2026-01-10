@@ -1,0 +1,8 @@
+{
+  "name": "GIVEBACK - Nền tảng chia sẻ yêu thương",
+  "description": "Diễn đàn kết nối cộng đồng để tặng lại đồ dùng cũ và quyên góp từ thiện với tinh thần tự nguyện 100%.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
