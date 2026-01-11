@@ -27,6 +27,48 @@ export interface DonationItem {
   createdAt: string;
 }
 
+export interface AuctionItem {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  startingPrice: number;
+  currentBid: number;
+  highestBidderId?: string;
+  highestBidderName?: string;
+  endTime: string;
+  missionId: string; 
+  missionLocation: string;
+  status: 'active' | 'ended';
+  authorId: string;
+  authorName: string;
+  donorName: string;
+  createdAt: string;
+}
+
+export interface Bid {
+  id: string;
+  auctionId: string;
+  bidderId: string;
+  bidderName: string;
+  amount: number;
+  timestamp: string;
+}
+
+export interface SocialPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  content: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+  likes: string[];
+  commentsCount: number;
+  sharesCount: number;
+  createdAt: string;
+}
+
 export interface ChatMessage {
   id?: string;
   senderId: string;
@@ -66,10 +108,22 @@ export interface CharityMission {
   location: string;
   description: string;
   image: string;
+  video?: string;
   date: string;
   status: 'upcoming' | 'ongoing' | 'completed';
   itemsNeeded: NeededItem[];
+  targetBudget: number; // Số tiền dự tính cho chuyến đi
   targetHouseholds: number;
   sponsors?: Sponsor[];
   createdAt: string;
 }
+
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY: string;
+    }
+  }
+}
+
+export {};

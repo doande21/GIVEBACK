@@ -1,21 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import ItemCard from '../components/ItemCard';
-import { CATEGORIES } from '../constants';
-import { DonationItem, User, ChatMessage, ChatSession } from '../types';
-import { suggestDescription, analyzeItemImage } from '../services/geminiService';
+import { User, SocialPost, CharityMission } from '../types';
 import { 
   collection, 
   addDoc, 
   onSnapshot, 
   query, 
   orderBy,
-  where,
   doc,
   updateDoc,
-  setDoc,
-  serverTimestamp,
-  getDocs,
+  arrayUnion,
+  arrayRemove,
   limit
 } from "firebase/firestore";
 import { db } from '../services/firebase';
@@ -25,469 +20,263 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ user }) => {
-  const [items, setItems] = useState<DonationItem[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
-  
-  // Chat states
-  const [isChatView, setIsChatView] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Delivery states
-  const [showDeliveryChoice, setShowDeliveryChoice] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [loadingVision, setLoadingVision] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isClaiming, setIsClaiming] = useState(false);
-  
-  // Media states
-  const [previewMedia, setPreviewMedia] = useState<string | null>(null);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [missions, setMissions] = useState<CharityMission[]>([]);
+  const [isPosting, setIsPosting] = useState(false);
+  const [content, setContent] = useState('');
+  const [mediaFile, setMediaFile] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const q = query(collection(db, "items"), where("createdAt", ">=", thirtyDaysAgo.toISOString()));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const itemsData: any[] = [];
-      querySnapshot.forEach((doc) => { itemsData.push({ id: doc.id, ...doc.data() }); });
-      itemsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setItems(itemsData);
+    // Lấy bài đăng social
+    const qPosts = query(collection(db, "social_posts"), orderBy("createdAt", "desc"));
+    const unsubPosts = onSnapshot(qPosts, (snapshot) => {
+      setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialPost)));
     });
-    return () => unsubscribe();
+
+    // Lấy các chuyến cứu trợ mới nhất từ Admin
+    const qMissions = query(collection(db, "missions"), orderBy("createdAt", "desc"), limit(5));
+    const unsubMissions = onSnapshot(qMissions, (snapshot) => {
+      setMissions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CharityMission)));
+    });
+
+    return () => {
+      unsubPosts();
+      unsubMissions();
+    };
   }, []);
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isChatView]);
-
-  // Lọc items dựa trên search term và category
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const [newPost, setNewPost] = useState({
-    title: '', category: CATEGORIES[0], condition: 'good' as 'new' | 'good' | 'used', description: '', location: '', contact: '', quantity: 1
-  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const isVideo = file.type.startsWith('video/');
-      const mimeType = file.type;
-      setMediaType(isVideo ? 'video' : 'image');
+      setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Data = reader.result as string;
-        setPreviewMedia(base64Data);
-        if (!isVideo) {
-          handleAIVision(base64Data, mimeType);
-        }
-      };
+      reader.onloadend = () => setMediaFile(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleAIVision = async (base64: string, mime: string) => {
-    setLoadingVision(true);
-    const analysis = await analyzeItemImage(base64, mime);
-    if (analysis) {
-      setNewPost(prev => ({
-        ...prev,
-        title: analysis.title || prev.title,
-        category: CATEGORIES.includes(analysis.category) ? analysis.category : prev.category,
-        condition: (['new', 'good', 'used'].includes(analysis.condition) ? analysis.condition : prev.condition) as any,
-        description: analysis.description || prev.description
-      }));
-    }
-    setLoadingVision(false);
-  };
-
-  const handleAISuggestion = async () => {
-    if (!newPost.title) return alert("Nhập tên món đồ để AI gợi ý.");
-    setLoadingAI(true);
-    const suggestion = await suggestDescription(newPost.title, newPost.category);
-    if (suggestion) setNewPost(prev => ({ ...prev, description: suggestion }));
-    setLoadingAI(false);
-  };
-
-  const setupChat = async (item: DonationItem) => {
-    const chatId = `${item.id}_${user.id}`;
-    setCurrentChatId(chatId);
-    const chatRef = doc(db, "chats", chatId);
-    await setDoc(chatRef, {
-      id: chatId,
-      itemId: item.id,
-      itemTitle: item.title,
-      donorId: item.authorId,
-      donorName: item.author,
-      receiverId: user.id,
-      receiverName: user.name,
-      participants: [item.authorId, user.id],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    return chatId;
-  };
-
-  const handleStartChat = async () => {
-    if (!selectedItem || !user) return;
-    setIsChatView(true);
-    const chatId = await setupChat(selectedItem);
-    const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"));
-    return onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage)));
-    });
-  };
-
-  const handleSendMessage = async (text: string, chatId: string) => {
-    const chatMsg: ChatMessage = {
-      senderId: user.id,
-      senderName: user.name,
-      text: text.trim(),
-      createdAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, "chats", chatId, "messages"), chatMsg);
-    await updateDoc(doc(db, "chats", chatId), {
-      lastMessage: text.trim(),
-      lastSenderId: user.id,
-      updatedAt: new Date().toISOString()
-    });
-  };
-
-  const confirmClaim = async (method: 'pickup' | 'ship') => {
-    if (!selectedItem || selectedItem.quantity <= 0) return;
-    setIsClaiming(true);
+  const handlePost = async () => {
+    if (!content.trim() && !mediaFile) return;
+    setLoading(true);
     try {
-      await updateDoc(doc(db, "items", selectedItem.id), { quantity: selectedItem.quantity - 1 });
-      const chatId = await setupChat(selectedItem);
-      const autoMsg = method === 'pickup' 
-        ? `Chào bạn, mình muốn đăng ký nhận món đồ này theo hình thức: TỰ ĐẾN LẤY. Bạn cho mình xin địa chỉ cụ thể nhé!`
-        : `Chào bạn, mình muốn đăng ký nhận món đồ này qua hình thức: GỬI SHIPPER. Mình sẽ chịu phí vận chuyển khi nhận hàng (Ship COD phí).`;
-      await handleSendMessage(autoMsg, chatId);
-      setSelectedItem(prev => prev ? { ...prev, quantity: prev.quantity - 1 } : null);
-      setShowDeliveryChoice(false);
-      setIsChatView(true);
-      alert("Đã đăng ký nhận đồ thành công! Hãy trao đổi thêm với người tặng trong phần chat.");
-    } catch (err) { console.error(err); } finally { setIsClaiming(false); }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const itemData = {
-        ...newPost,
-        image: mediaType === 'image' && previewMedia ? previewMedia : `https://picsum.photos/seed/${Date.now()}/400/300`,
-        video: mediaType === 'video' ? previewMedia : null,
-        author: user.name,
+      const newPostData = {
         authorId: user.id,
+        authorName: user.name,
+        authorAvatar: user.avatar || '',
+        content: content.trim(),
+        mediaUrl: mediaFile,
+        mediaType: mediaType,
+        likes: [],
+        commentsCount: 0,
+        sharesCount: 0,
         createdAt: new Date().toISOString()
       };
-      await addDoc(collection(db, "items"), itemData);
-      setIsModalOpen(false);
-      setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
-      setPreviewMedia(null);
-    } catch (err) { alert(err); } finally { setIsSubmitting(false); }
+      await addDoc(collection(db, "social_posts"), newPostData);
+      setContent('');
+      setMediaFile(null);
+      setIsPosting(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async (post: SocialPost) => {
+    const postRef = doc(db, "social_posts", post.id);
+    const isLiked = post.likes.includes(user.id);
+    if (isLiked) {
+      await updateDoc(postRef, { likes: arrayRemove(user.id) });
+    } else {
+      await updateDoc(postRef, { likes: arrayUnion(user.id) });
+    }
   };
 
   return (
-    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
-      {/* Header & Search Section */}
-      <div className="flex flex-col space-y-8 mb-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-          <div>
-            <h1 className="text-4xl font-black text-gray-900 italic uppercase tracking-tighter">Món đồ trao đi</h1>
-            <p className="text-emerald-600 mt-1 font-black text-xs uppercase tracking-[0.3em] ml-1 italic underline decoration-emerald-200 decoration-4">Sàn chia sẻ yêu thương trực tuyến</p>
+    <div className="pt-24 pb-12 px-4 max-w-2xl mx-auto flex flex-col gap-6">
+      
+      {/* Official Missions Section (Carousel-like) */}
+      {missions.length > 0 && (
+        <div className="space-y-4 mb-2">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-900">Kế hoạch cứu trợ từ GIVEBACK</h2>
+            <div className="h-px flex-1 bg-emerald-100 ml-4"></div>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95 group">
-            <span>Đăng tin tặng đồ</span>
-          </button>
-        </div>
-
-        {/* Search Hub */}
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-emerald-900/5 border border-emerald-50 space-y-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm sách vở, quần áo, đồ gia dụng..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-full py-4 pl-14 pr-6 text-sm font-bold text-gray-700 outline-none transition-all shadow-inner"
-            />
-          </div>
-
-          <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-hide">
-            {['Tất cả', ...CATEGORIES].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                  selectedCategory === cat 
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100 scale-105' 
-                  : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                }`}
+          <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
+            {missions.map(mission => (
+              <div 
+                key={mission.id} 
+                className="flex-shrink-0 w-72 bg-white rounded-[2rem] shadow-sm border border-emerald-50 overflow-hidden group hover:shadow-xl transition-all"
               >
-                {cat}
-              </button>
+                <div className="relative h-32">
+                  <img src={mission.image} className="w-full h-full object-cover" alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute top-3 left-3 bg-emerald-600 text-[8px] font-black text-white px-2 py-1 rounded-full uppercase tracking-widest">Chính thức</div>
+                  <div className="absolute bottom-3 left-3 text-white">
+                    <p className="text-[8px] font-bold uppercase tracking-widest opacity-80">{new Date(mission.date).toLocaleDateString('vi-VN')}</p>
+                    <p className="text-xs font-black uppercase italic truncate w-60">{mission.location}</p>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className="text-[10px] text-gray-500 line-clamp-2 italic mb-3">"{mission.description}"</p>
+                  <button className="w-full py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[8px] font-black uppercase tracking-widest group-hover:bg-emerald-600 group-hover:text-white transition-all">Chi tiết kế hoạch</button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Create Post Area */}
+      <div className="bg-white rounded-[1.5rem] shadow-sm p-4 border border-gray-100">
+        <div className="flex items-center space-x-3 mb-4">
+          <img src={user.avatar} className="w-10 h-10 rounded-full object-cover shadow-sm" alt="" />
+          <button 
+            onClick={() => setIsPosting(true)}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 text-left px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
+          >
+            {user.name.split(' ').pop()} ơi, bạn đang nghĩ gì thế?
+          </button>
+        </div>
+        <div className="border-t pt-2 flex items-center justify-between px-2">
+          <button onClick={() => { setIsPosting(true); fileInputRef.current?.click(); }} className="flex items-center space-x-2 py-2 text-emerald-600 font-bold text-xs uppercase tracking-tighter">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <span>Ảnh/Video</span>
+          </button>
+          <div className="w-px h-6 bg-gray-100"></div>
+          <button className="flex items-center space-x-2 py-2 text-red-500 font-bold text-xs uppercase tracking-tighter">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>Cảm xúc</span>
+          </button>
+        </div>
       </div>
 
-      {/* Grid Items */}
-      {filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {filteredItems.map(item => (
-            <ItemCard key={item.id} item={item} user={user} onSelect={(item) => { setSelectedItem(item); setIsChatView(false); setShowDeliveryChoice(false); }} />
-          ))}
-        </div>
-      ) : (
-        <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
-          <div className="bg-emerald-50 p-6 rounded-full text-emerald-200">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <p className="text-gray-400 font-black uppercase tracking-[0.2em] italic">Không tìm thấy món đồ nào phù hợp</p>
-          <button onClick={() => { setSearchTerm(''); setSelectedCategory('Tất cả'); }} className="text-emerald-600 text-xs font-bold uppercase underline">Xóa bộ lọc</button>
-        </div>
-      )}
-
-      {/* Item Detail Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-md" onClick={() => setSelectedItem(null)}></div>
-          <div className="relative bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 flex flex-col lg:flex-row h-[90vh] lg:min-h-[500px] lg:h-auto max-h-[95vh]">
-            <div className="relative w-full lg:w-1/2 bg-gray-100 h-64 lg:h-auto">
-              {selectedItem.video ? (
-                <video src={selectedItem.video} controls className="w-full h-full object-cover" />
-              ) : (
-                <img src={selectedItem.image} className="w-full h-full object-cover" alt="" />
-              )}
-              <div className="absolute top-6 left-6 z-10">
-                <span className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl font-black uppercase text-[10px] text-emerald-900 shadow-lg">
-                  {selectedItem.category}
-                </span>
-              </div>
-            </div>
-            
-            <div className="w-full lg:w-1/2 flex flex-col h-full bg-white relative">
-              <div className="p-8 border-b flex justify-between items-start bg-emerald-50/20">
+      {/* Social Feed */}
+      <div className="space-y-6">
+        {posts.map(post => (
+          <div key={post.id} className="bg-white rounded-[1.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img src={post.authorAvatar} className="w-10 h-10 rounded-full border border-gray-50 object-cover" alt="" />
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 italic uppercase tracking-tighter line-clamp-1">{selectedItem.title}</h2>
-                  <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest">Người tặng: {selectedItem.author}</p>
+                  <h4 className="font-bold text-sm text-gray-900 leading-none mb-1">{post.authorName}</h4>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(post.createdAt).toLocaleDateString('vi-VN')} &bull; GIVEBACK</p>
                 </div>
-                <button onClick={() => setSelectedItem(null)} className="p-2 text-gray-400 hover:text-emerald-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
               </div>
+              <button className="text-gray-400 p-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg></button>
+            </div>
 
-              <div className="flex-1 overflow-hidden flex flex-col">
-                {showDeliveryChoice ? (
-                  <div className="p-8 flex-1 flex flex-col justify-center animate-in slide-in-from-right-4 duration-300">
-                    <button onClick={() => setShowDeliveryChoice(false)} className="mb-6 text-[10px] font-black text-emerald-600 uppercase flex items-center space-x-2">
-                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
-                       <span>Quay lại chi tiết</span>
-                    </button>
-                    <h3 className="text-xl font-black text-emerald-900 uppercase italic mb-2">Chọn cách nhận đồ</h3>
-                    <div className="space-y-4">
-                      <button onClick={() => confirmClaim('pickup')} className="w-full p-6 bg-white border-2 border-emerald-50 hover:border-emerald-500 rounded-[2rem] text-left transition-all group flex items-center space-x-6">
-                        <div className="bg-emerald-50 p-4 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        </div>
-                        <div>
-                          <p className="font-black text-gray-900 uppercase tracking-tight">Tự đến nhận đồ</p>
-                          <p className="text-[10px] text-gray-400 italic">Bạn sẽ chủ động qua địa chỉ của người tặng.</p>
-                        </div>
-                      </button>
-                      <button onClick={() => confirmClaim('ship')} className="w-full p-6 bg-white border-2 border-emerald-50 hover:border-emerald-500 rounded-[2rem] text-left transition-all group flex items-center space-x-6">
-                        <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>
-                        </div>
-                        <div>
-                          <p className="font-black text-gray-900 uppercase tracking-tight">Gửi qua Shipper</p>
-                          <p className="text-[10px] text-gray-400 italic">Nhận đồ tại nhà. Bạn thanh toán phí vận chuyển.</p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                ) : !isChatView ? (
-                  <div className="p-8 space-y-6 overflow-y-auto">
-                    <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 italic text-gray-600 leading-relaxed">"{selectedItem.description}"</div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Số lượng</p>
-                        <p className="font-black text-emerald-600">{selectedItem.quantity > 0 ? `${selectedItem.quantity} món` : 'Hết hàng'}</p>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Khu vực</p>
-                        <p className="font-bold text-gray-800 line-clamp-1">{selectedItem.location}</p>
-                      </div>
-                    </div>
-                    <div className="pt-4 space-y-4">
-                      <button onClick={handleStartChat} className="w-full bg-emerald-100 text-emerald-700 py-4 rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-emerald-200 transition-all flex items-center justify-center space-x-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
-                        <span>Nhắn tin trao đổi</span>
-                      </button>
-                      <button disabled={selectedItem.quantity <= 0 || isClaiming} onClick={() => setShowDeliveryChoice(true)} className="w-full bg-emerald-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-sm shadow-2xl shadow-emerald-100 active:scale-95 disabled:opacity-50 transition-all">
-                        {isClaiming ? 'Đang xử lý...' : (selectedItem.quantity > 0 ? 'Nhận đồ ngay' : 'Đã được tặng hết')}
-                      </button>
-                    </div>
-                  </div>
+            {/* Content */}
+            <div className="px-4 pb-4">
+              <p className="text-sm text-gray-800 leading-relaxed italic">{post.content}</p>
+            </div>
+
+            {/* Media */}
+            {post.mediaUrl && (
+              <div className="relative bg-black max-h-[500px] flex items-center justify-center overflow-hidden">
+                {post.mediaType === 'video' ? (
+                  <video src={post.mediaUrl} controls className="w-full h-auto" />
                 ) : (
-                  <div className="flex flex-col h-full bg-gray-50/50">
-                    <div className="bg-emerald-600/5 px-8 py-2 border-b flex items-center">
-                      <button onClick={() => setIsChatView(false)} className="text-emerald-600 text-xs font-black uppercase flex items-center space-x-1 hover:underline">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
-                        <span>Quay lại chi tiết</span>
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                      {messages.map((m, i) => (
-                        <div key={i} className={`flex flex-col ${m.senderId === user.id ? 'items-end' : 'items-start'}`}>
-                          <span className="text-[8px] font-black text-gray-400 uppercase mb-1 px-2">{m.senderName}</span>
-                          <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${m.senderId === user.id ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-gray-700 border border-emerald-50 rounded-tl-none'}`}>
-                            {m.text}
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={chatEndRef}></div>
-                    </div>
-                    <form onSubmit={(e) => { e.preventDefault(); if(newMessage.trim() && currentChatId) { handleSendMessage(newMessage, currentChatId); setNewMessage(''); } }} className="p-6 bg-white border-t flex space-x-3">
-                      <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Nhập tin nhắn..." className="flex-1 bg-gray-100 border-none rounded-2xl px-6 py-3 outline-none focus:ring-2 focus:ring-emerald-500 font-medium" />
-                      <button type="submit" className="bg-emerald-600 text-white p-3 rounded-2xl hover:scale-105 transition-transform shadow-lg shadow-emerald-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
-                    </form>
-                  </div>
+                  <img src={post.mediaUrl} className="w-full h-auto object-contain" alt="" />
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
 
-      {/* Post Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-             <div className="p-8 border-b flex justify-between items-center bg-emerald-50/50">
-              <div>
-                <h2 className="text-2xl font-black text-emerald-900 uppercase italic tracking-tight">Đăng món đồ tặng</h2>
-                <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Tải ảnh lên để AI tự động điền thông tin</p>
+            {/* Interaction Bar */}
+            <div className="px-4 py-2 border-t border-b flex items-center justify-between text-gray-500 text-xs">
+              <div className="flex items-center space-x-1">
+                <span className="bg-emerald-100 text-emerald-600 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" /></svg></span>
+                <span className="font-bold">{post.likes.length} yêu thích</span>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-emerald-900/50 hover:text-emerald-900 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <div className="space-x-4">
+                <span className="font-bold">{post.commentsCount} bình luận</span>
+                <span className="font-bold">{post.sharesCount} chia sẻ</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="p-2 flex items-center justify-between">
+              <button 
+                onClick={() => handleLike(post)}
+                className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl transition-colors ${post.likes.includes(user.id) ? 'text-emerald-600 bg-emerald-50' : 'text-gray-500 hover:bg-gray-50'} font-black text-[10px] uppercase tracking-widest`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={post.likes.includes(user.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                <span>Yêu thích</span>
+              </button>
+              <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl hover:bg-gray-50 transition-colors text-gray-500 font-black text-[10px] uppercase tracking-widest">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <span>Bình luận</span>
+              </button>
+              <button className="flex-1 flex items-center justify-center space-x-2 py-2 rounded-xl hover:bg-gray-50 transition-colors text-gray-500 font-black text-[10px] uppercase tracking-widest">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 100-5.368 3 3 0 000 5.368zm0 9.474a3 3 0 100 5.368 3 3 0 000-5.368z" /></svg>
+                <span>Chia sẻ</span>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto max-h-[80vh]">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-black uppercase text-gray-400 mb-2">Tên món đồ</label>
-                      <input required className={`w-full px-5 py-3 rounded-2xl bg-gray-50 border-2 transition-all outline-none focus:ring-2 focus:ring-emerald-500 ${loadingVision ? 'animate-pulse border-emerald-200' : 'border-transparent'}`} value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs font-black uppercase text-gray-400 mb-2">Danh mục</label>
-                      <select className={`w-full px-5 py-3 rounded-2xl bg-gray-50 border-2 transition-all outline-none focus:ring-2 focus:ring-emerald-500 ${loadingVision ? 'animate-pulse border-emerald-200' : 'border-transparent'}`} value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
-                        {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      </select>
-                    </div>
+          </div>
+        ))}
+      </div>
 
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-xs font-black uppercase text-gray-400">Mô tả chi tiết</label>
-                        <button type="button" onClick={handleAISuggestion} disabled={loadingAI} className="text-[10px] font-black text-emerald-600 uppercase hover:underline disabled:opacity-50">
-                          {loadingAI ? 'Đang tạo...' : 'AI viết lại mô tả'}
-                        </button>
-                      </div>
-                      <textarea rows={4} className={`w-full px-5 py-3 rounded-2xl bg-gray-50 border-2 transition-all outline-none focus:ring-2 focus:ring-emerald-500 ${loadingVision ? 'animate-pulse border-emerald-200' : 'border-transparent'}`} value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                       <div><label className="block text-xs font-black uppercase text-gray-400 mb-2">Liên hệ</label><input required className="w-full px-5 py-3 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-emerald-500" value={newPost.contact} onChange={e => setNewPost({...newPost, contact: e.target.value})} /></div>
-                       <div><label className="block text-xs font-black uppercase text-gray-400 mb-2">Khu vực</label><input required className="w-full px-5 py-3 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-emerald-500" value={newPost.location} onChange={e => setNewPost({...newPost, location: e.target.value})} /></div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col">
-                    <div className={`flex-1 bg-gray-50 rounded-[2rem] border-4 border-dashed transition-all relative overflow-hidden flex flex-col items-center justify-center p-6 text-gray-400 min-h-[300px] ${loadingVision ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200'}`}>
-                      {loadingVision && (
-                        <div className="absolute inset-0 z-20 overflow-hidden pointer-events-none">
-                          <div className="w-full h-1 bg-emerald-500 absolute top-0 animate-[scan_2s_infinite]"></div>
-                          <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
-                            <span className="text-emerald-600 text-xs font-black uppercase animate-pulse">AI GIVEBACK đang nhìn...</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {!previewMedia ? (
-                        <>
-                          <div className="bg-emerald-100 p-4 rounded-full text-emerald-600 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                          </div>
-                          <p className="font-bold text-sm italic mb-2 text-emerald-900">Chưa có hình ảnh</p>
-                          <p className="text-[10px] text-gray-400 uppercase tracking-widest text-center">Tải ảnh để AI giúp bạn điền form nhanh hơn</p>
-                        </>
-                      ) : (
-                        <div className="w-full h-full relative rounded-2xl overflow-hidden group">
-                          {mediaType === 'video' ? <video src={previewMedia} className="w-full h-full object-cover" muted /> : <img src={previewMedia} className="w-full h-full object-cover" alt="Preview" />}
-                          <button type="button" onClick={() => setPreviewMedia(null)} className="absolute top-4 right-4 bg-red-500 text-white rounded-xl p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                          </button>
-                        </div>
-                      )}
-                      <input ref={fileInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
-                    </div>
-                    
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-4 w-full bg-emerald-50 text-emerald-600 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center space-x-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                      <span>Chọn ảnh từ thiết bị</span>
-                    </button>
-                  </div>
-               </div>
-               
-               <div className="mt-8 flex justify-end">
-                <button type="submit" disabled={isSubmitting || loadingVision} className="bg-emerald-600 text-white px-12 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-colors active:scale-95 disabled:opacity-50">
-                  {isSubmitting ? 'Đang đăng...' : 'Hoàn tất đăng tin'}
-                </button>
-               </div>
-            </form>
+      {/* Post Modal */}
+      {isPosting && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" onClick={() => setIsPosting(false)}></div>
+          <div className="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b text-center relative">
+              <h2 className="text-sm font-black uppercase tracking-widest">Tạo bài viết</h2>
+              <button onClick={() => setIsPosting(false)} className="absolute right-4 top-4 text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div className="p-4 flex items-center space-x-3 mb-2">
+              <img src={user.avatar} className="w-10 h-10 rounded-full object-cover shadow-sm" alt="" />
+              <div>
+                <h4 className="font-bold text-sm text-gray-900 leading-none">{user.name}</h4>
+                <div className="mt-1 bg-gray-100 px-2 py-0.5 rounded-md flex items-center space-x-1 w-fit">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.523 5 10 5s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
+                   <span className="text-[10px] font-bold text-gray-500 uppercase">Công khai</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 pt-0">
+              <textarea 
+                rows={5} 
+                className="w-full text-lg font-medium outline-none resize-none placeholder-gray-300" 
+                placeholder={`${user.name.split(' ').pop()} ơi, hãy chia sẻ điều gì đó nhân văn nhé...`}
+                value={content}
+                onChange={e => setContent(e.target.value)}
+              />
+              
+              {mediaFile && (
+                <div className="mt-4 relative rounded-xl overflow-hidden border border-gray-100">
+                  <button onClick={() => setMediaFile(null)} className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                  {mediaType === 'video' ? <video src={mediaFile} className="w-full max-h-60 object-cover" /> : <img src={mediaFile} className="w-full max-h-60 object-cover" alt="" />}
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t">
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-emerald-500 hover:text-emerald-600 transition-all flex items-center justify-center space-x-2"
+              >
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                 <span className="text-[10px] font-black uppercase tracking-widest">Thêm ảnh / video của bạn</span>
+              </button>
+              <input ref={fileInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+              
+              <button 
+                disabled={loading || (!content.trim() && !mediaFile)}
+                onClick={handlePost}
+                className="w-full mt-4 bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 disabled:opacity-50 active:scale-95 transition-all"
+              >
+                {loading ? 'Đang đăng bài...' : 'Đăng ngay'}
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes scan {
-          0% { top: 0; }
-          50% { top: 100%; }
-          100% { top: 0; }
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 };

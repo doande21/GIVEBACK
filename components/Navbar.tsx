@@ -4,8 +4,8 @@ import { User } from '../types';
 
 interface NavbarProps {
   user: User | null;
-  activeTab: 'home' | 'admin' | 'donate' | 'messages' | 'profile' | 'contact';
-  setActiveTab: (tab: 'home' | 'admin' | 'donate' | 'messages' | 'profile' | 'contact') => void;
+  activeTab: string;
+  setActiveTab: (tab: any) => void;
   onLogout: () => void;
 }
 
@@ -22,72 +22,99 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </div>
-          <span className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent italic tracking-tighter">GIVEBACK</span>
+          <span className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent italic tracking-tighter hidden md:block">GIVEBACK</span>
         </div>
 
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="flex items-center space-x-1 md:space-x-2">
           <button 
             onClick={() => setActiveTab('home')}
-            className={`text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'home' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'home' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
           >
-            Trang chủ
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'home' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Bảng tin</span>
           </button>
+
           <button 
-            onClick={() => setActiveTab('admin')}
-            className={`text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'admin' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+            onClick={() => setActiveTab('market')}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'market' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
           >
-            Tin từ thiện
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'market' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Tặng đồ</span>
           </button>
-          {user && (
-            <>
-              <button 
-                onClick={() => setActiveTab('messages')}
-                className={`text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'messages' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
-              >
-                Tin nhắn
-              </button>
-              <button 
-                onClick={() => setActiveTab('profile')}
-                className={`text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'profile' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
-              >
-                Hồ sơ
-              </button>
-            </>
-          )}
+
           <button 
-            onClick={() => setActiveTab('donate')}
-            className={`text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'donate' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+            onClick={() => setActiveTab('auction')}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'auction' ? 'text-amber-600 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50/50'}`}
           >
-            Ủng hộ ship
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'auction' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Đấu giá</span>
           </button>
+
+          <button 
+            onClick={() => setActiveTab('map')}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'map' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'map' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Bản đồ</span>
+          </button>
+
           <button 
             onClick={() => setActiveTab('contact')}
-            className={`text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'contact' ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'contact' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
           >
-            Liên hệ
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'contact' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Liên hệ</span>
           </button>
+
+          {user?.role === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('admin')}
+              className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'admin' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'admin' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Quản trị</span>
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
           {user ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setActiveTab('messages')}
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all relative ${activeTab === 'messages' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </button>
+
               <div 
-                className="text-right hidden sm:block cursor-pointer"
+                className="flex items-center space-x-2 cursor-pointer p-1 pr-3 rounded-full hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
                 onClick={() => setActiveTab('profile')}
               >
-                <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">{user.name}</p>
-                <p className="text-[10px] text-emerald-500 font-bold italic">{user.role === 'admin' ? 'Quản trị viên' : 'Thành viên'}</p>
+                <img 
+                  src={user.avatar} 
+                  className="w-8 h-8 rounded-full border border-emerald-500 object-cover" 
+                  alt=""
+                />
               </div>
-              <img 
-                src={user.avatar} 
-                className="w-8 h-8 rounded-full border-2 border-emerald-500 object-cover cursor-pointer" 
-                onClick={() => setActiveTab('profile')}
-                alt=""
-              />
+
               <button 
                 onClick={onLogout}
-                className="text-gray-400 hover:text-red-500 p-1 transition-colors"
-                title="Đăng xuất"
+                className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -95,7 +122,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
               </button>
             </div>
           ) : (
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100">Tham gia</button>
+            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all">Tham gia</button>
           )}
         </div>
       </div>

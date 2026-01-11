@@ -1,4 +1,9 @@
 
+// Khởi tạo process.env giả lập nếu chưa có
+if (typeof window !== 'undefined') {
+  (window as any).process = (window as any).process || { env: {} };
+}
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
