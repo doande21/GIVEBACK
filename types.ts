@@ -112,7 +112,8 @@ export interface CharityMission {
   date: string;
   status: 'upcoming' | 'ongoing' | 'completed';
   itemsNeeded: NeededItem[];
-  targetBudget: number; // Số tiền dự tính cho chuyến đi
+  targetBudget: number;
+  currentBudget: number; // Thêm: Số tiền hiện có đã nhận được
   targetHouseholds: number;
   sponsors?: Sponsor[];
   createdAt: string;
