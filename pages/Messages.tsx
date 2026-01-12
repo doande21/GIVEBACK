@@ -30,6 +30,8 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user.id) return;
+
     const q = query(
       collection(db, "chats"), 
       where("participants", "array-contains", user.id)
@@ -61,15 +63,22 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
         setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage)));
       });
 
+      // Luôn làm sạch item cũ trước khi fetch mới để tránh lỗi UI
+      setCurrentItem(null); 
+
       const fetchItemDetails = async () => {
         try {
           const itemDoc = await getDoc(doc(db, "items", selectedSession.itemId));
           if (itemDoc.exists()) {
-            setCurrentItem({ id: itemDoc.id, ...itemDoc.data() } as DonationItem);
+            const data = { id: itemDoc.id, ...itemDoc.data() } as DonationItem;
+            setCurrentItem(data);
+            console.log(`[LOG] Đã tải thông tin món đồ: ${data.title}. Chủ sở hữu: ${data.authorId}`);
           } else {
             setCurrentItem(null);
           }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+          console.error("Lỗi khi fetch item details:", e); 
+        }
       };
       fetchItemDetails();
 
@@ -114,42 +123,48 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
   const handleConfirmGift = async () => {
     if (!selectedSession || !currentItem || isProcessing) return;
     
-    // KIỂM TRA NGHIỆP VỤ CHẶT CHẼ: Chỉ Donor thực sự mới có quyền
-    if (user.id !== currentItem.authorId) {
+    // KIỂM TRA NGHIỆP VỤ BỔ SUNG: Chống hack & chống lỗi logic tự động
+    if (!user.id || !currentItem.authorId || user.id !== currentItem.authorId) {
+      console.warn(`[ATTEMPT] Cảnh báo: Người dùng ${user.id} không phải là chủ món đồ ${currentItem.id} (${currentItem.authorId})`);
       alert("Đệ ơi, đệ không phải chủ món đồ này nên không thể bấm xác nhận tặng được nha!");
       return;
     }
 
-    if (window.confirm(`XÁC NHẬN CUỐI CÙNG: Đệ có chắc muốn chốt tặng "${currentItem.title}" cho ${selectedSession.receiverName} không? Món đồ sẽ được đánh dấu là hết hàng.`)) {
+    const confirmMessage = `XÁC NHẬN TẶNG QUÀ: Đệ có chắc muốn chốt tặng "${currentItem.title}" cho đệ "${selectedSession.receiverName}" không? Sau khi xác nhận, món đồ sẽ được đánh dấu là HẾT HÀNG.`;
+
+    if (window.confirm(confirmMessage)) {
       setIsProcessing(true);
+      console.log(`[LOG] Bắt đầu xác nhận tặng item ${currentItem.id} cho ${selectedSession.receiverId}`);
+
       try {
-        // 1. Cập nhật món đồ thành hết hàng
+        // 1. Cập nhật món đồ thành hết hàng (quantity = 0)
         await updateDoc(doc(db, "items", currentItem.id), {
           quantity: 0
         });
 
-        // 2. Gửi tin nhắn hệ thống
+        // 2. Gửi tin nhắn hệ thống xác nhận chính thức
         const systemMsg: ChatMessage = {
           senderId: 'system',
           senderName: 'GIVEBACK',
-          text: `🎉 XÁC NHẬN: Chủ nhân đã chính thức đồng ý tặng món đồ này cho bạn! Hai đệ hãy trao đổi địa chỉ để giao nhận đồ nhé. Chúc mừng! 🎁`,
+          text: `🎉 XÁC NHẬN CHÍNH THỨC: Chủ nhân đã đồng ý tặng món đồ "${currentItem.title}" cho bạn! Hai đệ hãy trao đổi địa chỉ và số điện thoại để giao nhận quà nhé. Chúc hai đệ một ngày thật vui! 🎁`,
           createdAt: new Date().toISOString()
         };
         await addDoc(collection(db, "chats", selectedSession.id, "messages"), systemMsg);
 
-        // 3. Cập nhật session chat
+        // 3. Cập nhật trạng thái session chat để sidebar hiển thị đúng
         await updateDoc(doc(db, "chats", selectedSession.id), {
-          lastMessage: "Đã xác nhận tặng món đồ này! 🎁",
+          lastMessage: `🎁 Đã xác nhận tặng món đồ này!`,
           lastSenderId: 'system',
           updatedAt: new Date().toISOString(),
           readBy: [user.id]
         });
 
+        // Cập nhật state local để UI thay đổi ngay lập tức
         setCurrentItem(prev => prev ? {...prev, quantity: 0} : null);
-        alert("Tuyệt vời! Cảm ơn tấm lòng vàng của đệ!");
+        alert("Tuyệt vời! Cảm ơn tấm lòng vàng của đệ dành cho cộng đồng.");
       } catch (err) {
-        console.error("Lỗi xác nhận tặng:", err);
-        alert("Có lỗi hệ thống, đệ thử lại sau nhé!");
+        console.error("[CRITICAL] Lỗi khi xác nhận tặng quà:", err);
+        alert("Hệ thống gặp trục trặc khi ghi nhận, đệ hãy thử lại sau ít phút nhé!");
       } finally {
         setIsProcessing(false);
       }
@@ -160,11 +175,12 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
     return session.donorId === user.id ? session.receiverName : session.donorName;
   };
 
-  // Logic kiểm tra hiển thị nút xác nhận tặng: Phải là donor, item còn hàng
+  // Logic hiển thị nút: Phải là donor thực sự VÀ món đồ còn hàng
   const canShowConfirmButton = 
     selectedSession && 
     currentItem && 
     currentItem.quantity > 0 && 
+    user.id && 
     currentItem.authorId === user.id;
 
   return (
@@ -223,21 +239,21 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                   </div>
                 </div>
 
-                {/* Nút xác nhận tặng - Chỉ hiện cho CHỦ MÓN ĐỒ thực sự */}
+                {/* Nút xác nhận tặng - CHỈ hiện khi là Donor thật và item còn hàng */}
                 {canShowConfirmButton && (
                   <button 
                     onClick={handleConfirmGift}
                     disabled={isProcessing}
                     className="bg-emerald-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-emerald-100 animate-bounce active:scale-95 disabled:opacity-50 flex-shrink-0 ml-4"
                   >
-                    {isProcessing ? 'Đang xác nhận...' : 'Đồng ý tặng cho đệ này 🎁'}
+                    {isProcessing ? 'ĐANG XỬ LÝ...' : 'Xác nhận tặng cho đệ này 🎁'}
                   </button>
                 )}
 
                 {currentItem && currentItem.quantity <= 0 && (
                    <div className="flex items-center space-x-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 flex-shrink-0 ml-4">
                       <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Đã hoàn thành trao tặng</span>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Món đồ đã được trao tặng xong</span>
                    </div>
                 )}
               </div>
@@ -257,7 +273,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                         isMe 
                           ? 'bg-emerald-600 text-white rounded-tr-none' 
                           : isSystem
-                            ? 'bg-amber-100 text-amber-900 border border-amber-200 font-black italic text-center text-xs w-full'
+                            ? 'bg-amber-100 text-amber-900 border border-amber-200 font-black italic text-center text-xs w-full p-6'
                             : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                       }`}>
                         {m.text}
@@ -273,7 +289,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                   type="text" 
                   value={newMessage} 
                   onChange={(e) => setNewMessage(e.target.value)} 
-                  placeholder="Trao đổi địa chỉ giao nhận..." 
+                  placeholder="Trao đổi địa chỉ và cách thức giao nhận đồ..." 
                   className="flex-1 bg-gray-50 border-2 border-transparent focus:border-emerald-500 rounded-2xl px-6 py-4 outline-none font-bold text-gray-700 transition-all" 
                 />
                 <button type="submit" className="bg-emerald-600 text-white p-4 rounded-2xl shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all">
@@ -286,7 +302,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-gray-100">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                </div>
-               <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">Mời đệ chọn một cuộc trò chuyện</h3>
+               <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter">Mời đệ chọn một cuộc trò chuyện để bắt đầu kết nối</h3>
             </div>
           )}
         </div>

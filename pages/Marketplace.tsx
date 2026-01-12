@@ -105,26 +105,44 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
         ...newPost,
         image: mediaType === 'image' && previewMedia ? previewMedia : `https://picsum.photos/seed/${Date.now()}/400/300`,
         video: mediaType === 'video' ? previewMedia : null,
-        author: user.name, authorId: user.id, createdAt: new Date().toISOString()
+        author: user.name, 
+        authorId: user.id, 
+        createdAt: new Date().toISOString()
       };
+      // Đảm bảo quantity luôn là 1 khi mới đăng
+      itemData.quantity = 1; 
+
       await addDoc(collection(db, "items"), itemData);
       setIsModalOpen(false);
       onNotify('success', `Đã đăng món đồ "${newPost.title}"!`, 'GIVEBACK');
       setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
       setPreviewMedia(null);
-    } catch (err) { onNotify('error', "Lỗi đăng bài."); } finally { setIsSubmitting(false); }
+    } catch (err) { 
+      console.error("Lỗi đăng bài:", err);
+      onNotify('error', "Có lỗi xảy ra khi đăng bài."); 
+    } finally { setIsSubmitting(false); }
   };
 
-  // QUAN TRỌNG: Hàm liên hệ chỉ tạo chat, KHÔNG ĐƯỢC phép sửa món đồ
+  // PHÒNG NGỪA LỖI: Chỉ tạo hội thoại, tuyệt đối không cập nhật món đồ tại đây
   const handleContactDonor = async (item: DonationItem) => {
+    if (!item.id || !user.id) return;
+    
     if (item.authorId === user.id) {
       onNotify('warning', "Món đồ này của đệ mà!", "Hệ thống");
       return;
     }
 
+    if (item.quantity <= 0) {
+      onNotify('error', "Rất tiếc, món đồ này đã được tặng cho người khác rồi!", "Hệ thống");
+      setSelectedItem(null);
+      return;
+    }
+
     setIsConnectingChat(true);
+    console.log(`[LOG] Bắt đầu kết nối nhận đồ cho item: ${item.id} từ user: ${user.id}`);
+
     try {
-      // Tìm xem đã có hội thoại giữa 2 người về món đồ này chưa
+      // Tìm hội thoại hiện có dựa trên itemId và receiverId
       const q = query(
         collection(db, "chats"), 
         where("itemId", "==", item.id),
@@ -133,6 +151,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
+        console.log("[LOG] Đã có hội thoại trước đó, chuyển hướng...");
         setActiveTab('messages');
       } else {
         const chatId = `${item.id}_${user.id}_${Date.now()}`;
@@ -153,6 +172,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
           updatedAt: new Date().toISOString()
         };
 
+        // Ghi dữ liệu vào Firestore - CHỈ tác động lên collection 'chats' và 'messages'
         await setDoc(doc(db, "chats", chatId), newChat);
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
@@ -161,12 +181,17 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
           createdAt: new Date().toISOString()
         });
 
+        console.log("[LOG] Đã tạo thành công hội thoại mới.");
         onNotify('success', `Đã gửi lời nhắn đến ${item.author}!`, "GIVEBACK");
         setActiveTab('messages');
       }
     } catch (err) {
-      onNotify('error', "Lỗi kết nối hội thoại.");
-    } finally { setIsConnectingChat(false); }
+      console.error("[CRITICAL] Lỗi tạo hội thoại:", err);
+      onNotify('error', "Không thể kết nối hội thoại lúc này.");
+    } finally { 
+      setIsConnectingChat(false); 
+      setSelectedItem(null); // Đóng modal chi tiết
+    }
   };
 
   const filteredItems = items.filter(item => {
@@ -256,10 +281,10 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                  <p className="text-gray-600 italic mb-8">"{selectedItem.description}"</p>
                  <button 
                   onClick={() => handleContactDonor(selectedItem)} 
-                  disabled={isConnectingChat}
+                  disabled={isConnectingChat || selectedItem.quantity <= 0}
                   className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                  >
-                   {isConnectingChat ? 'ĐANG KẾT NỐI...' : 'Nhắn tin nhận đồ ngay'}
+                   {selectedItem.quantity <= 0 ? 'ĐÃ HẾT HÀNG' : (isConnectingChat ? 'ĐANG KẾT NỐI...' : 'Nhắn tin nhận đồ ngay')}
                  </button>
               </div>
            </div>
