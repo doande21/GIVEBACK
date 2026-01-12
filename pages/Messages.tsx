@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ChatSession, ChatMessage } from '../types';
+import { User, ChatSession, ChatMessage, DonationItem } from '../types';
 import { 
   collection, 
   onSnapshot, 
@@ -10,7 +10,8 @@ import {
   updateDoc, 
   doc,
   orderBy,
-  arrayUnion
+  arrayUnion,
+  getDoc
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -24,6 +25,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentItem, setCurrentItem] = useState<DonationItem | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,7 +40,6 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
       setSessions(data);
       setLoading(false);
       
-      // Nếu đang mở một cuộc hội thoại mà có tin nhắn mới tới, hãy tự động đánh dấu là đã đọc
       if (selectedSession) {
         const currentInList = data.find(s => s.id === selectedSession.id);
         if (currentInList && (!currentInList.readBy || !currentInList.readBy.includes(user.id))) {
@@ -59,10 +60,18 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
         setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage)));
       });
 
-      // Khi mở hội thoại, đánh dấu đã đọc
       updateDoc(doc(db, "chats", selectedSession.id), {
         readBy: arrayUnion(user.id)
       });
+
+      // Lấy thông tin món đồ để kiểm tra trạng thái còn hay hết
+      const fetchItem = async () => {
+        const itemDoc = await getDoc(doc(db, "items", selectedSession.itemId));
+        if (itemDoc.exists()) {
+          setCurrentItem({ id: itemDoc.id, ...itemDoc.data() } as DonationItem);
+        }
+      };
+      fetchItem();
 
       return unsubscribe;
     }
@@ -91,11 +100,47 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
         lastMessage: newMessage.trim(),
         lastSenderId: user.id,
         updatedAt: new Date().toISOString(),
-        readBy: [user.id] // Người gửi mặc định là đã đọc, người nhận thì chưa
+        readBy: [user.id]
       });
       setNewMessage('');
     } catch (err) {
       console.error("Lỗi gửi tin:", err);
+    }
+  };
+
+  const handleConfirmGift = async () => {
+    if (!selectedSession || !currentItem) return;
+    if (window.confirm(`Đệ có chắc chắn muốn tặng "${currentItem.title}" cho ${selectedSession.receiverName} không?`)) {
+      try {
+        // 1. Cập nhật món đồ thành hết hàng (quantity = 0)
+        await updateDoc(doc(db, "items", currentItem.id), {
+          quantity: 0
+        });
+
+        // 2. Gửi tin nhắn hệ thống tự động
+        const systemMsg: ChatMessage = {
+          senderId: 'system',
+          senderName: 'GIVEBACK',
+          text: `🎉 CHÚC MỪNG! Người tặng đã xác nhận tặng món đồ này cho bạn. Hãy trao đổi địa chỉ và cách thức nhận đồ nhé!`,
+          createdAt: new Date().toISOString()
+        };
+        await addDoc(collection(db, "chats", selectedSession.id, "messages"), systemMsg);
+
+        // 3. Cập nhật session chat
+        await updateDoc(doc(db, "chats", selectedSession.id), {
+          lastMessage: "Đã xác nhận tặng món đồ này! 🎁",
+          lastSenderId: 'system',
+          updatedAt: new Date().toISOString(),
+          readBy: [user.id]
+        });
+
+        // Cập nhật state local
+        setCurrentItem(prev => prev ? {...prev, quantity: 0} : null);
+        alert("Tuyệt vời! Đệ vừa lan tỏa thêm một niềm vui mới. Cảm ơn tấm lòng của đệ!");
+      } catch (err) {
+        console.error("Lỗi xác nhận tặng:", err);
+        alert("Có lỗi xảy ra, đệ thử lại sau nhé!");
+      }
     }
   };
 
@@ -160,13 +205,37 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                     </p>
                   </div>
                 </div>
+
+                {/* Nút xác nhận tặng đồ - Chỉ hiển thị cho người tặng và món đồ còn hàng */}
+                {user.id === selectedSession.donorId && currentItem && currentItem.quantity > 0 && (
+                  <button 
+                    onClick={handleConfirmGift}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg animate-bounce"
+                  >
+                    Xác nhận tặng cho bạn này 🎁
+                  </button>
+                )}
+
+                {currentItem && currentItem.quantity <= 0 && (
+                   <span className="bg-gray-100 text-gray-400 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border">
+                     Đã hoàn thành tặng đồ
+                   </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/20">
                 {messages.map((m, i) => (
-                  <div key={i} className={`flex flex-col ${m.senderId === user.id ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[8px] font-black text-gray-400 uppercase mb-1 px-2">{m.senderName}</span>
-                    <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${m.senderId === user.id ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white text-gray-700 border border-emerald-50 rounded-tl-none'}`}>
+                  <div key={i} className={`flex flex-col ${m.senderId === user.id ? 'items-end' : m.senderId === 'system' ? 'items-center' : 'items-start'}`}>
+                    {m.senderId !== 'system' && (
+                      <span className="text-[8px] font-black text-gray-400 uppercase mb-1 px-2">{m.senderName}</span>
+                    )}
+                    <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                      m.senderId === user.id 
+                        ? 'bg-emerald-600 text-white rounded-tr-none' 
+                        : m.senderId === 'system'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200 font-bold italic text-center text-xs'
+                          : 'bg-white text-gray-700 border border-emerald-50 rounded-tl-none'
+                    }`}>
                       {m.text}
                     </div>
                   </div>
