@@ -8,7 +8,87 @@ export interface User {
   location?: string;
   organization?: string;
   bio?: string;
+  friends?: string[];
   createdAt?: string;
+}
+
+export interface FriendRequest {
+  id: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar: string;
+  toId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
+export interface PostComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface PostMedia {
+  url: string;
+  type: 'image' | 'video';
+}
+
+export interface SocialPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  content: string;
+  media?: PostMedia[];
+  mediaUrl?: string; 
+  mediaType?: 'image' | 'video';
+  likes: string[]; 
+  hearts?: string[]; 
+  thanks?: string[]; 
+  comments?: PostComment[];
+  sharesCount: number;
+  createdAt: string;
+}
+
+export interface ClaimRecord {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  itemImage: string;
+  donorId: string;
+  donorName: string;
+  receiverId: string;
+  receiverName: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id?: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  type: 'direct' | 'group';
+  groupName?: string;
+  groupAdminId?: string;
+  itemId?: string;
+  itemTitle?: string;
+  donorId?: string;
+  donorName?: string;
+  receiverId?: string;
+  receiverName?: string;
+  participants: string[];
+  lastMessage?: string;
+  lastSenderId?: string;
+  updatedAt: string;
+  readBy?: string[];
 }
 
 export interface DonationItem {
@@ -37,59 +117,12 @@ export interface AuctionItem {
   highestBidderId?: string;
   highestBidderName?: string;
   endTime: string;
-  missionId: string; 
   missionLocation: string;
   status: 'active' | 'ended';
   authorId: string;
   authorName: string;
   donorName: string;
   createdAt: string;
-}
-
-export interface Bid {
-  id: string;
-  auctionId: string;
-  bidderId: string;
-  bidderName: string;
-  amount: number;
-  timestamp: string;
-}
-
-export interface SocialPost {
-  id: string;
-  authorId: string;
-  authorName: string;
-  authorAvatar: string;
-  content: string;
-  mediaUrl?: string;
-  mediaType?: 'image' | 'video';
-  likes: string[];
-  commentsCount: number;
-  sharesCount: number;
-  createdAt: string;
-}
-
-export interface ChatMessage {
-  id?: string;
-  senderId: string;
-  senderName: string;
-  text: string;
-  createdAt: string;
-}
-
-export interface ChatSession {
-  id: string;
-  itemId: string;
-  itemTitle: string;
-  donorId: string;
-  donorName: string;
-  receiverId: string;
-  receiverName: string;
-  participants: string[];
-  readBy: string[]; // Danh sách ID người dùng đã đọc tin nhắn cuối cùng
-  lastMessage?: string;
-  lastSenderId?: string;
-  updatedAt: string;
 }
 
 export interface NeededItem {
@@ -99,27 +132,25 @@ export interface NeededItem {
   unit: string;
 }
 
-export interface DonationLog {
-  id: string;
-  donorName: string;
-  amount: number;
-  message?: string;
-  createdAt: string;
-}
-
 export interface CharityMission {
   id: string;
   location: string;
   description: string;
   image: string;
-  video?: string;
   date: string;
   status: 'upcoming' | 'ongoing' | 'completed';
   itemsNeeded: NeededItem[];
   targetBudget: number;
   currentBudget: number;
-  targetHouseholds: number;
+  targetHouseholds?: number;
   createdAt: string;
+}
+
+export interface Bid {
+  bidderId: string;
+  bidderName: string;
+  amount: number;
+  timestamp: string;
 }
 
 declare global {

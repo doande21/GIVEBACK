@@ -2,49 +2,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ItemCard from '../components/ItemCard';
 import { CATEGORIES } from '../constants';
-import { DonationItem, User, ChatSession } from '../types';
-import { analyzeItemImage } from '../services/geminiService';
+import { DonationItem, User, ClaimRecord } from '../types';
+import { suggestDescription, analyzeItemImage } from '../services/geminiService';
 import { 
   collection, 
   addDoc, 
   onSnapshot, 
   query, 
   where,
-  getDocs,
+  doc,
+  updateDoc,
   setDoc,
-  doc
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
 interface MarketplaceProps {
   user: User;
-  setActiveTab: (tab: 'home' | 'market' | 'auction' | 'admin' | 'messages' | 'profile' | 'map' | 'contact') => void;
+  setActiveTab?: (tab: any) => void;
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
 }
-
-const compressImage = (base64Str: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 800; 
-      const MAX_HEIGHT = 800;
-      let width = img.width;
-      let height = img.height;
-      if (width > height) {
-        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-      } else {
-        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
-    };
-  });
-};
 
 const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify }) => {
   const [items, setItems] = useState<DonationItem[]>([]);
@@ -52,16 +28,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
+  
   const [loadingAI, setLoadingAI] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isConnectingChat, setIsConnectingChat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
-  const [hasKey, setHasKey] = useState(false);
-  const [newPost, setNewPost] = useState({
-    title: '', category: CATEGORIES[0], condition: 'good' as 'new' | 'good' | 'used', description: '', location: '', contact: '', quantity: 1
-  });
 
   useEffect(() => {
     const q = query(collection(db, "items"));
@@ -73,26 +45,66 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
     return () => unsubscribe();
   }, []);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const [newPost, setNewPost] = useState({
+    title: '', category: CATEGORIES[0], condition: 'good' as 'new' | 'good' | 'used', description: '', location: '', contact: '', quantity: 1
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const isVideo = file.type.startsWith('video/');
-      setMediaType(isVideo ? 'video' : 'image');
+      setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        let base64 = reader.result as string;
-        if (!isVideo) base64 = await compressImage(base64);
-        setPreviewMedia(base64);
-        if (!isVideo && hasKey) {
-          setLoadingAI(true);
-          const result = await analyzeItemImage(base64, 'image/jpeg');
-          if (result) {
-            setNewPost(prev => ({ ...prev, title: result.title, category: result.category, description: result.description, condition: result.condition }));
-          }
-          setLoadingAI(false);
-        }
-      };
+      reader.onloadend = () => setPreviewMedia(reader.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleConfirmClaim = async (item: DonationItem) => {
+    if (item.quantity <= 0) return;
+    try {
+      // 1. Tạo Chat Session
+      const chatId = `${item.id}_${user.id}`;
+      await setDoc(doc(db, "chats", chatId), {
+        id: chatId,
+        itemId: item.id,
+        itemTitle: item.title,
+        donorId: item.authorId,
+        donorName: item.author,
+        receiverId: user.id,
+        receiverName: user.name,
+        participants: [item.authorId, user.id],
+        lastMessage: "Chào bạn, mình muốn đăng ký nhận món đồ này.",
+        lastSenderId: user.id,
+        updatedAt: new Date().toISOString()
+      });
+
+      // 2. Ghi lại lịch sử nhận đồ (Claims)
+      const claimData: Omit<ClaimRecord, 'id'> = {
+        itemId: item.id,
+        itemTitle: item.title,
+        itemImage: item.image,
+        donorId: item.authorId,
+        donorName: item.author,
+        receiverId: user.id,
+        receiverName: user.name,
+        createdAt: new Date().toISOString()
+      };
+      await addDoc(collection(db, "claims"), claimData);
+
+      // 3. Cập nhật số lượng món đồ
+      await updateDoc(doc(db, "items", item.id), { quantity: item.quantity - 1 });
+      
+      onNotify('success', `Đã kết nối thành công với ${item.author}. Thông tin nhận đồ đã được lưu vào nhật ký của Đệ!`, 'Yêu thương');
+      setSelectedItem(null);
+    } catch (err) {
+      onNotify('error', "Không thể thực hiện yêu cầu. Lỗi: " + String(err), 'Hệ thống');
     }
   };
 
@@ -105,116 +117,60 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
         ...newPost,
         image: mediaType === 'image' && previewMedia ? previewMedia : `https://picsum.photos/seed/${Date.now()}/400/300`,
         video: mediaType === 'video' ? previewMedia : null,
-        author: user.name, 
-        authorId: user.id, 
+        author: user.name,
+        authorId: user.id,
         createdAt: new Date().toISOString()
       };
-      // Đảm bảo quantity luôn là 1 khi mới đăng
-      itemData.quantity = 1; 
-
       await addDoc(collection(db, "items"), itemData);
       setIsModalOpen(false);
-      onNotify('success', `Đã đăng món đồ "${newPost.title}"!`, 'GIVEBACK');
+      onNotify('success', `Món đồ "${newPost.title}" đã được đăng thành công!`, 'GIVEBACK');
       setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
       setPreviewMedia(null);
     } catch (err) { 
-      console.error("Lỗi đăng bài:", err);
-      onNotify('error', "Có lỗi xảy ra khi đăng bài."); 
-    } finally { setIsSubmitting(false); }
-  };
-
-  // PHÒNG NGỪA LỖI: Chỉ tạo hội thoại, tuyệt đối không cập nhật món đồ tại đây
-  const handleContactDonor = async (item: DonationItem) => {
-    if (!item.id || !user.id) return;
-    
-    if (item.authorId === user.id) {
-      onNotify('warning', "Món đồ này của đệ mà!", "Hệ thống");
-      return;
-    }
-
-    if (item.quantity <= 0) {
-      onNotify('error', "Rất tiếc, món đồ này đã được tặng cho người khác rồi!", "Hệ thống");
-      setSelectedItem(null);
-      return;
-    }
-
-    setIsConnectingChat(true);
-    console.log(`[LOG] Bắt đầu kết nối nhận đồ cho item: ${item.id} từ user: ${user.id}`);
-
-    try {
-      // Tìm hội thoại hiện có dựa trên itemId và receiverId
-      const q = query(
-        collection(db, "chats"), 
-        where("itemId", "==", item.id),
-        where("receiverId", "==", user.id)
-      );
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        console.log("[LOG] Đã có hội thoại trước đó, chuyển hướng...");
-        setActiveTab('messages');
-      } else {
-        const chatId = `${item.id}_${user.id}_${Date.now()}`;
-        const initialText = `Chào ${item.author}, đệ rất thích món đồ "${item.title}" này, không biết đệ có thể xin nhận nó được không ạ?`;
-        
-        const newChat: ChatSession = {
-          id: chatId,
-          itemId: item.id,
-          itemTitle: item.title,
-          donorId: item.authorId,
-          donorName: item.author,
-          receiverId: user.id,
-          receiverName: user.name,
-          participants: [item.authorId, user.id],
-          readBy: [user.id],
-          lastMessage: initialText,
-          lastSenderId: user.id,
-          updatedAt: new Date().toISOString()
-        };
-
-        // Ghi dữ liệu vào Firestore - CHỈ tác động lên collection 'chats' và 'messages'
-        await setDoc(doc(db, "chats", chatId), newChat);
-        await addDoc(collection(db, "chats", chatId, "messages"), {
-          senderId: user.id,
-          senderName: user.name,
-          text: initialText,
-          createdAt: new Date().toISOString()
-        });
-
-        console.log("[LOG] Đã tạo thành công hội thoại mới.");
-        onNotify('success', `Đã gửi lời nhắn đến ${item.author}!`, "GIVEBACK");
-        setActiveTab('messages');
-      }
-    } catch (err) {
-      console.error("[CRITICAL] Lỗi tạo hội thoại:", err);
-      onNotify('error', "Không thể kết nối hội thoại lúc này.");
+      onNotify('error', "Lỗi đăng bài: " + String(err), 'Hệ thống'); 
     } finally { 
-      setIsConnectingChat(false); 
-      setSelectedItem(null); // Đóng modal chi tiết
+      setIsSubmitting(false); 
     }
   };
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
+      <div className="mb-10 bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
+         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="max-w-xl text-center md:text-left">
+               <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-4">Lan tỏa giá trị cao?</h2>
+               <p className="text-amber-200 font-bold text-sm md:text-base italic leading-relaxed">
+                  Thay vì tặng lẻ, hãy tổ chức Đấu giá để góp quỹ vận hành GIVEBACK.
+               </p>
+            </div>
+            <button 
+               onClick={() => setActiveTab?.('contact')} 
+               className="bg-amber-500 hover:bg-amber-400 text-amber-950 px-8 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl"
+            >
+               Liên hệ Admin
+            </button>
+         </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-           <h1 className="text-4xl font-black text-emerald-900 italic uppercase tracking-tighter">Cửa hàng Tặng đồ</h1>
-           <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Nơi những món đồ tìm thấy chủ nhân mới</p>
+          <h1 className="text-4xl font-black text-emerald-900 italic uppercase tracking-tighter">Sàn Tặng đồ</h1>
+          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-1">Kết nối những món quà không đồng</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Đăng món đồ tặng</button>
+        <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Đăng đồ tặng ngay</button>
       </div>
 
       <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-emerald-50 mb-10 flex flex-col md:flex-row gap-4">
-        <input type="text" placeholder="Tìm kiếm món đồ đệ cần..." className="flex-1 bg-gray-50 px-6 py-4 rounded-full text-sm font-bold outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        <div className="flex-1 relative">
+          <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input type="text" placeholder="Tìm món đồ..." className="w-full pl-14 pr-6 py-4 bg-gray-50 rounded-full text-sm font-bold outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+        </div>
         <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
           {['Tất cả', ...CATEGORIES].map(cat => (
-            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600'}`}>{cat}</button>
+            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-lg' : 'bg-emerald-50 text-emerald-600'}`}>
+              {cat}
+            </button>
           ))}
         </div>
       </div>
@@ -226,46 +182,37 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 overflow-y-auto py-10">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-8 md:p-10 animate-in zoom-in-95">
-             <h2 className="text-2xl font-black uppercase italic text-emerald-900 mb-8">Thông tin món đồ tặng</h2>
+          <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-10 animate-in zoom-in-95 duration-200">
+             <h2 className="text-2xl font-black uppercase italic text-emerald-900 mb-8">Thông tin đồ tặng</h2>
              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-6">
+                <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Tên món đồ..." value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-4">
+                      <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
+                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                      <input required placeholder="Địa điểm (Vd: Quận 1)" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.location} onChange={e => setNewPost({...newPost, location: e.target.value})} />
+                   </div>
                    <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full md:w-1/2 aspect-square bg-gray-50 border-2 border-dashed border-emerald-100 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 overflow-hidden relative"
-                    >
+                      className="border-2 border-dashed border-emerald-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 transition-colors"
+                   >
                       {previewMedia ? (
-                        <img src={previewMedia} className="w-full h-full object-cover" alt="" />
+                        mediaType === 'video' ? <video src={previewMedia} className="w-full h-full object-cover rounded-2xl" /> : <img src={previewMedia} className="w-full h-full object-cover rounded-2xl" alt="" />
                       ) : (
-                        <div className="text-center p-4">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-emerald-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          <p className="text-[10px] font-black text-emerald-900 uppercase">Chọn ảnh món đồ</p>
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-300 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          <p className="text-[10px] font-black text-emerald-600 uppercase mt-2">Ảnh / Video</p>
                         </div>
                       )}
-                      {loadingAI && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>}
-                   </div>
-                   <div className="flex-1 space-y-4">
-                     <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Tên món đồ..." value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
-                     <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
-                       {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                     </select>
-                     <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.condition} onChange={e => setNewPost({...newPost, condition: e.target.value as any})}>
-                       <option value="new">Mới 100%</option>
-                       <option value="good">Còn tốt</option>
-                       <option value="used">Đã sử dụng</option>
-                     </select>
-                     <input required placeholder="SĐT liên hệ" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.contact} onChange={e => setNewPost({...newPost, contact: e.target.value})} />
                    </div>
                 </div>
-                <input required placeholder="Địa chỉ nhận đồ" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.location} onChange={e => setNewPost({...newPost, location: e.target.value})} />
-                <textarea rows={3} placeholder="Mô tả chân thành về món đồ..." className="w-full p-6 bg-gray-50 rounded-[2rem] font-medium outline-none italic" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
-                <button type="submit" disabled={isSubmitting || loadingAI} className="w-full bg-emerald-900 text-white py-5 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-black transition-all">
-                   {isSubmitting ? 'ĐANG LÊN SÓNG...' : 'ĐĂNG MÓN ĐỒ NGAY'}
-                </button>
+                <textarea required rows={3} placeholder="Đệ viết vài dòng mô tả..." className="w-full bg-gray-50 p-4 rounded-2xl font-medium outline-none" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
+                <button type="submit" disabled={isSubmitting} className="w-full bg-emerald-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl">Đăng đồ lên sàn</button>
              </form>
-             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+             <input ref={fileInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
           </div>
         </div>
       )}
@@ -273,19 +220,20 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
       {selectedItem && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
            <div className="absolute inset-0 bg-emerald-950/40 backdrop-blur-md" onClick={() => setSelectedItem(null)}></div>
-           <div className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10">
-              <img src={selectedItem.image} className="w-full h-64 object-cover" alt="" />
-              <div className="p-8 text-center">
+           <div className="relative bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-300">
+              <div className="h-64 bg-gray-100">
+                <img src={selectedItem.image} className="w-full h-full object-cover" alt="" />
+              </div>
+              <div className="p-8">
                  <h3 className="text-2xl font-black italic uppercase text-emerald-900 mb-2">{selectedItem.title}</h3>
-                 <p className="text-emerald-600 font-bold text-[10px] uppercase mb-4 tracking-widest">{selectedItem.category} &bull; {selectedItem.location}</p>
-                 <p className="text-gray-600 italic mb-8">"{selectedItem.description}"</p>
+                 <p className="text-emerald-600 font-bold text-xs uppercase mb-4 tracking-widest">{selectedItem.category} &bull; {selectedItem.location}</p>
+                 <p className="text-gray-600 leading-relaxed mb-8 italic">"{selectedItem.description}"</p>
                  <button 
-                  onClick={() => handleContactDonor(selectedItem)} 
-                  disabled={isConnectingChat || selectedItem.quantity <= 0}
-                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                 >
-                   {selectedItem.quantity <= 0 ? 'ĐÃ HẾT HÀNG' : (isConnectingChat ? 'ĐANG KẾT NỐI...' : 'Nhắn tin nhận đồ ngay')}
-                 </button>
+                  onClick={() => handleConfirmClaim(selectedItem)}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                >
+                  Nhận món đồ này
+                </button>
               </div>
            </div>
         </div>

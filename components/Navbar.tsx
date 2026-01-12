@@ -7,10 +7,15 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   onLogout: () => void;
-  unreadCount?: number;
+  pendingRequestsCount?: number;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout, unreadCount = 0 }) => {
+const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout, pendingRequestsCount = 0 }) => {
+  const getAvatar = (src?: string, name?: string) => {
+    if (src && src.trim() !== "") return src;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=059669&color=fff&bold=true`;
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-effect border-b">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -94,26 +99,35 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
           {user ? (
             <div className="flex items-center space-x-2">
               <button 
+                onClick={() => setActiveTab('notifications')}
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all relative ${activeTab === 'notifications' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'notifications' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {pendingRequestsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[9px] font-black flex items-center justify-center rounded-full border-2 border-white animate-bounce">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+              </button>
+
+              <button 
                 onClick={() => setActiveTab('messages')}
                 className={`w-10 h-10 flex items-center justify-center rounded-full transition-all relative ${activeTab === 'messages' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
               </button>
 
               <div 
-                className="flex items-center space-x-2 cursor-pointer p-1 pr-3 rounded-full hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
+                className={`flex items-center space-x-2 cursor-pointer p-1 pr-3 rounded-full hover:bg-gray-100 transition-all border border-transparent ${activeTab === 'profile' ? 'bg-emerald-50 border-emerald-200' : 'hover:border-gray-200'} relative`}
                 onClick={() => setActiveTab('profile')}
               >
                 <img 
-                  src={user.avatar} 
-                  className="w-8 h-8 rounded-full border border-emerald-500 object-cover" 
+                  src={getAvatar(user.avatar, user.name)} 
+                  className="w-8 h-8 rounded-full border border-emerald-500 object-cover bg-white" 
                   alt=""
                 />
               </div>
