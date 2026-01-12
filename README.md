@@ -31,7 +31,7 @@ git init
 git add .
 git commit -m "feat: Khởi tạo dự án GIVEBACK"
 
-# Kết nối với Repo (Thay 'USERNAME' bằng tên GitHub của Đệ)
+
 git branch -M main
 git remote add origin https://github.com/doande21/GIVEBACK.git
 git push -u origin main

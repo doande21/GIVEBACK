@@ -3,18 +3,18 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 declare global {
   interface Window {
-    aistudio?: any;
+    aistudio?: {
+      openSelectKey: () => Promise<void>;
+    };
   }
 }
 
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
-// Helper to handle potential API key issues (e.g. billing not enabled)
 const handleAIApiError = async (error: any) => {
   const errorMsg = error?.message || "";
   console.error("AI Service Error:", error);
   
-  // Tự động kích hoạt trình chọn Key nếu lỗi liên quan đến xác thực hoặc project
   if (window.aistudio && (
     errorMsg.includes("Requested entity was not found") || 
     errorMsg.includes("API_KEY_MISSING") ||
@@ -30,7 +30,6 @@ const handleAIApiError = async (error: any) => {
 
 export const getAIAssistance = async (prompt: string) => {
   try {
-    // Luôn tạo instance mới trước khi gọi để lấy Key mới nhất từ process.env.API_KEY
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -67,12 +66,12 @@ export const suggestDescription = async (itemName: string, category: string) => 
 export const analyzeItemImage = async (base64Data: string, mimeType: string) => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-    const prompt = `Hãy phân tích hình ảnh món đồ này để đăng tin tặng đồ trên GIVEBACK. 
-    Trả về dữ liệu dưới dạng JSON bao gồm:
-    - title: Tên món đồ ngắn gọn (Vd: Nồi cơm điện Sharp).
-    - category: Một trong các loại: 'Quần áo', 'Đồ gia dụng', 'Sách vở', 'Điện tử', 'Đồ chơi', 'Khác'.
-    - condition: Một trong các giá trị: 'new', 'good', 'used'.
-    - description: Một đoạn mô tả chân thành, thu hút (30-50 từ) bằng tiếng Việt.`;
+    const prompt = `Hãy nhìn vào hình ảnh món đồ này và đóng vai người đăng tin tặng đồ trên dự án GIVEBACK.
+    Hãy phân tích thật kỹ và trả về dữ liệu JSON chính xác với các trường sau:
+    - title: Tên món đồ cụ thể, ngắn gọn (Vd: Mô hình Gundam HG, Nồi cơm điện Sharp 1.8L).
+    - category: BẮT BUỘC chọn 1 trong: 'Quần áo', 'Đồ gia dụng', 'Sách vở', 'Điện tử', 'Đồ chơi', 'Khác'.
+    - condition: Chọn 1 trong: 'new' (nếu rất mới), 'good' (còn tốt), 'used' (cũ).
+    - description: Một đoạn mô tả chân thành, viết theo kiểu người tặng đồ đang muốn chia sẻ niềm vui (30-50 từ).`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -80,7 +79,7 @@ export const analyzeItemImage = async (base64Data: string, mimeType: string) => 
         parts: [
           {
             inlineData: {
-              data: base64Data.split(',')[1],
+              data: base64Data.includes(',') ? base64Data.split(',')[1] : base64Data,
               mimeType: mimeType,
             },
           },
@@ -103,8 +102,10 @@ export const analyzeItemImage = async (base64Data: string, mimeType: string) => 
       },
     });
 
-    const result = JSON.parse(response.text || "{}");
-    return result;
+    const textResponse = response.text || "{}";
+    // Đôi khi AI vẫn trả về markdown ```json ... ``` dù đã set mimeType
+    const cleanJson = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+    return JSON.parse(cleanJson);
   } catch (error: any) {
     await handleAIApiError(error);
     return null;
@@ -126,10 +127,7 @@ export const searchCharityLocations = async (query: string, lat?: number, lng?: 
         }
       },
     });
-
-    const text = response.text;
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return { text, sources };
+    return { text: response.text, sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
   } catch (error: any) {
     await handleAIApiError(error);
     return { text: "Không thể tìm thấy địa điểm lúc này.", sources: [] };
@@ -142,18 +140,12 @@ export const generateMissionVideo = async (prompt: string) => {
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
       prompt: `Cinematic footage of ${prompt}, charity mission in Vietnam, heartwarming atmosphere, high quality, 1080p.`,
-      config: {
-        numberOfVideos: 1,
-        resolution: '1080p',
-        aspectRatio: '16:9'
-      }
+      config: { numberOfVideos: 1, resolution: '1080p', aspectRatio: '16:9' }
     });
-
     while (!operation.done) {
       await new Promise(resolve => setTimeout(resolve, 10000));
       operation = await ai.operations.getVideosOperation({ operation: operation });
     }
-
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
     const blob = await videoResponse.blob();
