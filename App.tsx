@@ -32,31 +32,37 @@ const App: React.FC = () => {
   const userRef = useRef<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Ref để theo dõi thời điểm cập nhật cuối cùng của mỗi hội thoại đã được thông báo
+  const lastNotifiedTimestamps = useRef<Map<string, string>>(new Map());
+  // Ref để tránh thông báo tin nhắn cũ khi vừa khởi tạo listener
+  const listenerStartTime = useRef<string>(new Date().toISOString());
 
   const addNotification = useCallback((type: NotificationType, message: string, sender?: string) => {
-    // Tránh trùng lặp tin nhắn trong thời gian ngắn
-    const isDuplicate = notifications.some(n => n.message === message && n.sender === sender);
-    if (isDuplicate) return;
+    setNotifications(prev => {
+      // Chặn thông báo trùng lặp nội dung đang hiển thị
+      if (prev.some(n => n.message === message && n.sender === sender)) return prev;
+      
+      const id = Math.random().toString(36).substr(2, 9);
+      return [...prev, { id, type, message, sender }];
+    });
 
-    const id = Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [...prev, { id, type, message, sender }]);
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
+      setNotifications(prev => prev.filter(n => n.message !== message || n.sender !== sender));
     }, 5000);
-  }, [notifications]);
+  }, []);
 
   useEffect(() => {
     userRef.current = user;
     if (user) {
-      // Thời điểm bắt đầu lắng nghe để tránh load tin cũ thành thông báo mới
-      const listenerStartTime = new Date().toISOString();
-
+      // Reset thời điểm bắt đầu mỗi khi user login
+      listenerStartTime.current = new Date().toISOString();
+      
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.id));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         let count = 0;
         snapshot.docs.forEach((doc) => {
           const data = doc.data() as ChatSession;
-          // Nếu tin nhắn cuối không do mình gửi và mình chưa đọc
           if (data.lastSenderId && data.lastSenderId !== user.id && (!data.readBy || !data.readBy.includes(user.id))) {
             count++;
           }
@@ -64,17 +70,21 @@ const App: React.FC = () => {
         setUnreadCount(count);
 
         snapshot.docChanges().forEach((change) => {
-          // Chỉ báo thông báo khi có thay đổi (modified) và tin nhắn thực sự mới
+          // Chỉ báo khi có thay đổi dữ liệu (tin nhắn mới cập nhật vào chat)
           if (change.type === "modified") {
             const data = change.doc.data() as ChatSession;
-            // KIỂM TRA CHẶT CHẼ: Tin mới, do người khác gửi, và sau khi app đã chạy
+            const sessionId = change.doc.id;
+            const lastNotifiedAt = lastNotifiedTimestamps.current.get(sessionId);
+
             if (
               data.lastMessage && 
-              data.lastSenderId !== user.id && 
-              data.updatedAt > listenerStartTime &&
-              data.lastSenderId !== 'system' // Không báo notification cho tin hệ thống tự động
+              data.lastSenderId !== user.id && // Không báo tin của chính mình
+              data.lastSenderId !== 'system' && // Không báo tin hệ thống
+              data.updatedAt > listenerStartTime.current && // Phải là tin sau khi đăng nhập
+              data.updatedAt !== lastNotifiedAt // Chưa từng thông báo timestamp này
             ) {
               const senderName = data.lastSenderId === data.donorId ? data.donorName : data.receiverName;
+              lastNotifiedTimestamps.current.set(sessionId, data.updatedAt);
               addNotification('info', data.lastMessage, senderName);
             }
           }
@@ -141,7 +151,6 @@ const App: React.FC = () => {
         {activeTab === 'contact' && <Contact />}
       </main>
 
-      {/* Modern Notification Portal */}
       <div className="fixed top-24 right-6 z-[200] flex flex-col gap-4 w-full max-w-sm pointer-events-none">
         {notifications.map((n) => (
           <div 
@@ -166,7 +175,6 @@ const App: React.FC = () => {
               }`}>{n.sender || (n.type === 'success' ? 'Thành công' : n.type === 'error' ? 'Lỗi hệ thống' : 'Thông báo')}</p>
               <p className="text-sm font-bold text-gray-800 italic leading-snug">"{n.message}"</p>
             </div>
-            {/* Progress Bar */}
             <div className={`absolute bottom-0 left-0 h-1 transition-all duration-[5000ms] ease-linear w-full ${
               n.type === 'success' ? 'bg-emerald-500' : 
               n.type === 'error' ? 'bg-red-500' : 
@@ -177,10 +185,7 @@ const App: React.FC = () => {
       </div>
 
       <style>{`
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
+        @keyframes progress { from { width: 100%; } to { width: 0%; } }
       `}</style>
       <AIHelper />
     </div>
