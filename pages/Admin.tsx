@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CharityMission, User, AuctionItem, NeededItem, DonationItem, SocialPost } from '../types';
 import { 
   collection, 
@@ -28,6 +28,10 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   const [activeSubTab, setActiveSubTab] = useState<'missions' | 'auctions' | 'posts' | 'stats'>('missions');
   const [postFilter, setPostFilter] = useState<'market' | 'social'>('market');
   
+  // File Input Refs
+  const missionImageRef = useRef<HTMLInputElement>(null);
+  const auctionImageRef = useRef<HTMLInputElement>(null);
+
   // Mission Form States
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
@@ -73,6 +77,26 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
       unsubPosts();
     };
   }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'mission' | 'auction') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        onNotify('warning', "Ảnh lớn hơn 2MB rồi đệ ơi! Hãy chọn ảnh nhẹ hơn nhé.", "Hệ thống");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        if (type === 'mission') {
+          setMissionForm(prev => ({ ...prev, image: base64 }));
+        } else {
+          setAuctionForm(prev => ({ ...prev, image: base64 }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // --- Handlers ---
   const handleDeleteUserItem = async (id: string, title: string) => {
@@ -216,11 +240,11 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   };
 
   return (
-    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen">
+    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen font-['Inter']">
       <div className="flex flex-col lg:flex-row justify-between items-start mb-10 gap-6">
         <div>
-          <h1 className="text-5xl font-black text-gray-900 tracking-tighter italic uppercase">Admin Dashboard</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-2">Hệ thống quản lý minh bạch GIVEBACK</p>
+          <h1 className="text-5xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Admin Dashboard</h1>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4">Hệ thống quản lý minh bạch GIVEBACK</p>
         </div>
 
         <div className="flex bg-gray-900 p-1.5 rounded-[2.5rem] shadow-2xl overflow-x-auto">
@@ -252,7 +276,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                   <div className="flex gap-6">
                     <img src={m.image || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=200'} className="w-28 h-28 rounded-3xl object-cover shadow-lg" alt="" />
                     <div className="flex-1 pr-12">
-                      <h4 className="text-2xl font-black italic uppercase text-emerald-900">{m.location}</h4>
+                      <h4 className="text-2xl font-black italic uppercase text-emerald-900 leading-tight">{m.location}</h4>
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4">{new Date(m.date).toLocaleDateString('vi-VN')}</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-emerald-50 p-3 rounded-2xl"><p className="text-[8px] font-black text-emerald-600 uppercase">Ngân sách</p><p className="text-sm font-black text-emerald-900">{currentBudget.toLocaleString()}đ</p></div>
@@ -293,7 +317,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                  <div className="flex gap-6">
                     <img src={a.image} className="w-32 h-32 rounded-3xl object-cover shadow-lg" alt="" />
                     <div className="flex-1 pr-24">
-                       <h4 className="text-2xl font-black italic uppercase text-amber-950">{a.title}</h4>
+                       <h4 className="text-2xl font-black italic uppercase text-amber-950 leading-tight">{a.title}</h4>
                        <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-1 mb-4">Kết thúc: {new Date(a.endTime).toLocaleString('vi-VN')}</p>
                        <div className="flex flex-wrap gap-3">
                           <div className="bg-amber-50 px-4 py-2 rounded-xl text-[9px] font-black text-amber-700 uppercase">Tặng bởi: {a.donorName}</div>
@@ -375,6 +399,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                   <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" placeholder="Địa điểm (Vd: Bình Định)" value={missionForm.location} onChange={e => setMissionForm({...missionForm, location: e.target.value})} />
                   <input required type="date" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" value={missionForm.date} onChange={e => setMissionForm({...missionForm, date: e.target.value})} />
                 </div>
+
                 <div className="bg-emerald-50/50 p-6 rounded-[2.5rem] border-2 border-dashed border-emerald-100">
                    <div className="flex justify-between items-center mb-4">
                       <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Nhu yếu phẩm cần thiết</h4>
@@ -391,12 +416,34 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                       ))}
                    </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <input type="number" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Hộ dân mục tiêu" value={missionForm.targetHouseholds || ''} onChange={e => setMissionForm({...missionForm, targetHouseholds: parseInt(e.target.value)})} />
                   <input type="number" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Quỹ mục tiêu (VNĐ)" value={missionForm.targetBudget || ''} onChange={e => setMissionForm({...missionForm, targetBudget: parseInt(e.target.value)})} />
                 </div>
                 <textarea rows={3} className="w-full bg-gray-50 p-4 rounded-2xl font-medium outline-none" placeholder="Mô tả hoàn cảnh..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
-                <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Link ảnh tiêu đề" value={missionForm.image} onChange={e => setMissionForm({...missionForm, image: e.target.value})} />
+                
+                {/* Upload Ảnh Chuyến Đi */}
+                <div 
+                   onClick={() => missionImageRef.current?.click()}
+                   className="w-full aspect-video rounded-3xl border-2 border-dashed border-emerald-200 bg-emerald-50/30 flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 transition-all overflow-hidden relative group"
+                >
+                   {missionForm.image ? (
+                     <>
+                       <img src={missionForm.image} className="w-full h-full object-cover" alt="Mission Preview" />
+                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <p className="text-white font-black text-[10px] uppercase tracking-widest bg-emerald-600 px-4 py-2 rounded-xl">Đổi ảnh khác</p>
+                       </div>
+                     </>
+                   ) : (
+                     <div className="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-emerald-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Tải lên ảnh Chuyến đi</p>
+                     </div>
+                   )}
+                   <input ref={missionImageRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'mission')} />
+                </div>
+
                 <div className="flex gap-4">
                   <button type="button" onClick={() => setIsMissionModalOpen(false)} className="flex-1 py-5 text-gray-400 font-black uppercase text-[10px]">Hủy</button>
                   <button type="submit" className="flex-[2] bg-emerald-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl">Lưu chuyến đi</button>
@@ -428,7 +475,28 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                   <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Vùng cứu trợ thụ hưởng" value={auctionForm.missionLocation} onChange={e => setAuctionForm({...auctionForm, missionLocation: e.target.value})} />
                 </div>
                 <textarea rows={3} className="w-full bg-gray-50 p-4 rounded-2xl font-medium outline-none" placeholder="Mô tả giá trị vật phẩm..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
-                <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Link ảnh vật phẩm" value={auctionForm.image} onChange={e => setAuctionForm({...auctionForm, image: e.target.value})} />
+                
+                {/* Upload Ảnh Đấu Giá */}
+                <div 
+                   onClick={() => auctionImageRef.current?.click()}
+                   className="w-full aspect-video rounded-3xl border-2 border-dashed border-amber-200 bg-amber-50/30 flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 transition-all overflow-hidden relative group"
+                >
+                   {auctionForm.image ? (
+                     <>
+                       <img src={auctionForm.image} className="w-full h-full object-cover" alt="Auction Preview" />
+                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <p className="text-white font-black text-[10px] uppercase tracking-widest bg-amber-600 px-4 py-2 rounded-xl">Đổi ảnh khác</p>
+                       </div>
+                     </>
+                   ) : (
+                     <div className="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-amber-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Tải lên ảnh vật phẩm</p>
+                     </div>
+                   )}
+                   <input ref={auctionImageRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'auction')} />
+                </div>
+
                 <div className="flex gap-4">
                   <button type="button" onClick={() => setIsAuctionModalOpen(false)} className="flex-1 py-5 text-gray-400 font-black uppercase text-[10px]">Hủy</button>
                   <button type="submit" className="flex-[2] bg-amber-800 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl">Lên sàn ngay</button>
@@ -464,7 +532,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
           <div className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10">
              <h2 className="text-2xl font-black uppercase italic text-emerald-900 mb-6">Ghi danh quyên góp</h2>
              <form onSubmit={handleLogDonation} className="space-y-6">
-                <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none shadow-sm" placeholder="Tên nhà hảo tâm" value={donationLogForm.donorName} onChange={e => setDonationLogForm({...donationLogForm, donorName: e.target.value})} />
+                <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none shadow-sm" placeholder="Tên nhà hảo tâm" value={donationLogForm.donorName} onChange={e => setLoggingDonationFor && setDonationLogForm({...donationLogForm, donorName: e.target.value})} />
                 <input required type="number" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none shadow-sm" placeholder="Số tiền (VNĐ)" value={donationLogForm.amount || ''} onChange={e => setDonationLogForm({...donationLogForm, amount: parseInt(e.target.value)})} />
                 <textarea className="w-full bg-gray-50 p-4 rounded-2xl font-medium outline-none shadow-sm" rows={2} placeholder="Lời nhắn" value={donationLogForm.message} onChange={e => setDonationLogForm({...donationLogForm, message: e.target.value})} />
                 <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Hoàn tất ghi danh</button>
