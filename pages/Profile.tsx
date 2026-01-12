@@ -7,9 +7,10 @@ import { db } from '../services/firebase';
 interface ProfileProps {
   user: User;
   onUpdateUser: (updatedUser: User) => void;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
+const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser, onNotify }) => {
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -36,7 +37,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+        onNotify('warning', "Ảnh quá lớn rồi! Vui lòng chọn ảnh dưới 2MB nhé.", 'Hệ thống');
         return;
       }
       const reader = new FileReader();
@@ -55,10 +56,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
       await updateDoc(userRef, formData);
       onUpdateUser({ ...user, ...formData });
       setIsEditing(false);
-      alert("Đã cập nhật hồ sơ thành công!");
+      onNotify('success', "Hồ sơ cá nhân của bạn đã được cập nhật thành công!", 'Hệ thống');
     } catch (err) {
       console.error(err);
-      alert("Lỗi khi cập nhật thông tin.");
+      onNotify('error', "Không thể cập nhật hồ sơ lúc này. Lỗi: " + String(err), 'Hệ thống');
     } finally {
       setLoading(false);
     }
@@ -67,12 +68,10 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
   return (
     <div className="pt-24 pb-12 px-4 max-w-5xl mx-auto">
       <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-emerald-50 relative">
-        {/* Banner Area */}
         <div className="h-48 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-700 relative">
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         </div>
 
-        {/* Profile Info Section */}
         <div className="px-8 pb-12">
           <div className="relative -mt-20 mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="flex flex-col md:flex-row items-center md:items-end space-y-4 md:space-y-0 md:space-x-8">
@@ -105,8 +104,6 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
                   accept="image/*" 
                   onChange={handleFileChange} 
                 />
-                
-                <div className="absolute inset-0 rounded-[2.5rem] ring-4 ring-emerald-500/20 pointer-events-none"></div>
               </div>
               
               <div className="text-center md:text-left pb-4">

@@ -19,9 +19,10 @@ import { db } from '../services/firebase';
 interface MarketplaceProps {
   user: User;
   setActiveTab?: (tab: any) => void;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
 }
 
-const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab }) => {
+const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify }) => {
   const [items, setItems] = useState<DonationItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
@@ -67,23 +68,27 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab }) => {
 
   const handleConfirmClaim = async (item: DonationItem) => {
     if (item.quantity <= 0) return;
-    const chatId = `${item.id}_${user.id}`;
-    await setDoc(doc(db, "chats", chatId), {
-      id: chatId,
-      itemId: item.id,
-      itemTitle: item.title,
-      donorId: item.authorId,
-      donorName: item.author,
-      receiverId: user.id,
-      receiverName: user.name,
-      participants: [item.authorId, user.id],
-      lastMessage: "Chào bạn, mình muốn đăng ký nhận món đồ này.",
-      lastSenderId: user.id,
-      updatedAt: new Date().toISOString()
-    });
-    await updateDoc(doc(db, "items", item.id), { quantity: item.quantity - 1 });
-    alert("Đã kết nối thành công! Vui lòng vào mục Tin nhắn để trao đổi thêm.");
-    setSelectedItem(null);
+    try {
+      const chatId = `${item.id}_${user.id}`;
+      await setDoc(doc(db, "chats", chatId), {
+        id: chatId,
+        itemId: item.id,
+        itemTitle: item.title,
+        donorId: item.authorId,
+        donorName: item.author,
+        receiverId: user.id,
+        receiverName: user.name,
+        participants: [item.authorId, user.id],
+        lastMessage: "Chào bạn, mình muốn đăng ký nhận món đồ này.",
+        lastSenderId: user.id,
+        updatedAt: new Date().toISOString()
+      });
+      await updateDoc(doc(db, "items", item.id), { quantity: item.quantity - 1 });
+      onNotify('success', `Đã kết nối thành công với ${item.author}. Hãy vào mục Tin nhắn để trao đổi địa chỉ nhé!`, 'Yêu thương');
+      setSelectedItem(null);
+    } catch (err) {
+      onNotify('error', "Không thể thực hiện yêu cầu. Lỗi: " + String(err), 'Hệ thống');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,14 +106,18 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab }) => {
       };
       await addDoc(collection(db, "items"), itemData);
       setIsModalOpen(false);
+      onNotify('success', `Món đồ "${newPost.title}" đã được đăng thành công! Cảm ơn tấm lòng của bạn.`, 'GIVEBACK');
       setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
       setPreviewMedia(null);
-    } catch (err) { alert(err); } finally { setIsSubmitting(false); }
+    } catch (err) { 
+      onNotify('error', "Lỗi đăng bài: " + String(err), 'Hệ thống'); 
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
-      {/* Auction Call to Action Banner */}
       <div className="mb-10 bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 rounded-[3rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
@@ -154,7 +163,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredItems.map(item => (
-          <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} />
+          <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} />
         ))}
       </div>
 

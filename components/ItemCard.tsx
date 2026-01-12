@@ -8,20 +8,22 @@ interface ItemCardProps {
   item: DonationItem;
   user?: User | null;
   onSelect?: (item: DonationItem) => void;
+  onNotify?: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify }) => {
   const isOutOfStock = item.quantity <= 0;
   const isAdmin = user?.role === 'admin';
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(`Admin Đệ có chắc muốn gỡ bài "${item.title}" không?`)) {
+    if (window.confirm(`Bạn có chắc muốn gỡ bài "${item.title}" không?`)) {
       try {
         await deleteDoc(doc(db, "items", item.id));
-        alert("Đã gỡ bài thành công!");
+        if (onNotify) onNotify('success', `Đã gỡ món đồ "${item.title}" khỏi hệ thống.`, 'Quản trị');
       } catch (err) {
         console.error("Lỗi khi gỡ bài:", err);
+        if (onNotify) onNotify('error', "Có lỗi xảy ra khi gỡ bài viết.", 'Hệ thống');
       }
     }
   };
@@ -31,7 +33,6 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect }) => {
       onClick={() => onSelect?.(item)}
       className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative ${isOutOfStock ? 'opacity-75' : ''}`}
     >
-      {/* Nút xóa nhanh cho Admin */}
       {isAdmin && (
         <button 
           onClick={handleDelete}
@@ -45,7 +46,6 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect }) => {
       )}
 
       <div className="relative h-48 bg-gray-200 overflow-hidden">
-        {/* Lớp phủ Hết hàng */}
         {isOutOfStock && (
           <div className="absolute inset-0 z-10 bg-black/40 flex items-center justify-center">
             <div className="bg-red-600 text-white font-black text-xs px-4 py-2 rounded-lg rotate-[-10deg] shadow-2xl border-2 border-white uppercase tracking-[0.2em] animate-pulse">

@@ -61,10 +61,9 @@ const AIHelper: React.FC = () => {
     if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
       try {
         await window.aistudio.openSelectKey();
-        // Sau khi mở trình chọn Key, chúng ta giả định người dùng sẽ chọn thành công
         setMessages(prev => [...prev, {
           role: 'bot', 
-          content: "Đã hiểu! Đệ hãy chọn một API Key từ Project có tính phí (Paid Project) để kích hoạt toàn bộ tính năng Gemini 3 và Veo nhé."
+          content: "Đã hiểu! Bạn hãy chọn một API Key từ Project có tính phí (Paid Project) để kích hoạt toàn bộ tính năng Gemini 3 và Veo nhé."
         }]);
       } catch (err) {
         console.error("Lỗi khi gọi openSelectKey:", err);
@@ -72,7 +71,7 @@ const AIHelper: React.FC = () => {
     } else {
       setMessages(prev => [...prev, {
         role: 'bot', 
-        content: "Đệ ơi, trình chọn Key tự động chỉ hoạt động khi Đệ chạy ứng dụng bên trong Google AI Studio. Nếu đang chạy ở tab riêng (localhost), Đệ hãy quay lại giao diện AI Studio để chọn Key nhé!",
+        content: "Bạn ơi, trình chọn Key tự động chỉ hoạt động khi ứng dụng chạy trong Google AI Studio. Nếu đang chạy ở tab riêng, hãy quay lại giao diện AI Studio để chọn Key nhé!",
         isError: true
       }]);
     }
@@ -91,7 +90,7 @@ const AIHelper: React.FC = () => {
     if (response === "ERROR_MISSING_KEY") {
       setMessages(prev => [...prev, {
         role: 'bot', 
-        content: "Huynh ơi, hiện tại hệ thống chưa nhận được API Key. Đệ hãy nhấn nút bên dưới để chọn một Project (cần có Billing/Thanh toán) nhé!",
+        content: "Xin chào, hiện tại hệ thống chưa nhận được API Key. Bạn hãy nhấn nút bên dưới để chọn một Project (cần có Billing) nhé!",
         isError: true
       }]);
     } else {
@@ -109,7 +108,6 @@ const AIHelper: React.FC = () => {
       }
 
       setIsVoiceMode(true);
-      // Tạo instance ngay lúc dùng để lấy Key mới nhất
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
       
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});

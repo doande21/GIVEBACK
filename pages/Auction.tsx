@@ -17,9 +17,10 @@ import { db } from '../services/firebase';
 interface AuctionProps {
   user: User;
   setActiveTab?: (tab: any) => void;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
 }
 
-const Auction: React.FC<AuctionProps> = ({ user, setActiveTab }) => {
+const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [selectedAuction, setSelectedAuction] = useState<AuctionItem | null>(null);
   const [bidAmount, setBidAmount] = useState<number>(0);
@@ -35,7 +36,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab }) => {
 
   const handleBid = async (auction: AuctionItem) => {
     if (bidAmount <= auction.currentBid) {
-      alert("Số tiền đấu giá phải cao hơn giá hiện tại!");
+      onNotify('warning', `Bạn cần trả giá cao hơn ${(auction.currentBid).toLocaleString()}đ nhé!`, 'Đấu giá');
       return;
     }
 
@@ -65,10 +66,11 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab }) => {
         });
       });
 
-      alert("Tuyệt vời! Bạn đang dẫn đầu phiên đấu giá này.");
+      onNotify('success', `Chúc mừng! Bạn đang dẫn đầu phiên đấu giá "${auction.title}" với mức giá ${bidAmount.toLocaleString()}đ.`, 'Đấu giá');
       setBidAmount(0);
+      setSelectedAuction(null);
     } catch (err: any) {
-      alert(err);
+      onNotify('error', "Lỗi đấu giá: " + String(err), 'Hệ thống');
     } finally {
       setLoading(false);
     }
@@ -95,7 +97,6 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab }) => {
         </p>
       </div>
 
-      {/* Muốn đấu giá? Call to Action */}
       <div className="mb-16 bg-white border-2 border-dashed border-amber-200 rounded-[3rem] p-8 md:p-12 text-center">
          <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
