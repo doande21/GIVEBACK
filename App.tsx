@@ -34,17 +34,23 @@ const App: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const addNotification = useCallback((type: NotificationType, message: string, sender?: string) => {
+    // Tránh trùng lặp tin nhắn trong thời gian ngắn
+    const isDuplicate = notifications.some(n => n.message === message && n.sender === sender);
+    if (isDuplicate) return;
+
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications(prev => [...prev, { id, type, message, sender }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
-  }, []);
+  }, [notifications]);
 
   useEffect(() => {
     userRef.current = user;
     if (user) {
-      const startTime = new Date().toISOString();
+      // Thời điểm bắt đầu lắng nghe để tránh load tin cũ thành thông báo mới
+      const listenerStartTime = new Date().toISOString();
+
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.id));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         let count = 0;
@@ -58,9 +64,16 @@ const App: React.FC = () => {
         setUnreadCount(count);
 
         snapshot.docChanges().forEach((change) => {
-          if (change.type === "modified" || change.type === "added") {
+          // Chỉ báo thông báo khi có thay đổi (modified) và tin nhắn thực sự mới
+          if (change.type === "modified") {
             const data = change.doc.data() as ChatSession;
-            if (data.lastMessage && data.updatedAt > startTime && data.lastSenderId !== user.id) {
+            // KIỂM TRA CHẶT CHẼ: Tin mới, do người khác gửi, và sau khi app đã chạy
+            if (
+              data.lastMessage && 
+              data.lastSenderId !== user.id && 
+              data.updatedAt > listenerStartTime &&
+              data.lastSenderId !== 'system' // Không báo notification cho tin hệ thống tự động
+            ) {
               const senderName = data.lastSenderId === data.donorId ? data.donorName : data.receiverName;
               addNotification('info', data.lastMessage, senderName);
             }
