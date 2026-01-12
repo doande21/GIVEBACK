@@ -9,7 +9,8 @@ import {
   addDoc, 
   updateDoc, 
   doc,
-  orderBy
+  orderBy,
+  arrayUnion
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -26,7 +27,6 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // FIX: Bỏ orderBy updatedAt để tránh lỗi Index, sắp xếp thủ công bên dưới
     const q = query(
       collection(db, "chats"), 
       where("participants", "array-contains", user.id)
@@ -34,14 +34,23 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatSession));
-      // Sắp xếp thủ công: Cái nào mới cập nhật thì lên đầu
       data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setSessions(data);
       setLoading(false);
+      
+      // Nếu đang mở một cuộc hội thoại mà có tin nhắn mới tới, hãy tự động đánh dấu là đã đọc
+      if (selectedSession) {
+        const currentInList = data.find(s => s.id === selectedSession.id);
+        if (currentInList && (!currentInList.readBy || !currentInList.readBy.includes(user.id))) {
+          updateDoc(doc(db, "chats", currentInList.id), {
+            readBy: arrayUnion(user.id)
+          });
+        }
+      }
     });
 
     return () => unsubscribe();
-  }, [user.id]);
+  }, [user.id, selectedSession?.id]);
 
   useEffect(() => {
     if (selectedSession) {
@@ -49,9 +58,15 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage)));
       });
+
+      // Khi mở hội thoại, đánh dấu đã đọc
+      updateDoc(doc(db, "chats", selectedSession.id), {
+        readBy: arrayUnion(user.id)
+      });
+
       return unsubscribe;
     }
-  }, [selectedSession]);
+  }, [selectedSession?.id, user.id]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -75,7 +90,8 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
       await updateDoc(doc(db, "chats", selectedSession.id), {
         lastMessage: newMessage.trim(),
         lastSenderId: user.id,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        readBy: [user.id] // Người gửi mặc định là đã đọc, người nhận thì chưa
       });
       setNewMessage('');
     } catch (err) {
@@ -101,6 +117,8 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
               <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div></div>
             ) : sessions.map(s => {
               const partnerName = s.donorId === user.id ? s.receiverName : s.donorName;
+              const isUnread = s.lastSenderId !== user.id && (!s.readBy || !s.readBy.includes(user.id));
+              
               return (
                 <div 
                   key={s.id} 
@@ -108,13 +126,15 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                   className={`p-4 cursor-pointer transition-all hover:bg-emerald-50/30 ${selectedSession?.id === s.id ? 'bg-emerald-50 border-l-4 border-emerald-600' : ''}`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <p className="text-xs font-black text-gray-900 line-clamp-1">{s.itemTitle}</p>
-                    {s.lastSenderId !== user.id && (
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <p className={`text-xs ${isUnread ? 'font-black text-emerald-900' : 'font-bold text-gray-700'} line-clamp-1`}>{s.itemTitle}</p>
+                    {isUnread && (
+                      <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-white shadow-sm"></span>
                     )}
                   </div>
                   <p className="text-[10px] text-emerald-600 font-bold uppercase">{partnerName}</p>
-                  <p className="text-[10px] text-gray-400 mt-2 truncate italic">"{s.lastMessage || 'Bắt đầu trò chuyện...'}"</p>
+                  <p className={`text-[10px] mt-2 truncate italic ${isUnread ? 'text-gray-900 font-bold' : 'text-gray-400'}`}>
+                    "{s.lastMessage || 'Bắt đầu trò chuyện...'}"
+                  </p>
                 </div>
               );
             })}

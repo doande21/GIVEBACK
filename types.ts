@@ -86,6 +86,7 @@ export interface ChatSession {
   receiverId: string;
   receiverName: string;
   participants: string[];
+  readBy: string[]; // Danh sách ID người dùng đã đọc tin nhắn cuối cùng
   lastMessage?: string;
   lastSenderId?: string;
   updatedAt: string;
@@ -98,9 +99,12 @@ export interface NeededItem {
   unit: string;
 }
 
-export interface Sponsor {
-  name: string;
-  logo: string;
+export interface DonationLog {
+  id: string;
+  donorName: string;
+  amount: number;
+  message?: string;
+  createdAt: string;
 }
 
 export interface CharityMission {
@@ -113,9 +117,8 @@ export interface CharityMission {
   status: 'upcoming' | 'ongoing' | 'completed';
   itemsNeeded: NeededItem[];
   targetBudget: number;
-  currentBudget: number; // Thêm: Số tiền hiện có đã nhận được
+  currentBudget: number;
   targetHouseholds: number;
-  sponsors?: Sponsor[];
   createdAt: string;
 }
 

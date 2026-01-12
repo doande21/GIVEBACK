@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const userRef = useRef<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const addNotification = useCallback((type: NotificationType, message: string, sender?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -46,6 +47,16 @@ const App: React.FC = () => {
       const startTime = new Date().toISOString();
       const q = query(collection(db, "chats"), where("participants", "array-contains", user.id));
       const unsubscribe = onSnapshot(q, (snapshot) => {
+        let count = 0;
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data() as ChatSession;
+          // Nếu tin nhắn cuối không do mình gửi và mình chưa đọc
+          if (data.lastSenderId && data.lastSenderId !== user.id && (!data.readBy || !data.readBy.includes(user.id))) {
+            count++;
+          }
+        });
+        setUnreadCount(count);
+
         snapshot.docChanges().forEach((change) => {
           if (change.type === "modified" || change.type === "added") {
             const data = change.doc.data() as ChatSession;
@@ -105,7 +116,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <Navbar user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+      <Navbar user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} unreadCount={unreadCount} />
       <main>
         {activeTab === 'home' && <Home user={user} onNotify={addNotification} />}
         {activeTab === 'market' && <Marketplace user={user} setActiveTab={setActiveTab} onNotify={addNotification} />}

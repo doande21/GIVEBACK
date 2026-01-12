@@ -7,9 +7,10 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: any) => void;
   onLogout: () => void;
+  unreadCount?: number;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout }) => {
+const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout, unreadCount = 0 }) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-effect border-b">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -99,6 +100,11 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               <div 

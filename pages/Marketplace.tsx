@@ -2,15 +2,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ItemCard from '../components/ItemCard';
 import { CATEGORIES } from '../constants';
-import { DonationItem, User } from '../types';
+import { DonationItem, User, ChatSession } from '../types';
 import { analyzeItemImage } from '../services/geminiService';
 import { 
   collection, 
   addDoc, 
   onSnapshot, 
   query, 
+  where,
+  getDocs,
+  setDoc,
+  doc
 } from "firebase/firestore";
 import { db } from '../services/firebase';
+
+interface MarketplaceProps {
+  user: User;
+  setActiveTab: (tab: 'home' | 'market' | 'auction' | 'admin' | 'messages' | 'profile' | 'map' | 'contact') => void;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+}
 
 // Hàm nén ảnh để tránh lỗi 1MB của Firestore
 const compressImage = (base64Str: string): Promise<string> => {
@@ -19,7 +29,7 @@ const compressImage = (base64Str: string): Promise<string> => {
     img.src = base64Str;
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 800; // Giới hạn chiều rộng để giảm dung lượng
+      const MAX_WIDTH = 800; 
       const MAX_HEIGHT = 800;
       let width = img.width;
       let height = img.height;
@@ -39,17 +49,10 @@ const compressImage = (base64Str: string): Promise<string> => {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0, width, height);
-      // Nén chất lượng xuống 0.7 để file cực nhẹ nhưng vẫn đủ rõ
       resolve(canvas.toDataURL('image/jpeg', 0.7));
     };
   });
 };
-
-interface MarketplaceProps {
-  user: User;
-  setActiveTab?: (tab: any) => void;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
-}
 
 const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify }) => {
   const [items, setItems] = useState<DonationItem[]>([]);
@@ -60,6 +63,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
   
   const [loadingAI, setLoadingAI] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnectingChat, setIsConnectingChat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
@@ -125,17 +129,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
     if (file) {
       const isVideo = file.type.startsWith('video/');
       setMediaType(isVideo ? 'video' : 'image');
-      setCurrentMimeType(isVideo ? file.type : 'image/jpeg'); // Ép về jpeg sau khi nén
+      setCurrentMimeType(isVideo ? file.type : 'image/jpeg');
       
       const reader = new FileReader();
       reader.onloadend = async () => {
         let base64 = reader.result as string;
-        
-        if (!isVideo) {
-          // NÉN ẢNH NGAY LẬP TỨC
-          base64 = await compressImage(base64);
-        }
-        
+        if (!isVideo) base64 = await compressImage(base64);
         setPreviewMedia(base64);
         if (!isVideo) runAIAnalysis(base64, 'image/jpeg');
       };
@@ -166,6 +165,61 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
     }
   };
 
+  const handleContactDonor = async (item: DonationItem) => {
+    if (item.authorId === user.id) {
+      onNotify('warning', "Món đồ này của chính đệ mà, nhắn tin cho mình làm chi?", "Hệ thống");
+      return;
+    }
+
+    setIsConnectingChat(true);
+    try {
+      const q = query(
+        collection(db, "chats"), 
+        where("itemId", "==", item.id),
+        where("receiverId", "==", user.id)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        setActiveTab('messages');
+      } else {
+        const chatId = `${item.id}_${user.id}`;
+        const newChat: ChatSession = {
+          id: chatId,
+          itemId: item.id,
+          itemTitle: item.title,
+          donorId: item.authorId,
+          donorName: item.author,
+          receiverId: user.id,
+          receiverName: user.name,
+          participants: [item.authorId, user.id],
+          readBy: [user.id], // Người khởi tạo đã đọc
+          lastMessage: `Chào ${item.author}, mình muốn nhận món đồ "${item.title}" này ạ!`,
+          lastSenderId: user.id,
+          updatedAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, "chats", chatId), newChat);
+        
+        await addDoc(collection(db, "chats", chatId, "messages"), {
+          senderId: user.id,
+          senderName: user.name,
+          text: newChat.lastMessage,
+          createdAt: new Date().toISOString()
+        });
+
+        onNotify('success', `Đã kết nối với ${item.author}!`, "GIVEBACK");
+        setActiveTab('messages');
+      }
+    } catch (err) {
+      console.error("Lỗi kết nối chat:", err);
+      onNotify('error', "Không thể kết nối lúc này, đệ thử lại sau nhé!");
+    } finally {
+      setIsConnectingChat(false);
+    }
+  };
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
@@ -182,7 +236,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2">Đấu giá Gây quỹ</h2>
                <p className="text-amber-200 font-bold text-sm italic">Cùng GIVEBACK lan tỏa yêu thương qua các vật phẩm giá trị.</p>
             </div>
-            <button onClick={() => setActiveTab?.('contact')} className="bg-amber-500 text-amber-950 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Liên hệ Admin</button>
+            <button onClick={() => setActiveTab('contact')} className="bg-amber-500 text-amber-950 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Liên hệ Admin</button>
          </div>
       </div>
 
@@ -240,7 +294,6 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                   <ol className="text-[9px] space-y-2 text-emerald-700 font-bold list-decimal ml-4">
                     <li>Nhấn nút <b>"KÍCH HOẠT AI VISION"</b> và chọn Project đệ vừa tạo Key.</li>
                     <li>Bấm vào khung ảnh bên dưới để chọn hình món đồ.</li>
-                    <li>Ảnh sẽ tự động được nén gọn lại để tránh lỗi dung lượng.</li>
                     <li>AI sẽ tự động điền Tên, Danh mục, Mô tả giúp đệ.</li>
                   </ol>
                </div>
@@ -268,7 +321,6 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                       )}
                       {loadingAI && <div className="absolute inset-0 bg-emerald-900/20 backdrop-blur-[2px] flex items-center justify-center"><div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div></div>}
                     </div>
-                    <p className="text-[8px] text-center text-gray-400 font-bold uppercase italic">Hệ thống sẽ tự nén ảnh cho nhẹ</p>
                   </div>
 
                   <div className="flex-1 space-y-4">
@@ -317,7 +369,13 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                  <h3 className="text-2xl font-black italic uppercase text-emerald-900 mb-2">{selectedItem.title}</h3>
                  <p className="text-emerald-600 font-bold text-xs uppercase mb-4 tracking-widest">{selectedItem.category} &bull; {selectedItem.location}</p>
                  <p className="text-gray-600 leading-relaxed mb-8 italic">"{selectedItem.description}"</p>
-                 <button onClick={() => { /* Logic nhận đồ */ }} className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 active:scale-95 transition-all">Liên hệ nhận ngay</button>
+                 <button 
+                  onClick={() => handleContactDonor(selectedItem)} 
+                  disabled={isConnectingChat}
+                  className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-100 active:scale-95 transition-all disabled:opacity-50"
+                 >
+                   {isConnectingChat ? 'ĐANG KẾT NỐI...' : 'Nhắn tin nhận đồ ngay'}
+                 </button>
               </div>
            </div>
         </div>
