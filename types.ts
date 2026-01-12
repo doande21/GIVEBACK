@@ -12,6 +12,25 @@ export interface User {
   createdAt?: string;
 }
 
+export interface Contribution {
+  missionName: string;
+  amount?: number; // Tiền mặt
+  items?: string;  // Hiện vật (Vd: "100 thùng sữa")
+  date: string;
+}
+
+export interface Sponsor {
+  id: string;
+  name: string;
+  avatar: string;
+  type: 'individual' | 'organization';
+  totalMoney: number;
+  totalItemsCount: number;
+  message: string;
+  rank: 'gold' | 'silver' | 'bronze';
+  history: Contribution[];
+}
+
 export interface FriendRequest {
   id: string;
   fromId: string;

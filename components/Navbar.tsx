@@ -16,6 +16,8 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=059669&color=fff&bold=true`;
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-effect border-b">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -53,6 +55,16 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
           </button>
 
           <button 
+            onClick={() => setActiveTab('sponsors')}
+            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'sponsors' ? 'text-amber-600 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50/50'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={activeTab === 'sponsors' ? 'currentColor' : 'none'} stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.54 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Tri ân</span>
+          </button>
+
+          <button 
             onClick={() => setActiveTab('auction')}
             className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'auction' ? 'text-amber-600 bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50/50'}`}
           >
@@ -72,23 +84,14 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
             <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Bản đồ</span>
           </button>
 
-          <button 
-            onClick={() => setActiveTab('contact')}
-            className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'contact' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'contact' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Liên hệ</span>
-          </button>
-
-          {user?.role === 'admin' && (
+          {isAdmin && (
             <button 
               onClick={() => setActiveTab('admin')}
-              className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'admin' ? 'text-emerald-600 bg-emerald-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'}`}
+              className={`flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-all ${activeTab === 'admin' ? 'text-emerald-600 bg-emerald-100 shadow-inner' : 'text-emerald-600/60 hover:text-emerald-600 hover:bg-emerald-50'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={activeTab === 'admin' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="text-[6px] font-black uppercase tracking-tighter mt-1 hidden sm:block">Quản trị</span>
             </button>
@@ -130,6 +133,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, activeTab, setActiveTab, onLogout
                   className="w-8 h-8 rounded-full border border-emerald-500 object-cover bg-white" 
                   alt=""
                 />
+                <span className="text-[10px] font-black uppercase text-emerald-900 ml-1 hidden lg:block tracking-tighter">{user.name.split(' ').pop()}</span>
               </div>
 
               <button 

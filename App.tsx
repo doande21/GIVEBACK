@@ -10,6 +10,7 @@ import Admin from './pages/Admin';
 import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
+import Sponsors from './pages/Sponsors';
 import MapSearch from './pages/MapSearch';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
@@ -28,7 +29,7 @@ interface Notification {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'auction' | 'admin' | 'messages' | 'profile' | 'map' | 'contact' | 'notifications'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'auction' | 'admin' | 'messages' | 'profile' | 'map' | 'contact' | 'notifications' | 'sponsors'>('home');
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const userRef = useRef<User | null>(null);
@@ -48,7 +49,6 @@ const App: React.FC = () => {
     if (user) {
       const startTime = new Date().toISOString();
       
-      // 1. Listen for messages
       const qChats = query(collection(db, "chats"), where("participants", "array-contains", user.id));
       const unsubChats = onSnapshot(qChats, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
@@ -62,7 +62,6 @@ const App: React.FC = () => {
         });
       });
 
-      // 2. Listen for friend requests (Global count & Flash Notification)
       const qRequests = query(collection(db, "friend_requests"), where("toId", "==", user.id), where("status", "==", "pending"));
       const unsubRequests = onSnapshot(qRequests, (snapshot) => {
         setPendingRequestsCount(snapshot.size);
@@ -154,6 +153,7 @@ const App: React.FC = () => {
         {activeTab === 'home' && <Home user={user} onNotify={addNotification} onViewProfile={handleViewProfile} />}
         {activeTab === 'market' && <Marketplace user={user} setActiveTab={setActiveTab} onNotify={addNotification} />}
         {activeTab === 'auction' && <Auction user={user} setActiveTab={setActiveTab} onNotify={addNotification} />}
+        {activeTab === 'sponsors' && <Sponsors />}
         {activeTab === 'map' && <MapSearch />}
         {activeTab === 'admin' && <Admin user={user} onNotify={addNotification} />}
         {activeTab === 'messages' && <Messages user={user} />}
@@ -170,7 +170,6 @@ const App: React.FC = () => {
         {activeTab === 'contact' && <Contact />}
       </main>
 
-      {/* Modern Notification Portal */}
       <div className="fixed top-24 right-6 z-[200] flex flex-col gap-4 w-full max-w-sm pointer-events-none">
         {notifications.map((n) => (
           <div 
@@ -195,7 +194,6 @@ const App: React.FC = () => {
               }`}>{n.sender || (n.type === 'success' ? 'Thành công' : n.type === 'error' ? 'Lỗi hệ thống' : 'Thông báo')}</p>
               <p className="text-sm font-bold text-gray-800 italic leading-snug">"{n.message}"</p>
             </div>
-            {/* Progress Bar */}
             <div className={`absolute bottom-0 left-0 h-1 transition-all duration-[5000ms] ease-linear w-full ${
               n.type === 'success' ? 'bg-emerald-500' : 
               n.type === 'error' ? 'bg-red-500' : 
