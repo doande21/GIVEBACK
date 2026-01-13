@@ -4,9 +4,10 @@ export interface User {
   name: string;
   email: string;
   role: 'user' | 'admin';
+  userType: 'individual' | 'organization';
   avatar?: string;
   location?: string;
-  organization?: string;
+  organizationName?: string;
   bio?: string;
   friends?: string[];
   createdAt?: string;
@@ -14,8 +15,8 @@ export interface User {
 
 export interface Contribution {
   missionName: string;
-  amount?: number; // Tiền mặt
-  items?: string;  // Hiện vật (Vd: "100 thùng sữa")
+  amount?: number; 
+  items?: string;  
   date: string;
 }
 
@@ -99,6 +100,7 @@ export interface ChatSession {
   groupAdminId?: string;
   itemId?: string;
   itemTitle?: string;
+  itemImage?: string;
   donorId?: string;
   donorName?: string;
   receiverId?: string;
@@ -108,14 +110,16 @@ export interface ChatSession {
   lastSenderId?: string;
   updatedAt: string;
   readBy?: string[];
+  giftStatus?: 'negotiating' | 'completed';
 }
 
 export interface DonationItem {
   id: string;
   title: string;
   description: string;
-  image: string;
+  image: string; 
   video?: string;
+  gallery?: PostMedia[]; 
   quantity: number;
   category: string;
   condition: 'new' | 'good' | 'used';
@@ -162,6 +166,7 @@ export interface CharityMission {
   targetBudget: number;
   currentBudget: number;
   targetHouseholds?: number;
+  qrCode?: string;
   createdAt: string;
 }
 

@@ -1,10 +1,8 @@
 
 import { initializeApp } from "firebase/app";
-// Re-importing from firebase/auth to ensure named exports are correctly recognized.
-import { getAuth } from "firebase/auth";
+import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Cấu hình dự án GIVEBACK
 const firebaseConfig = {
   apiKey: "AIzaSyCps-abURYQD2mRvfoj26VJcmM0EKiPM9k",
   authDomain: "giveback-336a1.firebaseapp.com",
@@ -15,11 +13,16 @@ const firebaseConfig = {
   measurementId: "G-K7QEFTLXS3"
 };
 
-// Khởi tạo ứng dụng Firebase
 const app = initializeApp(firebaseConfig);
 
-// Xuất các dịch vụ cốt lõi sau khi khởi tạo
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Export trực tiếp để tránh lỗi "does not provide an export named"
+export const googleProvider = new GoogleAuthProvider();
+export const facebookProvider = new FacebookAuthProvider();
+
+facebookProvider.addScope('email');
+facebookProvider.addScope('public_profile');
 
 export default app;

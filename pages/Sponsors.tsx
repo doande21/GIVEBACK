@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Sponsor } from '../types';
+import { Sponsor, Contribution } from '../types';
 import { db } from '../services/firebase';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 
@@ -8,6 +8,7 @@ const Sponsors: React.FC = () => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [activeType, setActiveType] = useState<'all' | 'organization' | 'individual'>('all');
   const [loading, setLoading] = useState(true);
+  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
 
   useEffect(() => {
     const sponsorsRef = collection(db, "sponsors");
@@ -25,11 +26,11 @@ const Sponsors: React.FC = () => {
           type: docData.type || 'individual',
           name: docData.name || 'Nhà hảo tâm ẩn danh',
           avatar: docData.avatar || '',
-          message: docData.message || 'Lan tỏa yêu thương cùng GIVEBACK.'
+          message: docData.message || 'Lan tỏa yêu thương cùng GIVEBACK.',
+          history: docData.history || []
         } as Sponsor;
       });
       
-      // Sắp xếp theo số tiền giảm dần
       data.sort((a, b) => b.totalMoney - a.totalMoney);
       setSponsors(data);
       setLoading(false);
@@ -157,27 +158,91 @@ const Sponsors: React.FC = () => {
                   <p className="text-[13px] text-gray-500 leading-relaxed font-medium italic px-4">"{s.message}"</p>
                 </div>
                 
-                <div className={`w-full bg-gradient-to-r ${styles.gradient} p-0.5 rounded-3xl shadow-lg`}>
-                  <div className="bg-white rounded-[1.4rem] py-4">
-                    <span className={`text-[10px] font-black uppercase tracking-[0.3em] bg-gradient-to-r ${styles.gradient} bg-clip-text text-transparent`}>
+                <button 
+                  onClick={() => setSelectedSponsor(s)}
+                  className={`w-full bg-gradient-to-r ${styles.gradient} p-0.5 rounded-3xl shadow-lg hover:scale-105 active:scale-95 transition-all group/btn`}
+                >
+                  <div className="bg-white rounded-[1.4rem] py-4 group-hover/btn:bg-transparent transition-colors">
+                    <span className={`text-[10px] font-black uppercase tracking-[0.3em] bg-gradient-to-r ${styles.gradient} bg-clip-text text-transparent group-hover/btn:text-white`}>
                        {s.type === 'organization' ? 'ĐẠI SỨ CHIẾN DỊCH' : 'CÔNG DÂN TIÊU BIỂU'}
                     </span>
                   </div>
-                </div>
+                </button>
               </div>
             );
           })}
-          {filteredSponsors.length === 0 && !loading && (
-             <div className="col-span-full py-40 text-center flex flex-col items-center">
-                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-8 opacity-20">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.54 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+        </div>
+      )}
+
+      {/* MODAL: NHẬT KÝ SẺ CHIA */}
+      {selectedSponsor && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center px-4 py-6">
+          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedSponsor(null)}></div>
+          <div className="relative bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
+             {/* Modal Header */}
+             <div className="p-10 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                <div className="flex items-center space-x-5">
+                   <img src={getAvatar(selectedSponsor.avatar, selectedSponsor.name)} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-lg border-2 border-white" alt="" />
+                   <div>
+                      <h2 className="text-xl font-black text-emerald-950 uppercase italic tracking-tighter leading-none">{selectedSponsor.name}</h2>
+                      <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-2">Hành trình nhân ái</p>
+                   </div>
                 </div>
-                <p className="text-[11px] font-black uppercase text-gray-300 tracking-[0.4em] italic leading-loose">
-                   Bảng Vàng đang chờ những dấu ấn đầu tiên...<br/>
-                   Đệ hãy vào Admin để viết tên những tấm lòng nhân ái nhé!
+                <button onClick={() => setSelectedSponsor(null)} className="p-3 bg-white text-gray-400 hover:text-red-500 rounded-2xl shadow-sm transition-all">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+             </div>
+
+             {/* Modal Content */}
+             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <div className="grid grid-cols-2 gap-4 mb-10">
+                   <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 text-center">
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Tổng cống hiến</p>
+                      <p className="text-2xl font-black text-emerald-900 tracking-tighter">{selectedSponsor.totalMoney.toLocaleString()} VNĐ</p>
+                   </div>
+                   <div className="bg-amber-50/50 p-6 rounded-[2rem] border border-amber-100 text-center">
+                      <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Tổng hiện vật</p>
+                      <p className="text-2xl font-black text-amber-900 tracking-tighter">+{selectedSponsor.totalItemsCount}</p>
+                   </div>
+                </div>
+
+                <div className="space-y-6 relative">
+                   <div className="absolute left-6 top-0 bottom-0 w-px bg-emerald-100"></div>
+                   
+                   <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
+                      <span className="w-12 h-px bg-gray-200"></span> Nhật ký sẻ chia
+                   </h3>
+
+                   {(selectedSponsor.history && selectedSponsor.history.length > 0) ? selectedSponsor.history.map((h, i) => (
+                      <div key={i} className="relative pl-14 animate-in slide-in-from-left-4" style={{ animationDelay: `${i * 100}ms` }}>
+                         <div className="absolute left-4 top-2 w-4 h-4 bg-emerald-600 rounded-full border-4 border-white shadow-md"></div>
+                         <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-2">
+                               <h4 className="text-sm font-black text-emerald-950 uppercase italic tracking-tighter">{h.missionName}</h4>
+                               <span className="text-[8px] text-gray-400 font-bold uppercase">{new Date(h.date).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                               {h.amount && <span className="text-[9px] bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-black uppercase tracking-widest">{h.amount.toLocaleString()}đ</span>}
+                               {h.items && <span className="text-[9px] bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-black uppercase tracking-widest">{h.items}</span>}
+                            </div>
+                         </div>
+                      </div>
+                   )) : (
+                      <div className="text-center py-20">
+                         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic leading-loose">
+                            Nhà hảo tâm này đã đóng góp trực tiếp<br/>vào các quỹ cứu trợ khẩn cấp của hệ thống.
+                         </p>
+                      </div>
+                   )}
+                </div>
+             </div>
+
+             <div className="p-10 bg-gray-50/50 border-t border-gray-50 text-center">
+                <p className="text-[11px] font-bold text-emerald-900/60 italic leading-relaxed">
+                   "Yêu thương cho đi là yêu thương còn mãi.<br/>Cảm ơn bạn đã đồng hành cùng GIVEBACK."
                 </p>
              </div>
-          )}
+          </div>
         </div>
       )}
     </div>

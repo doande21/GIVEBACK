@@ -91,10 +91,12 @@ const App: React.FC = () => {
           if (userDoc.exists()) {
             setUser({ ...userDoc.data(), id: firebaseUser.uid } as User);
           } else {
+            // Fix: Added missing 'userType' property to satisfy the 'User' interface
             const tempUser: User = {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || 'Thành viên',
               email: firebaseUser.email || '',
+              userType: 'individual',
               role: (firebaseUser.email === 'admin@giveback.vn' || firebaseUser.email?.includes('de2104')) ? 'admin' : 'user',
               avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${firebaseUser.email}&background=random`
             };

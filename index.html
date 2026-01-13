@@ -11,20 +11,13 @@
     <meta name="keywords" content="từ thiện, tặng đồ cũ, quyên góp, Giveback, giúp đỡ cộng đồng">
     <meta name="author" content="Đệ (doande21)">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://github.com/doande21/GIVEBACK">
-    <meta property="og:title" content="GIVEBACK - Chia sẻ & Quyên góp">
-    <meta property="og:description" content="Kết nối những tấm lòng nhân ái. Đăng tin tặng đồ cũ dễ dàng với sự hỗ trợ của AI.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=2070&auto=format&fit=crop">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #059669; /* Màu Emerald-600 */
-            --primary-hover: #047857; /* Màu Emerald-700 */
-            --accent-color: #fbbf24;  /* Màu Amber (Đấu giá) */
+            --primary-color: #059669;
+            --primary-hover: #047857;
+            --accent-color: #fbbf24;
             --border-radius-main: 2.5rem;
             --font-main: 'Inter', sans-serif;
         }
@@ -34,12 +27,58 @@
             margin: 0; 
             padding: 0; 
             background-color: #f9fafb;
+            overflow-x: hidden;
         }
 
         .glass-effect {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* ANIMATION: TRUCK DRIVING EFFECTS */
+        
+        /* Hiệu ứng xe nhún nhảy */
+        @keyframes truck-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* Hiệu ứng bánh xe quay nhanh */
+        @keyframes wheel-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hiệu ứng phong cảnh trôi (Parallax) */
+        @keyframes landscape-move {
+            from { background-position: 0 0; }
+            to { background-position: -2000px 0; }
+        }
+
+        /* Hiệu ứng tim bay lên từ xe */
+        @keyframes heart-rise {
+            0% { transform: translateY(0) scale(0); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        /* Lớp nền phong cảnh trôi */
+        .scrolling-landscape {
+            background-image: url('https://www.transparenttextures.com/patterns/p6.png'); /* Pattern cỏ/đường */
+            animation: landscape-move 20s linear infinite;
+        }
+
+        .animate-truck {
+            animation: truck-bounce 0.4s ease-in-out infinite;
+        }
+
+        .animate-wheel {
+            animation: wheel-spin 0.3s linear infinite;
+        }
+
+        .animate-heart {
+            animation: heart-rise 2s ease-out infinite;
         }
 
         /* Tối ưu scrollbar */
@@ -48,14 +87,6 @@
         ::-webkit-scrollbar-thumb { 
             background: var(--primary-color); 
             border-radius: 10px; 
-        }
-        ::-webkit-scrollbar-thumb:hover { background: var(--primary-hover); }
-        
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .custom-card-shadow {
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
         }
     </style>
 <script type="importmap">

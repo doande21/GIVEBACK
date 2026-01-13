@@ -11,7 +11,9 @@ import {
   doc,
   orderBy,
   getDocs,
-  setDoc
+  setDoc,
+  getDoc,
+  runTransaction
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -25,6 +27,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isConfirmingGift, setIsConfirmingGift] = useState(false);
   
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -37,6 +40,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
     if (!user.id) return;
     const q = query(collection(db, "chats"), where("participants", "array-contains", user.id));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Fix: Proper typing for sessions data by casting to ChatSession
       const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatSession));
       data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setSessions(data);
@@ -59,6 +63,63 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
     if (chatEndRef.current) { chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }
   }, [messages]);
 
+  const handleConfirmGift = async () => {
+    if (!selectedSession || !selectedSession.itemId || isConfirmingGift) return;
+    if (!window.confirm(`Đệ có chắc chắn muốn trao tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName} không? Hành động này sẽ trừ số lượng món đồ.`)) return;
+    
+    setIsConfirmingGift(true);
+    try {
+      const itemRef = doc(db, "items", selectedSession.itemId);
+      const chatRef = doc(db, "chats", selectedSession.id);
+      
+      await runTransaction(db, async (transaction) => {
+        const itemSnap = await transaction.get(itemRef);
+        if (!itemSnap.exists()) throw "Món đồ không còn tồn tại!";
+        const itemData = itemSnap.data();
+        if (itemData.quantity <= 0) throw "Món đồ này đã hết số lượng tặng!";
+
+        // Trừ số lượng món đồ
+        transaction.update(itemRef, { quantity: itemData.quantity - 1 });
+        
+        // Cập nhật trạng thái chat
+        transaction.update(chatRef, { 
+          giftStatus: 'completed',
+          lastMessage: `Người tặng đã xác nhận trao gửi món quà!`,
+          updatedAt: new Date().toISOString()
+        });
+
+        // Ghi lại lịch sử (Claims)
+        const claimRef = doc(collection(db, "claims"));
+        transaction.set(claimRef, {
+          id: claimRef.id,
+          itemId: selectedSession.itemId,
+          itemTitle: selectedSession.itemTitle,
+          itemImage: selectedSession.itemImage || '',
+          donorId: selectedSession.donorId,
+          donorName: selectedSession.donorName,
+          receiverId: selectedSession.receiverId,
+          receiverName: selectedSession.receiverName,
+          createdAt: new Date().toISOString()
+        });
+
+        // Gửi tin nhắn hệ thống vào chat
+        const msgRef = doc(collection(db, "chats", selectedSession.id, "messages"));
+        transaction.set(msgRef, {
+          senderId: 'system',
+          senderName: 'GIVEBACK',
+          text: `🎉 CHÚC MỪNG! Người tặng đã chính thức trao gửi món đồ này cho đệ. Hãy liên hệ để nhận quà nhé!`,
+          createdAt: new Date().toISOString()
+        });
+      });
+
+      alert("Tuyệt vời! Đệ vừa thực hiện một hành động sẻ chia thật ý nghĩa.");
+    } catch (e: any) {
+      alert("Lỗi: " + String(e));
+    } finally {
+      setIsConfirmingGift(false);
+    }
+  };
+
   const handleFetchFriends = async () => {
     if (!user.friends?.length) { setFriendsList([]); return; }
     try {
@@ -72,7 +133,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
     if (!groupName.trim() || selectedFriends.length === 0) return;
     const groupId = `group_${Date.now()}`;
     const participants = [user.id, ...selectedFriends];
-    const newGroup: ChatSession = {
+    const newGroup: any = {
       id: groupId,
       type: 'group',
       groupName: groupName.trim(),
@@ -95,7 +156,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
       setIsGroupModalOpen(false);
       setGroupName('');
       setSelectedFriends([]);
-      setSelectedSession(newGroup);
+      setSelectedSession(newGroup as ChatSession);
     } catch (e) { console.error(e); }
   };
 
@@ -130,7 +191,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-gray-900 italic uppercase tracking-tighter leading-none">Hộp thư</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Nơi những tấm lòng gặp gỡ</p>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Sẻ chia là hạnh phúc</p>
         </div>
         <button 
           onClick={() => { setIsGroupModalOpen(true); handleFetchFriends(); }}
@@ -144,13 +205,15 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
         {/* Sidebar */}
         <div className="w-full lg:w-80 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="p-5 border-b bg-gray-50/50">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hội thoại của Đệ</span>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Hội thoại yêu thương</span>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
             {loading ? (
               <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div></div>
             ) : sessions.map(s => {
               const isUnread = s.lastSenderId !== user.id && (!s.readBy || !s.readBy.includes(user.id));
+              // Fix: Correctly access giftStatus now that ChatSession is properly interfaced
+              const isCompleted = s.giftStatus === 'completed';
               return (
                 <div 
                   key={s.id} 
@@ -158,7 +221,10 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                   className={`p-5 cursor-pointer transition-all hover:bg-emerald-50/30 ${selectedSession?.id === s.id ? 'bg-emerald-50 border-l-4 border-emerald-600 shadow-inner' : 'bg-white'}`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <p className={`text-xs ${isUnread ? 'font-black text-emerald-900' : 'font-bold text-gray-600'} line-clamp-1 italic uppercase`}>{s.type === 'group' ? s.groupName : s.itemTitle || 'Trò chuyện riêng'}</p>
+                    <p className={`text-xs ${isUnread ? 'font-black text-emerald-900' : 'font-bold text-gray-600'} line-clamp-1 italic uppercase`}>
+                      {s.type === 'group' ? s.groupName : s.itemTitle || 'Trò chuyện riêng'}
+                    </p>
+                    {isCompleted && <span className="text-[7px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm">Đã trao</span>}
                     {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
                   </div>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">{getPartnerName(s)}</p>
@@ -188,7 +254,33 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{selectedSession.type === 'group' ? `${selectedSession.participants.length} thành viên` : 'Đồng đội GIVEBACK'}</p>
                   </div>
                 </div>
+                
+                {/* Gift Confirmation Logic */}
+                {selectedSession.itemId && selectedSession.donorId === user.id && selectedSession.giftStatus !== 'completed' && (
+                  <button 
+                    onClick={handleConfirmGift}
+                    disabled={isConfirmingGift}
+                    className="bg-amber-500 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-amber-100 animate-bounce hover:animate-none hover:bg-amber-600 transition-all"
+                  >
+                    Xác nhận tặng quà 🎁
+                  </button>
+                )}
+                {selectedSession.giftStatus === 'completed' && (
+                  <div className="flex flex-col items-end">
+                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">Đã trao gửi thành công</span>
+                  </div>
+                )}
               </div>
+
+              {selectedSession.itemId && (
+                <div className="px-6 py-3 bg-gray-50 flex items-center justify-between border-b">
+                  <div className="flex items-center gap-3">
+                    <img src={selectedSession.itemImage || 'https://via.placeholder.com/40'} className="w-8 h-8 rounded-lg object-cover" alt="" />
+                    <p className="text-[10px] font-black text-gray-600 uppercase italic tracking-tighter">Đang trao đổi về: {selectedSession.itemTitle}</p>
+                  </div>
+                  <p className="text-[8px] text-gray-400 font-bold">Mã: {selectedSession.itemId.slice(-5)}</p>
+                </div>
+              )}
 
               <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/20">
                 {messages.map((m, i) => {
@@ -198,7 +290,7 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
                     <div key={i} className={`flex flex-col ${isMe ? 'items-end' : isSystem ? 'items-center' : 'items-start'}`}>
                       {!isSystem && <span className="text-[9px] font-black text-gray-400 uppercase mb-1.5 px-3 italic">{isMe ? 'Đệ' : m.senderName}</span>}
                       <div className={`max-w-[75%] px-5 py-3.5 rounded-[2rem] text-sm shadow-sm transition-all ${
-                        isMe ? 'bg-emerald-600 text-white rounded-tr-none' : isSystem ? 'bg-amber-50 text-amber-900 font-black italic text-[11px] border border-amber-100' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+                        isMe ? 'bg-emerald-600 text-white rounded-tr-none' : isSystem ? 'bg-amber-50 text-amber-900 font-black italic text-[11px] border border-amber-100 text-center animate-in zoom-in-90' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                       }`}>
                         {m.text}
                       </div>
@@ -209,20 +301,19 @@ const Messages: React.FC<MessagesProps> = ({ user }) => {
               </div>
 
               <form onSubmit={handleSendMessage} className="p-6 bg-white border-t flex space-x-3 items-center">
-                <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Đệ muốn nói điều gì..." className="flex-1 bg-gray-50 border-none focus:ring-2 focus:ring-emerald-500 rounded-2xl px-6 py-4 outline-none font-bold text-gray-700 transition-all" />
+                <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Nhắn nhủ điều gì chân thành..." className="flex-1 bg-gray-50 border-none focus:ring-2 focus:ring-emerald-500 rounded-2xl px-6 py-4 outline-none font-bold text-gray-700 transition-all shadow-inner" />
                 <button type="submit" className="bg-emerald-600 text-white p-4 rounded-2xl shadow-xl shadow-emerald-100 hover:scale-105 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
               </form>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-20 text-gray-200">
-               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 opacity-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg></div>
-               <h3 className="text-xl font-black text-gray-400 uppercase italic tracking-tighter">Chọn một người để bắt đầu sẻ chia</h3>
+               <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-8"><svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 opacity-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg></div>
+               <h3 className="text-xl font-black text-gray-300 uppercase italic tracking-tighter">Chọn một hành trình yêu thương để bắt đầu</h3>
             </div>
           )}
         </div>
       </div>
 
-      {/* Create Group Modal */}
       {isGroupModalOpen && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsGroupModalOpen(false)}></div>
