@@ -109,6 +109,7 @@ export const generateMissionVideo = async (prompt: string) => {
   }
 };
 
+// Fixed: Maps grounding is only supported in Gemini 2.5 series models. Changed from gemini-3-pro-image-preview to gemini-2.5-flash.
 export const searchCharityLocations = async (query: string, lat?: number, lng?: number) => {
   await ensureApiKey();
   const apiKey = process.env.API_KEY;
@@ -116,7 +117,7 @@ export const searchCharityLocations = async (query: string, lat?: number, lng?: 
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-image-preview", // Nâng cấp lên Pro để dùng công cụ xịn hơn
+      model: "gemini-2.5-flash-latest", 
       contents: query,
       config: { 
         tools: [{ googleMaps: {} }], 

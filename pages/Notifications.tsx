@@ -89,7 +89,7 @@ const Notifications: React.FC<NotificationsProps> = ({ user, onNotify, onUpdateU
                   >
                     {req.fromName}
                   </p>
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Muốn kết nối đồng đội với Đệ</p>
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Muốn kết nối đồng đội với bạn</p>
                   <p className="text-[8px] text-gray-300 font-bold uppercase mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>

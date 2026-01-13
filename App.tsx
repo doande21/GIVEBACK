@@ -163,7 +163,7 @@ const App: React.FC = () => {
         {activeTab === 'profile' && (
           <Profile 
             user={user} 
-            viewingUserId={viewingUserId} 
+            viewingUserId={viewingUserId || undefined} 
             onUpdateUser={(updated) => setUser(updated)} 
             onNotify={addNotification} 
             onGoToMessages={handleGoToMessages}

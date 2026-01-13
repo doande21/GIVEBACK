@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
-const compressImage = (base64Str: string, maxWidth = 1000, quality = 0.7): Promise<string> => {
+const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;
@@ -32,18 +32,99 @@ const compressImage = (base64Str: string, maxWidth = 1000, quality = 0.7): Promi
   });
 };
 
-const MediaGrid: React.FC<{ mediaList: PostMedia[] }> = ({ mediaList }) => {
+const UploadPreview: React.FC<{ mediaList: PostMedia[], onRemove: (index: number) => void }> = ({ mediaList, onRemove }) => {
   if (mediaList.length === 0) return null;
-  const count = mediaList.length;
   return (
-    <div className={`grid gap-1 w-full h-full ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'}`}>
-      {mediaList.slice(0, 4).map((m, i) => (
-        <div key={i} className={`relative overflow-hidden bg-gray-100 ${count === 3 && i === 0 ? 'row-span-2' : ''}`}>
-          {m.type === 'video' ? <video src={m.url} className="w-full h-full object-cover" /> : <img src={m.url} className="w-full h-full object-cover" alt="" />}
-          {i === 3 && count > 4 && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-black text-lg">+{count - 4}</span></div>}
+    <div className="grid grid-cols-3 gap-2 w-full max-h-[300px] overflow-y-auto p-2 custom-scrollbar">
+      {mediaList.map((m, i) => (
+        <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-emerald-50 group shadow-sm">
+          {m.type === 'video' ? (
+            <video src={m.url} className="w-full h-full object-cover" />
+          ) : (
+            <img src={m.url} className="w-full h-full object-cover" alt="" />
+          )}
+          <button 
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onRemove(i); }}
+            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       ))}
+      {mediaList.length < 4 && (
+        <div className="aspect-square rounded-2xl border-2 border-dashed border-emerald-100 flex items-center justify-center text-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+        </div>
+      )}
     </div>
+  );
+};
+
+const MediaGrid: React.FC<{ mediaList: PostMedia[] }> = ({ mediaList }) => {
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+  
+  if (mediaList.length === 0) return null;
+  const count = mediaList.length;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewingIndex === null) return;
+      if (e.key === 'ArrowRight') setViewingIndex(Math.min(count - 1, viewingIndex + 1));
+      if (e.key === 'ArrowLeft') setViewingIndex(Math.max(0, viewingIndex - 1));
+      if (e.key === 'Escape') setViewingIndex(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingIndex, count]);
+
+  return (
+    <>
+      <div className={`grid gap-1 w-full h-full cursor-pointer group/grid ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'}`}>
+        {mediaList.slice(0, 4).map((m, i) => (
+          <div key={i} onClick={() => setViewingIndex(i)} className={`relative overflow-hidden bg-gray-100 hover:brightness-95 transition-all ${count === 3 && i === 0 ? 'row-span-2' : ''}`}>
+            {m.type === 'video' ? <video src={m.url} className="w-full h-full object-cover" /> : <img src={m.url} className="w-full h-full object-cover" alt="" />}
+            {i === 3 && count > 4 && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-black text-lg">+{count - 4}</span></div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Lightbox for Marketplace */}
+      {viewingIndex !== null && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-2xl" onClick={() => setViewingIndex(null)}></div>
+          
+          <div className="absolute top-8 right-8 flex items-center gap-6 z-10">
+            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] bg-white/5 px-4 py-2 rounded-full border border-white/10">
+               {viewingIndex + 1} / {count}
+            </span>
+            <button onClick={() => setViewingIndex(null)} className="text-white/50 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {viewingIndex > 0 && (
+            <button onClick={() => setViewingIndex(viewingIndex - 1)} className="absolute left-8 z-10 bg-white/5 hover:bg-white/10 p-5 rounded-full text-white transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+            </button>
+          )}
+
+          {viewingIndex < count - 1 && (
+            <button onClick={() => setViewingIndex(viewingIndex + 1)} className="absolute right-8 z-10 bg-white/5 hover:bg-white/10 p-5 rounded-full text-white transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </button>
+          )}
+
+          <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500">
+            {mediaList[viewingIndex].type === 'video' ? (
+              <video src={mediaList[viewingIndex].url} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
+            ) : (
+              <img src={mediaList[viewingIndex].url} className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" alt="" />
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -75,24 +156,32 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []).slice(0, 4 - selectedMedia.length);
+    if (files.length === 0 && selectedMedia.length >= 4) {
+        onNotify('warning', 'Đệ ơi, tối đa 4 ảnh cho mỗi bài đăng để đảm bảo mượt mà nhé!');
+        return;
+    }
     setIsCompressing(true);
-    const newMedia: PostMedia[] = [];
+    
     for (const file of files) {
       const reader = new FileReader();
-      const promise = new Promise<PostMedia>((resolve) => {
+      const res = await new Promise<PostMedia>((resolve) => {
         reader.onloadend = async () => {
           let url = reader.result as string;
           let type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
           if (type === 'image') url = await compressImage(url);
           resolve({ url, type });
         };
+        reader.readAsDataURL(file);
       });
-      reader.readAsDataURL(file);
-      const res = await promise; if (res) newMedia.push(res);
+      setSelectedMedia(prev => [...prev, res].slice(0, 4));
     }
-    setSelectedMedia(prev => [...prev, ...newMedia]);
     setIsCompressing(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeMedia = (index: number) => {
+    setSelectedMedia(prev => prev.filter((_, i) => i !== index));
   };
 
   const [newPost, setNewPost] = useState({
@@ -101,7 +190,10 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting || isCompressing || selectedMedia.length === 0) return;
+    if (isSubmitting || isCompressing || selectedMedia.length === 0) {
+      if (selectedMedia.length === 0) onNotify('warning', "Đệ ơi, hãy tải lên ít nhất 1 tấm ảnh nhé!");
+      return;
+    }
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "items"), {
@@ -113,7 +205,10 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
       onNotify('success', `Đã lan tỏa món quà "${newPost.title}"!`);
       setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
       setSelectedMedia([]);
-    } catch (err) { onNotify('error', "Lỗi đăng bài."); } finally { setIsSubmitting(false); }
+    } catch (err: any) { 
+      console.error("Lỗi đăng Marketplace:", err);
+      onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Đệ hãy thử ít ảnh hơn hoặc ảnh nhẹ hơn nhé)."); 
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -175,24 +270,26 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                       </div>
                    </div>
                    <div className="space-y-4">
-                      <div onClick={() => fileInputRef.current?.click()} className="h-full min-h-[180px] border-4 border-dashed border-emerald-50 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 transition-all relative overflow-hidden group shadow-inner">
+                      <div className="min-h-[220px] border-4 border-dashed border-emerald-50 rounded-[2.5rem] flex flex-col items-center justify-center bg-gray-50 shadow-inner overflow-hidden">
                          {selectedMedia.length > 0 ? (
-                            <MediaGrid mediaList={selectedMedia} />
+                            <UploadPreview mediaList={selectedMedia} onRemove={removeMedia} />
                          ) : (
-                           <div className="text-center px-4">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-emerald-200 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Tải lên ít nhất 1 ảnh</span>
+                           <div onClick={() => fileInputRef.current?.click()} className="text-center px-4 cursor-pointer hover:scale-105 transition-transform">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-emerald-200 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Nhấn để tải ảnh/video (Tối đa 4)</span>
                            </div>
                          )}
-                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                            <span className="text-white text-[9px] font-black uppercase tracking-widest">Thay đổi media</span>
-                         </div>
                       </div>
+                      {selectedMedia.length > 0 && selectedMedia.length < 4 && (
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all">
+                          Chọn thêm ảnh khác ({selectedMedia.length}/4) +
+                        </button>
+                      )}
                    </div>
                 </div>
-                <textarea required rows={4} placeholder="Hãy viết vài dòng chân thành về món quà này để người nhận thêm ấm lòng nhé..." className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-medium italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
+                <textarea required rows={4} placeholder="Hãy viết vài dòng chân thành về món quà này..." className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-medium italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
                 <button type="submit" disabled={isSubmitting || isCompressing} className="w-full bg-emerald-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all text-[11px] disabled:opacity-50">
-                  {isSubmitting ? 'ĐANG LAN TỎA...' : isCompressing ? 'ĐANG NÉN DỮ LIỆU...' : 'ĐĂNG TIN TẶNG ĐỒ NGAY'}
+                  {isSubmitting ? 'ĐANG LAN TỎA...' : isCompressing ? 'ĐANG XỬ LÝ ẢNH...' : 'ĐĂNG TIN TẶNG ĐỒ NGAY'}
                 </button>
              </form>
              <input ref={fileInputRef} type="file" className="hidden" multiple accept="image/*,video/*" onChange={handleFileChange} />
@@ -214,11 +311,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                     HIỆN CÓ: {selectedItem.quantity} CÁI
                   </div>
                 </div>
+                <button onClick={() => setSelectedItem(null)} className="absolute top-8 right-8 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full backdrop-blur-md transition-all z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
               </div>
               <div className="p-12">
                  <h3 className="text-4xl font-black italic uppercase text-emerald-950 mb-4 tracking-tighter leading-none">{selectedItem.title}</h3>
                  <div className="flex items-center gap-3 mb-8">
-                    <span className="text-emerald-600 font-black text-[11px] uppercase tracking-[0.3em] bg-emerald-50 px-4 py-1.5 rounded-full italic">{selectedItem.category}</span>
+                    <span className="text-emerald-600 font-black text-[11px] uppercase tracking-[0.3em] bg-emerald-50 px-4 py-1.5 rounded-full italic">{selectedCategory !== 'Tất cả' ? selectedCategory : selectedItem.category}</span>
                     <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">📍 {selectedItem.location}</span>
                  </div>
                  <div className="bg-emerald-50/30 p-8 rounded-[3rem] mb-10 border border-emerald-50 shadow-inner">

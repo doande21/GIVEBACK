@@ -12,12 +12,13 @@ import {
   arrayUnion,
   arrayRemove,
   limit,
-  setDoc
+  getDocs,
+  where,
+  documentId
 } from "firebase/firestore";
 import { db } from '../services/firebase';
-import { generateMissionVideo } from '../services/geminiService';
 
-const compressImage = (base64Str: string, maxWidth = 1000, quality = 0.7): Promise<string> => {
+const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;
@@ -37,30 +38,113 @@ const compressImage = (base64Str: string, maxWidth = 1000, quality = 0.7): Promi
 };
 
 const PostMediaGrid: React.FC<{ media?: PostMedia[], mediaUrl?: string, mediaType?: 'image' | 'video' }> = ({ media, mediaUrl, mediaType }) => {
-  if (media && media.length > 0) {
-    const count = media.length;
-    const renderItem = (m: PostMedia, idx: number, className: string) => (
-      <div key={idx} className={`relative overflow-hidden bg-gray-100 ${className}`}>
-        {m.type === 'video' ? <video src={m.url || ''} controls className="w-full h-full object-cover" /> : <img src={m.url || 'https://placehold.co/600x400?text=No+Image'} className="w-full h-full object-cover" alt="" />}
-      </div>
-    );
-    return (
-      <div className={`grid gap-1 w-full max-h-[500px] rounded-[2rem] overflow-hidden my-4 border border-gray-100 shadow-sm
-        ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2 aspect-video' : 'grid-cols-2 grid-rows-2 aspect-square'}`}>
-        {count === 1 && renderItem(media[0], 0, "h-full")}
-        {count === 2 && <>{renderItem(media[0], 0, "h-full")}{renderItem(media[1], 1, "h-full")}</>}
-        {count >= 3 && <>{renderItem(media[0], 0, "row-span-2 h-full")}{renderItem(media[1], 1, "h-full")}<div className="h-full relative">{renderItem(media[2], 2, "h-full")}{count > 3 && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-black text-xl">+{count - 3}</span></div>}</div></>}
-      </div>
-    );
-  }
-  if (mediaUrl) {
-    return (
-      <div className="w-full rounded-[2rem] overflow-hidden my-4 border border-gray-100 shadow-sm bg-gray-50">
-        {mediaType === 'video' ? <video src={mediaUrl || ''} controls className="w-full max-h-[500px] object-contain" /> : <img src={mediaUrl || 'https://placehold.co/600x400?text=No+Image'} className="w-full h-auto max-h-[500px] object-contain mx-auto" alt="" />}
-      </div>
-    );
-  }
-  return null;
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+  
+  const allMedia = media && media.length > 0 ? media : (mediaUrl ? [{url: mediaUrl, type: mediaType || 'image'}] : []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (viewingIndex === null) return;
+      if (e.key === 'ArrowRight') nextMedia();
+      if (e.key === 'ArrowLeft') prevMedia();
+      if (e.key === 'Escape') setViewingIndex(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewingIndex]);
+
+  const nextMedia = () => {
+    if (viewingIndex !== null && viewingIndex < allMedia.length - 1) setViewingIndex(viewingIndex + 1);
+  };
+
+  const prevMedia = () => {
+    if (viewingIndex !== null && viewingIndex > 0) setViewingIndex(viewingIndex - 1);
+  };
+
+  const renderItem = (m: PostMedia | {url: string, type: string}, idx: number, className: string) => (
+    <div 
+      key={idx} 
+      className={`relative overflow-hidden bg-gray-100 cursor-pointer group/media ${className}`}
+      onClick={() => setViewingIndex(idx)}
+    >
+      {m.type === 'video' ? (
+        <video src={m.url || ''} className="w-full h-full object-cover" />
+      ) : (
+        <>
+          <img src={m.url || 'https://placehold.co/600x400?text=No+Image'} className="w-full h-full object-cover transition-transform duration-500 group-hover/media:scale-105" alt="" />
+          <div className="absolute inset-0 bg-black/0 group-hover/media:bg-black/10 transition-colors flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white opacity-0 group-hover/media:opacity-100 transition-opacity shadow-xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {allMedia.length > 0 && (
+        <div className={`grid gap-1 w-full max-h-[500px] rounded-[2rem] overflow-hidden my-4 border border-gray-100 shadow-sm
+          ${allMedia.length === 1 ? 'grid-cols-1' : allMedia.length === 2 ? 'grid-cols-2 aspect-video' : 'grid-cols-2 grid-rows-2 aspect-square'}`}>
+          {allMedia.length === 1 && renderItem(allMedia[0], 0, "h-full")}
+          {allMedia.length === 2 && <>{renderItem(allMedia[0], 0, "h-full")}{renderItem(allMedia[1], 1, "h-full")}</>}
+          {allMedia.length >= 3 && (
+            <>
+              {renderItem(allMedia[0], 0, "row-span-2 h-full")}
+              {renderItem(allMedia[1], 1, "h-full")}
+              <div className="h-full relative">
+                {renderItem(allMedia[2], 2, "h-full")}
+                {allMedia.length > 3 && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
+                    <span className="text-white font-black text-xl">+{allMedia.length - 3}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Fullscreen Gallery Viewer */}
+      {viewingIndex !== null && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={() => setViewingIndex(null)}></div>
+          
+          {/* Controls */}
+          <div className="absolute top-8 right-8 flex items-center gap-6 z-10">
+            <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] bg-white/10 px-4 py-2 rounded-full border border-white/10">
+              {viewingIndex + 1} / {allMedia.length}
+            </span>
+            <button onClick={() => setViewingIndex(null)} className="text-white/50 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {viewingIndex > 0 && (
+            <button onClick={prevMedia} className="absolute left-8 z-10 bg-white/10 hover:bg-white/20 p-5 rounded-full text-white transition-all backdrop-blur-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+            </button>
+          )}
+
+          {viewingIndex < allMedia.length - 1 && (
+            <button onClick={nextMedia} className="absolute right-8 z-10 bg-white/10 hover:bg-white/20 p-5 rounded-full text-white transition-all backdrop-blur-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+            </button>
+          )}
+
+          {/* Main Media */}
+          <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500">
+            {allMedia[viewingIndex].type === 'video' ? (
+              <video src={allMedia[viewingIndex].url} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
+            ) : (
+              <img src={allMedia[viewingIndex].url} className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" alt="Fullscreen" />
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 interface HomeProps {
@@ -72,23 +156,20 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [missions, setMissions] = useState<CharityMission[]>([]);
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [globalQrUrl, setGlobalQrUrl] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<CharityMission | null>(null);
-  const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [content, setContent] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<{ url: string, type: 'image' | 'video' }[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<PostMedia[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   
-  // States cho Video AI
-  const [aiVideoUrl, setAiVideoUrl] = useState<string | null>(null);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [aiVideoProgress, setAiVideoProgress] = useState('');
-
-  const qrInputRef = useRef<HTMLInputElement>(null);
+  const [interactionModalPost, setInteractionModalPost] = useState<SocialPost | null>(null);
+  const [interactionTab, setInteractionTab] = useState<'hearts' | 'thanks' | 'comments'>('hearts');
+  const [interactionUsers, setInteractionUsers] = useState<User[]>([]);
+  const [fetchingInteractions, setFetchingInteractions] = useState(false);
+  const [zoomedQr, setZoomedQr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -98,13 +179,59 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
     onSnapshot(query(collection(db, "missions"), orderBy("createdAt", "desc"), limit(5)), (snap) => {
       setMissions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CharityMission)));
     });
-    onSnapshot(collection(db, "sponsors"), (snap) => {
-      setSponsors(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor)));
-    });
-    onSnapshot(doc(db, "settings", "donation_qr"), (snap) => {
-      if (snap.exists()) setGlobalQrUrl(snap.data().url);
-    });
   }, []);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 4 - selectedFiles.length);
+    if (files.length === 0 && selectedFiles.length >= 4) {
+      onNotify('warning', 'Tối đa 4 ảnh cho bài viết đệ nhé!');
+      return;
+    }
+    setIsCompressing(true);
+    for (const file of files) {
+      const reader = new FileReader();
+      const res = await new Promise<PostMedia>((resolve) => {
+        reader.onloadend = async () => {
+          let url = reader.result as string;
+          let type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+          if (type === 'image') url = await compressImage(url);
+          resolve({ url, type });
+        };
+        reader.readAsDataURL(file);
+      });
+      setSelectedFiles(prev => [...prev, res].slice(0, 4));
+    }
+    setIsCompressing(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const fetchInteractionUsers = async (uids: string[]) => {
+    if (!uids || uids.length === 0) { setInteractionUsers([]); return; }
+    setFetchingInteractions(true);
+    try {
+      const chunks = [];
+      for (let i = 0; i < uids.length; i += 10) { chunks.push(uids.slice(i, i + 10)); }
+      const allUsers: User[] = [];
+      for (const chunk of chunks) {
+        const q = query(collection(db, "users"), where(documentId(), "in", chunk));
+        const snap = await getDocs(q);
+        snap.forEach(d => allUsers.push({ ...d.data(), id: d.id } as User));
+      }
+      setInteractionUsers(allUsers);
+    } catch (e) { console.error(e); }
+    finally { setFetchingInteractions(false); }
+  };
+
+  useEffect(() => {
+    if (interactionModalPost) {
+      if (interactionTab === 'hearts') fetchInteractionUsers(interactionModalPost.hearts || []);
+      else if (interactionTab === 'thanks') fetchInteractionUsers(interactionModalPost.thanks || []);
+    }
+  }, [interactionTab, interactionModalPost]);
 
   const handlePost = async () => {
     if (!content.trim() && selectedFiles.length === 0) return;
@@ -119,32 +246,13 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       });
       setContent(''); setSelectedFiles([]); setIsPosting(false);
       onNotify('success', "Lan tỏa thành công!", 'Hệ thống');
-    } catch (err: any) { onNotify('error', "Lỗi đăng bài."); } finally { setLoading(false); }
+    } catch (err: any) { 
+      console.error("Lỗi đăng bài Social:", err);
+      onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Đệ thử ít ảnh hơn nhé)."); 
+    } finally { setLoading(false); }
   };
 
-  const handleGenerateAIPreview = async () => {
-    if (!selectedMission) return;
-    setIsGeneratingVideo(true);
-    setAiVideoProgress("AI đang phác họa hành trình (có thể mất vài phút)...");
-    onNotify('info', "Đang khởi tạo Veo Engine...", "GIVEBACK AI");
-    
-    try {
-      const videoUrl = await generateMissionVideo(`Happy children receiving gifts and laughing in ${selectedMission.location}, cinematic drone shots of mountains.`);
-      if (videoUrl) {
-        setAiVideoUrl(videoUrl);
-        onNotify('success', "Tầm nhìn AI đã hoàn tất!", "GIVEBACK AI");
-      } else {
-        onNotify('error', "Không thể tạo video AI lúc này.", "GIVEBACK AI");
-      }
-    } catch (err) {
-      onNotify('error', "Lỗi trong quá trình tạo video AI.");
-    } finally {
-      setIsGeneratingVideo(false);
-      setAiVideoProgress("");
-    }
-  };
-
-  const handleReaction = async (postId: string, type: 'likes' | 'hearts' | 'thanks') => {
+  const handleReaction = async (postId: string, type: 'hearts' | 'thanks') => {
     const postRef = doc(db, "social_posts", postId);
     const post = posts.find(p => p.id === postId);
     if (!post) return;
@@ -165,20 +273,13 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
     setCommentText(''); setCommentingPostId(null);
   };
 
-  const closeModal = () => { 
-    setSelectedMission(null); 
-    setAiVideoUrl(null);
+  const openInteractionModal = (post: SocialPost, tab: 'hearts' | 'thanks' | 'comments') => {
+    setInteractionModalPost(post);
+    setInteractionTab(tab);
   };
-
-  const missionSponsors = selectedMission 
-    ? sponsors.filter(s => s.history?.some(h => h.missionName.toLowerCase().includes(selectedMission.location.toLowerCase())))
-    : [];
-
-  const isAdmin = user.role === 'admin';
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 font-['Inter']">
-      {/* FEED CONTENT */}
       <div className="flex-1 space-y-6">
         <div className="bg-white rounded-[2.5rem] shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
           <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-12 h-12 rounded-2xl object-cover" alt="" />
@@ -201,18 +302,56 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
               </div>
               <div className="px-8 pb-4"><p className="text-sm text-gray-800 leading-relaxed font-medium italic">"{post.content}"</p></div>
               <div className="px-4"><PostMediaGrid media={post.media} mediaUrl={post.mediaUrl} mediaType={post.mediaType} /></div>
-              <div className="px-6 py-4 flex items-center space-x-4 border-t border-gray-50 bg-gray-50/30">
-                 <button onClick={() => handleReaction(post.id, 'hearts')} className={`flex items-center space-x-1.5 px-4 py-2 rounded-full ${post.hearts?.includes(user.id) ? 'bg-red-50 text-red-600' : 'text-gray-400'}`}>
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={post.hearts?.includes(user.id) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                   <span className="text-[10px] font-black">{post.hearts?.length || 0}</span>
-                 </button>
-                 <button onClick={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)} className="flex items-center space-x-1.5 text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><span className="text-[10px] font-black">{post.comments?.length || 0}</span></button>
+              
+              <div className="px-6 py-4 flex items-center space-x-2 border-t border-gray-50 bg-gray-50/30">
+                 <div className="flex items-center space-x-1">
+                   <button onClick={() => handleReaction(post.id, 'hearts')} className={`p-2 rounded-full transition-all ${post.hearts?.includes(user.id) ? 'text-red-600 scale-110' : 'text-gray-300 hover:text-red-400'}`}>
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={post.hearts?.includes(user.id) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                   </button>
+                   <button onClick={() => openInteractionModal(post, 'hearts')} className="text-[10px] font-black text-gray-400 hover:text-emerald-700 transition-colors uppercase tracking-widest">
+                     {post.hearts?.length || 0} yêu thích
+                   </button>
+                 </div>
+
+                 <div className="flex items-center space-x-1 ml-4">
+                   <button onClick={() => handleReaction(post.id, 'thanks')} className={`p-2 rounded-full transition-all ${post.thanks?.includes(user.id) ? 'text-amber-500 scale-110' : 'text-gray-300 hover:text-amber-400'}`}>
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={post.thanks?.includes(user.id) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" /></svg>
+                   </button>
+                   <button onClick={() => openInteractionModal(post, 'thanks')} className="text-[10px] font-black text-gray-400 hover:text-emerald-700 transition-colors uppercase tracking-widest">
+                     {post.thanks?.length || 0} biết ơn
+                   </button>
+                 </div>
+
+                 <div className="flex items-center space-x-1 ml-4">
+                   <button onClick={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)} className={`p-2 rounded-full transition-all ${commentingPostId === post.id ? 'text-emerald-600' : 'text-gray-300 hover:text-emerald-400'}`}>
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                   </button>
+                   <button onClick={() => openInteractionModal(post, 'comments')} className="text-[10px] font-black text-gray-400 hover:text-emerald-700 transition-colors uppercase tracking-widest px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100">
+                     {post.comments?.length || 0} bình luận
+                   </button>
+                 </div>
               </div>
+
               {commentingPostId === post.id && (
-                <div className="px-8 pb-6 pt-2 bg-gray-50/20">
-                  <div className="flex space-x-2">
-                    <input type="text" placeholder="Viết cảm nghĩ..." className="flex-1 bg-gray-100 border-none px-5 py-2 rounded-full text-xs outline-none" value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleComment(post.id)} />
-                    <button onClick={() => handleComment(post.id)} className="bg-emerald-600 text-white p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
+                <div className="px-8 pb-6 pt-4 bg-gray-50/20 border-t border-gray-50/30 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex space-x-3 items-center">
+                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-8 h-8 rounded-xl object-cover" alt="" />
+                    <div className="flex-1 relative">
+                       <input 
+                        type="text" 
+                        placeholder="Viết cảm nghĩ của đệ..." 
+                        className="w-full bg-white border border-gray-100 px-6 py-3 rounded-full text-xs font-medium italic outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-inner" 
+                        value={commentText} 
+                        onChange={(e) => setCommentText(e.target.value)} 
+                        onKeyDown={(e) => e.key === 'Enter' && handleComment(post.id)} 
+                       />
+                       <button 
+                        onClick={() => handleComment(post.id)} 
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-600 text-white p-2 rounded-full shadow-lg hover:bg-emerald-700 transition-all active:scale-90"
+                       >
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                       </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -221,12 +360,10 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
         </div>
       </div>
 
-      {/* CỘT PHẢI: SỨ MỆNH */}
       <div className="w-full lg:w-80 space-y-6">
         <div className="bg-emerald-900 text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden">
            <h3 className="text-xl font-black italic uppercase mb-2">Sứ mệnh cứu trợ</h3>
            <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-6 italic">Quản lý ngân sách và sứ mệnh vùng cao</p>
-           
            <div className="space-y-4">
               {missions.map(m => (
                 <div key={m.id} className="relative group cursor-pointer overflow-hidden rounded-[2.5rem] aspect-[4/3] shadow-xl border border-white/10" onClick={() => setSelectedMission(m)}>
@@ -240,116 +377,224 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
               ))}
            </div>
         </div>
-
-        <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-emerald-50 text-center relative overflow-hidden group">
-           <h4 className="text-[11px] font-black text-emerald-900 uppercase tracking-[0.3em] mb-6 italic">QUYÊN GÓP CHUNG</h4>
-           <div className="relative mx-auto w-40 h-40 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner flex items-center justify-center overflow-hidden mb-6">
-              {globalQrUrl ? <img src={globalQrUrl} className="w-full h-full object-cover p-2" alt="QR" /> : <p className="text-[8px] text-gray-300 font-bold uppercase tracking-widest">Đang cập nhật...</p>}
-           </div>
-           {isAdmin && (
-              <button onClick={() => qrInputRef.current?.click()} className="w-full py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100">Đổi mã QR chung</button>
-           )}
-           <input ref={qrInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const reader = new FileReader();
-              reader.onloadend = async () => {
-                const compressed = await compressImage(reader.result as string, 600, 0.9);
-                await setDoc(doc(db, "settings", "donation_qr"), { url: compressed, updatedAt: new Date().toISOString() });
-                onNotify('success', "Đã cập nhật mã QR mới!", "Hệ thống");
-              };
-              reader.readAsDataURL(file);
-           }} />
-        </div>
       </div>
 
-      {/* MODAL CHI TIẾT SỨ MỆNH */}
+      {isPosting && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-10 overflow-y-auto">
+          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsPosting(false)}></div>
+          <div className="relative bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl p-8 md:p-10 animate-in zoom-in-95">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase italic text-emerald-950">Lan tỏa yêu thương</h3>
+                <button onClick={() => setIsPosting(false)} className="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg></button>
+             </div>
+             <div className="space-y-6">
+                <textarea 
+                  rows={4} 
+                  placeholder="Đệ đang nghĩ gì về hành trình hôm nay..." 
+                  className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" 
+                  value={content} 
+                  onChange={(e) => setContent(e.target.value)} 
+                />
+                
+                <div className="min-h-[150px] bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-emerald-100 p-4">
+                  {selectedFiles.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedFiles.map((f, i) => (
+                        <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm group">
+                          {f.type === 'video' ? <video src={f.url} className="w-full h-full object-cover" /> : <img src={f.url} className="w-full h-full object-cover" alt="" />}
+                          <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div onClick={() => fileInputRef.current?.click()} className="h-full flex flex-col items-center justify-center text-gray-300 cursor-pointer hover:text-emerald-400 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <span className="text-[10px] font-black uppercase tracking-widest">Tải ảnh/video hàng loạt (Tối đa 4)</span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedFiles.length > 0 && selectedFiles.length < 4 && (
+                   <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-emerald-50 text-emerald-600 rounded-2xl text-[9px] font-black uppercase tracking-widest">Chọn thêm file khác ({selectedFiles.length}/4) +</button>
+                )}
+
+                <button 
+                  onClick={handlePost} 
+                  disabled={loading || isCompressing || (!content.trim() && selectedFiles.length === 0)} 
+                  className="w-full bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-xs"
+                >
+                  {loading ? 'ĐANG LAN TỎA...' : isCompressing ? 'ĐANG XỬ LÝ MEDIA...' : 'ĐĂNG BÀI NGAY'}
+                </button>
+             </div>
+             <input ref={fileInputRef} type="file" multiple className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+          </div>
+        </div>
+      )}
+
+      {interactionModalPost && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setInteractionModalPost(null)}></div>
+          <div className="relative bg-white w-full max-w-lg max-h-[80vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+             <div className="p-8 border-b bg-gray-50/50 flex items-center justify-between">
+                <div className="flex bg-gray-200/50 p-1.5 rounded-2xl shadow-inner w-full mr-4">
+                  <button onClick={() => setInteractionTab('hearts')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all ${interactionTab === 'hearts' ? 'bg-white text-red-600 shadow-md' : 'text-gray-400'}`}>Yêu thích</button>
+                  <button onClick={() => setInteractionTab('thanks')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all ${interactionTab === 'thanks' ? 'bg-white text-amber-600 shadow-md' : 'text-gray-400'}`}>Biết ơn</button>
+                  <button onClick={() => setInteractionTab('comments')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all ${interactionTab === 'comments' ? 'bg-white text-emerald-600 shadow-md' : 'text-gray-400'}`}>Bình luận</button>
+                </div>
+                <button onClick={() => setInteractionModalPost(null)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg></button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                {interactionTab === 'comments' ? (
+                  <div className="space-y-6">
+                    {interactionModalPost.comments?.map(c => (
+                      <div key={c.id} className="flex gap-4 group">
+                        <img src={c.authorAvatar} onClick={() => { setInteractionModalPost(null); onViewProfile(c.authorId); }} className="w-10 h-10 rounded-2xl object-cover cursor-pointer border-2 border-transparent group-hover:border-emerald-500 transition-all shadow-sm" alt="" />
+                        <div className="flex-1 bg-gray-50 p-5 rounded-[1.5rem] rounded-tl-none border border-gray-100">
+                           <div className="flex justify-between items-center mb-2">
+                              <h5 className="text-[11px] font-black uppercase italic text-emerald-950 cursor-pointer" onClick={() => { setInteractionModalPost(null); onViewProfile(c.authorId); }}>{c.authorName}</h5>
+                              <span className="text-[8px] text-gray-400 font-bold">{new Date(c.createdAt).toLocaleDateString('vi-VN')}</span>
+                           </div>
+                           <p className="text-xs text-gray-700 italic font-medium leading-relaxed">"{c.text}"</p>
+                        </div>
+                      </div>
+                    ))}
+                    {!interactionModalPost.comments?.length && <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Chưa có bình luận nào...</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {fetchingInteractions ? (
+                      <div className="py-20 flex justify-center"><div className="w-8 h-8 border-2 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div></div>
+                    ) : (
+                      interactionUsers.map(u => (
+                        <div key={u.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-3xl border border-gray-100 hover:bg-emerald-50 transition-colors cursor-pointer" onClick={() => { setInteractionModalPost(null); onViewProfile(u.id); }}>
+                           <div className="flex items-center space-x-4">
+                              <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.name}`} className="w-11 h-11 rounded-2xl object-cover shadow-sm" alt="" />
+                              <div>
+                                 <h5 className="text-xs font-black uppercase italic text-gray-900">{u.name}</h5>
+                                 <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{u.userType === 'organization' ? 'Tổ chức' : 'Thành viên'}</p>
+                              </div>
+                           </div>
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                        </div>
+                      ))
+                    )}
+                    {!fetchingInteractions && interactionUsers.length === 0 && (
+                      <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Chưa có ai tương tác mục này...</p>
+                    )}
+                  </div>
+                )}
+             </div>
+
+             <div className="p-8 bg-emerald-900 text-center">
+                <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest italic">Cảm ơn những tấm lòng vàng đã lan tỏa yêu thương</p>
+             </div>
+          </div>
+        </div>
+      )}
+
       {selectedMission && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={closeModal}></div>
+          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedMission(null)}></div>
           <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="relative h-80 bg-emerald-900 flex-shrink-0">
-              {aiVideoUrl ? (
-                <video src={aiVideoUrl} autoPlay loop controls className="w-full h-full object-cover" />
-              ) : (
-                <img src={selectedMission.image || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1200'} className="w-full h-full object-cover" alt="" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-black/10 to-transparent"></div>
-              
-              <div className="absolute top-8 right-8 flex gap-3 z-20">
-                {!aiVideoUrl && (
-                  <button 
-                    onClick={handleGenerateAIPreview} 
-                    disabled={isGeneratingVideo}
-                    className="bg-emerald-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-white/20 shadow-2xl flex items-center gap-2 hover:bg-emerald-500 transition-all disabled:opacity-50"
-                  >
-                    {isGeneratingVideo ? (
-                      <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> AI ĐANG PHÁC HỌA...</>
-                    ) : "✨ Tầm nhìn AI (Video)"}
-                  </button>
-                )}
-                <button onClick={closeModal} className="bg-black/20 p-3 rounded-full text-white/70 hover:text-white transition-colors backdrop-blur-md border border-white/10">
+              <img src={selectedMission.image || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1200'} className="w-full h-full object-cover" alt="" />
+              <div className="absolute top-8 right-8 z-20">
+                <button onClick={() => setSelectedMission(null)} className="bg-black/20 p-3 rounded-full text-white/70 hover:text-white transition-colors backdrop-blur-md border border-white/10">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
-
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-transparent to-transparent"></div>
               <div className="absolute bottom-10 left-12 text-white">
-                 <h2 className="text-5xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{selectedMission.location}</h2>
-                 <p className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em] mt-2 italic drop-shadow-md">HÀNH TRÌNH NHÂN ÁI - {new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
+                <h2 className="text-5xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{selectedMission.location}</h2>
+                <p className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em] mt-2 italic">HÀNH TRÌNH NHÂN ÁI - {new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-               {isGeneratingVideo && (
-                 <div className="mb-8 p-6 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex items-center gap-4 animate-pulse">
-                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black">AI</div>
-                    <p className="text-xs font-black text-emerald-800 uppercase tracking-widest italic">{aiVideoProgress}</p>
-                 </div>
-               )}
-
+            <div className="flex-1 overflow-y-auto p-10 md:p-12 custom-scrollbar bg-gray-50/20">
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                   <div className="lg:col-span-2 space-y-12">
-                     <div className="space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 flex items-center gap-2">
-                           <span className="w-8 h-px bg-emerald-600"></span> Kế hoạch sứ mệnh
-                        </h4>
-                        <p className="text-lg text-gray-800 leading-relaxed italic font-medium">"{selectedMission.description}"</p>
-                     </div>
-
-                     <div className="space-y-6">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600 flex items-center gap-2">
-                           <span className="w-8 h-px bg-emerald-600"></span> Nhu yếu phẩm cần kíp
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           {selectedMission.itemsNeeded && selectedMission.itemsNeeded.length > 0 ? (
-                             selectedMission.itemsNeeded.map((item, idx) => (
-                               <div key={idx} className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100 flex flex-col hover:bg-emerald-50 transition-all shadow-sm group">
-                                  <div className="flex justify-between items-center mb-3">
-                                     <span className="text-xs font-black text-gray-900 uppercase italic tracking-tighter">{item.name}</span>
-                                     <span className="text-[9px] font-black text-emerald-600 uppercase bg-white px-3 py-1 rounded-full shadow-inner">{item.current}/{item.target} {item.unit}</span>
-                                  </div>
-                                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                     <div className="h-full bg-emerald-500 group-hover:bg-emerald-600 transition-colors" style={{ width: `${Math.min((item.current/item.target)*100, 100)}%` }}></div>
-                                  </div>
-                               </div>
-                             ))
-                           ) : (
-                             <p className="text-[10px] italic text-gray-400 font-bold uppercase tracking-widest py-8">Đang cập nhật danh mục hiện vật...</p>
-                           )}
+                     <section>
+                        <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-4 italic">Mục tiêu chiến dịch</h4>
+                        <p className="text-xl text-gray-800 leading-relaxed italic font-medium">"{selectedMission.description}"</p>
+                     </section>
+                     <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50">
+                           <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Hộ dân hỗ trợ</p>
+                           <p className="text-2xl font-black text-emerald-950 italic">~{selectedMission.targetHouseholds || 50}</p>
                         </div>
-                     </div>
+                        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50">
+                           <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Thời gian</p>
+                           <p className="text-sm font-black text-emerald-950 uppercase">{new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50 col-span-2 md:col-span-1">
+                           <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Trạng thái</p>
+                           <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter">{selectedMission.status === 'upcoming' ? 'Sắp diễn ra' : selectedMission.status === 'ongoing' ? 'Đang triển khai' : 'Hoàn thành'}</p>
+                        </div>
+                     </section>
+                     <section className="space-y-8">
+                        <div>
+                           <div className="flex justify-between items-end mb-4 px-2">
+                              <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] italic">Ngân sách dự kiến</h4>
+                              <p className="text-sm font-black text-emerald-700 italic">{((selectedMission.currentBudget || 0) / (selectedMission.targetBudget || 1) * 100).toFixed(0)}% <span className="text-[10px] text-gray-400">({(selectedMission.currentBudget || 0).toLocaleString()} / {(selectedMission.targetBudget || 0).toLocaleString()}đ)</span></p>
+                           </div>
+                           <div className="h-5 bg-gray-200 rounded-full overflow-hidden shadow-inner border border-gray-100 p-1">
+                              <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${Math.min(100, (selectedMission.currentBudget || 0) / (selectedMission.targetBudget || 1) * 100)}%` }}></div>
+                           </div>
+                        </div>
+                        <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-gray-100">
+                           <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] mb-6 italic">Nhu yếu phẩm cần thiết</h4>
+                           <div className="space-y-6">
+                              {(selectedMission.itemsNeeded || []).map((item, idx) => {
+                                 const progress = (item.current / item.target) * 100;
+                                 return (
+                                    <div key={idx} className="space-y-2">
+                                       <div className="flex justify-between text-[11px] font-black uppercase italic tracking-tighter px-1">
+                                          <span>{item.name}</span>
+                                          <span className="text-emerald-600">{item.current} / {item.target} {item.unit}</span>
+                                       </div>
+                                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full transition-all duration-1000 ${progress >= 100 ? 'bg-emerald-500' : 'bg-emerald-300'}`} style={{ width: `${Math.min(100, progress)}%` }}></div></div>
+                                    </div>
+                                 );
+                              })}
+                              {(!selectedMission.itemsNeeded || selectedMission.itemsNeeded.length === 0) && <p className="text-center py-6 text-[10px] font-black text-gray-300 uppercase italic">Chưa có danh sách chi tiết</p>}
+                           </div>
+                        </div>
+                     </section>
                   </div>
-
-                  <div className="space-y-10">
-                     <div className="bg-white p-8 rounded-[3.5rem] shadow-xl border border-amber-50 text-center relative overflow-hidden">
-                        <h4 className="text-[11px] font-black text-amber-900 uppercase tracking-[0.3em] mb-6 italic">ỦNG HỘ CHIẾN DỊCH</h4>
-                        <div className="relative mx-auto w-48 h-48 bg-gray-50 rounded-[2.5rem] border-4 border-white shadow-inner flex items-center justify-center overflow-hidden mb-6">
-                           <img src={selectedMission.qrCode || globalQrUrl || 'https://placehold.co/400x400?text=No+QR'} className="w-full h-full object-cover p-2" alt="QR" />
+                  <div className="space-y-8">
+                     <div className="bg-white p-8 rounded-[3.5rem] shadow-xl border border-amber-50 text-center sticky top-0 cursor-pointer group/qr" onClick={() => setZoomedQr(selectedMission.qrCode || 'https://placehold.co/800x800?text=QR')}>
+                        <h4 className="text-[11px] font-black text-amber-900 uppercase tracking-[0.3em] mb-6 italic group-hover/qr:text-emerald-600 transition-colors">ỦNG HỘ CHIẾN DỊCH</h4>
+                        <div className="relative mx-auto w-52 h-52 bg-gray-50 rounded-[3rem] border-4 border-white shadow-inner flex items-center justify-center overflow-hidden mb-6 p-4 group-hover/qr:scale-105 transition-transform">
+                           <img src={selectedMission.qrCode || 'https://placehold.co/400x400?text=QR'} className="w-full h-full object-contain" alt="QR" />
+                           <div className="absolute inset-0 bg-emerald-950/20 opacity-0 group-hover/qr:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[1px]">
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                           </div>
                         </div>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase italic leading-relaxed">Nhấn vào mã để phóng to & quét<br/>quyên góp trực tiếp</p>
                      </div>
                   </div>
                </div>
             </div>
+            <div className="p-8 bg-emerald-950 text-center flex-shrink-0">
+               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.5em] italic">GIVEBACK - Nơi yêu thương lan tỏa</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {zoomedQr && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setZoomedQr(null)}></div>
+          <div className="relative bg-white p-12 rounded-[4rem] shadow-2xl animate-in zoom-in-95 duration-500 max-w-lg w-full">
+            <button onClick={() => setZoomedQr(null)} className="absolute -top-12 right-0 text-white hover:text-red-400 transition-colors flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest">ĐÓNG LẠI</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-black italic uppercase text-emerald-950 tracking-tighter">QUÉT MÃ ỦNG HỘ</h3>
+            </div>
+            <div className="bg-gray-50 p-6 rounded-[3rem] shadow-inner border border-gray-100"><img src={zoomedQr} className="w-full h-auto object-contain rounded-2xl" alt="Zoomed QR" /></div>
           </div>
         </div>
       )}
