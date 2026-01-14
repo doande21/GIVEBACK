@@ -185,7 +185,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
     // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type errors on file properties
     const files = (Array.from(e.target.files || []) as File[]).slice(0, 4 - selectedFiles.length);
     if (files.length === 0 && selectedFiles.length >= 4) {
-      onNotify('warning', 'Tối đa 4 ảnh cho bài viết đệ nhé!');
+      onNotify('warning', 'Tối đa 4 ảnh cho bài viết bạn nhé!');
       return;
     }
     setIsCompressing(true);
@@ -249,7 +249,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       onNotify('success', "Lan tỏa thành công!", 'Hệ thống');
     } catch (err: any) { 
       console.error("Lỗi đăng bài Social:", err);
-      onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Đệ thử ít ảnh hơn nhé)."); 
+      onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Bạn thử ít ảnh hơn nhé)."); 
     } finally { setLoading(false); }
   };
 
@@ -285,7 +285,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
         <div className="bg-white rounded-[2.5rem] shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
           <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-12 h-12 rounded-2xl object-cover" alt="" />
           <button onClick={() => setIsPosting(true)} className="flex-1 bg-gray-50 hover:bg-emerald-50 text-gray-400 text-left px-8 py-4 rounded-full text-xs italic font-medium transition-all">
-            {user.name} ơi, đệ muốn lan tỏa điều gì hôm nay?
+            {user.name} ơi, bạn muốn lan tỏa điều gì hôm nay?
           </button>
         </div>
 

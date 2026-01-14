@@ -10,8 +10,10 @@ import {
   query, 
   doc,
   setDoc,
+  getDoc
 } from "firebase/firestore";
 import { db } from '../services/firebase';
+import { analyzeDonationItem } from '../services/geminiService';
 
 const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
@@ -32,118 +34,29 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
   });
 };
 
-const UploadPreview: React.FC<{ mediaList: PostMedia[], onRemove: (index: number) => void }> = ({ mediaList, onRemove }) => {
-  if (mediaList.length === 0) return null;
-  return (
-    <div className="grid grid-cols-3 gap-2 w-full max-h-[300px] overflow-y-auto p-2 custom-scrollbar">
-      {mediaList.map((m, i) => (
-        <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-emerald-50 group shadow-sm">
-          {m.type === 'video' ? (
-            <video src={m.url} className="w-full h-full object-cover" />
-          ) : (
-            <img src={m.url} className="w-full h-full object-cover" alt="" />
-          )}
-          <button 
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onRemove(i); }}
-            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-      ))}
-      {mediaList.length < 4 && (
-        <div className="aspect-square rounded-2xl border-2 border-dashed border-emerald-100 flex items-center justify-center text-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const MediaGrid: React.FC<{ mediaList: PostMedia[] }> = ({ mediaList }) => {
-  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
-  
-  if (mediaList.length === 0) return null;
-  const count = mediaList.length;
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (viewingIndex === null) return;
-      if (e.key === 'ArrowRight') setViewingIndex(Math.min(count - 1, viewingIndex + 1));
-      if (e.key === 'ArrowLeft') setViewingIndex(Math.max(0, viewingIndex - 1));
-      if (e.key === 'Escape') setViewingIndex(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewingIndex, count]);
-
-  return (
-    <>
-      <div className={`grid gap-1 w-full h-full cursor-pointer group/grid ${count === 1 ? 'grid-cols-1' : count === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'}`}>
-        {mediaList.slice(0, 4).map((m, i) => (
-          <div key={i} onClick={() => setViewingIndex(i)} className={`relative overflow-hidden bg-gray-100 hover:brightness-95 transition-all ${count === 3 && i === 0 ? 'row-span-2' : ''}`}>
-            {m.type === 'video' ? <video src={m.url} className="w-full h-full object-cover" /> : <img src={m.url} className="w-full h-full object-cover" alt="" />}
-            {i === 3 && count > 4 && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-black text-lg">+{count - 4}</span></div>}
-          </div>
-        ))}
-      </div>
-
-      {/* Lightbox for Marketplace */}
-      {viewingIndex !== null && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-2xl" onClick={() => setViewingIndex(null)}></div>
-          
-          <div className="absolute top-8 right-8 flex items-center gap-6 z-10">
-            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] bg-white/5 px-4 py-2 rounded-full border border-white/10">
-               {viewingIndex + 1} / {count}
-            </span>
-            <button onClick={() => setViewingIndex(null)} className="text-white/50 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-
-          {viewingIndex > 0 && (
-            <button onClick={() => setViewingIndex(viewingIndex - 1)} className="absolute left-8 z-10 bg-white/5 hover:bg-white/10 p-5 rounded-full text-white transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
-            </button>
-          )}
-
-          {viewingIndex < count - 1 && (
-            <button onClick={() => setViewingIndex(viewingIndex + 1)} className="absolute right-8 z-10 bg-white/5 hover:bg-white/10 p-5 rounded-full text-white transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-            </button>
-          )}
-
-          <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500">
-            {mediaList[viewingIndex].type === 'video' ? (
-              <video src={mediaList[viewingIndex].url} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
-            ) : (
-              <img src={mediaList[viewingIndex].url} className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" alt="" />
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-interface MarketplaceProps {
-  user: User;
-  setActiveTab?: (tab: any) => void;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
-}
-
-const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify }) => {
+const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> = ({ user, onNotify, setActiveTab }) => {
   const [items, setItems] = useState<DonationItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất cả');
+  const [filterAge, setFilterAge] = useState<number | ''>('');
+  const [filterWeight, setFilterWeight] = useState<number | ''>('');
+  const [filterAuthor, setFilterAuthor] = useState('');
+  const [filterGenre, setFilterGenre] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAiScanning, setIsAiScanning] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<PostMedia[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [newPost, setNewPost] = useState<any>({
+    title: '', category: CATEGORIES[0], condition: 'good', 
+    description: '', location: '', quantity: 1,
+    minAge: 0, maxAge: 0, minWeight: 0, maxWeight: 0,
+    bookAuthor: '', bookGenre: ''
+  });
 
   useEffect(() => {
     const q = query(collection(db, "items"));
@@ -156,195 +69,308 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type errors on file properties
-    const files = (Array.from(e.target.files || []) as File[]).slice(0, 4 - selectedMedia.length);
-    if (files.length === 0 && selectedMedia.length >= 4) {
-        onNotify('warning', 'Đệ ơi, tối đa 4 ảnh cho mỗi bài đăng để đảm bảo mượt mà nhé!');
-        return;
-    }
-    setIsCompressing(true);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsAiScanning(true);
+    const firstFile = files[0];
+    const reader = new FileReader();
     
-    for (const file of files) {
-      const reader = new FileReader();
-      const res = await new Promise<PostMedia>((resolve) => {
-        reader.onloadend = async () => {
-          let url = reader.result as string;
-          let type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
-          if (type === 'image') url = await compressImage(url);
-          resolve({ url, type });
-        };
-        reader.readAsDataURL(file);
-      });
-      setSelectedMedia(prev => [...prev, res].slice(0, 4));
+    reader.onloadend = async () => {
+      let base64 = reader.result as string;
+      const compressed = await compressImage(base64);
+      setSelectedMedia([{ url: compressed, type: 'image' }]);
+      
+      onNotify('info', "AI đang quét dữ liệu hình ảnh...", "GIVEBACK AI");
+      const aiData = await analyzeDonationItem(compressed, newPost.description);
+      if (aiData) {
+        setNewPost((prev: any) => ({
+          ...prev,
+          title: aiData.suggestedTitle || prev.title,
+          minAge: aiData.minAge || 0,
+          maxAge: aiData.maxAge || 0,
+          minWeight: aiData.minWeight || 0,
+          maxWeight: aiData.maxWeight || 0,
+          bookAuthor: aiData.bookAuthor || '',
+          bookGenre: aiData.bookGenre || ''
+        }));
+        onNotify('success', "AI đã quét thông tin thành công!", "GIVEBACK AI");
+      }
+      setIsAiScanning(false);
+    };
+    reader.readAsDataURL(firstFile);
+  };
+
+  const handleStartChat = async (item: DonationItem) => {
+    if (item.authorId === user.id) {
+      onNotify('warning', "Đệ không thể tự nhắn tin cho chính mình nhé!");
+      return;
     }
-    setIsCompressing(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
 
-  const removeMedia = (index: number) => {
-    setSelectedMedia(prev => prev.filter((_, i) => i !== index));
-  };
+    const chatId = item.id < user.id ? `chat_${item.id}_${user.id}` : `chat_${user.id}_${item.id}`;
+    
+    try {
+      const chatRef = doc(db, "chats", chatId);
+      const chatDoc = await getDoc(chatRef);
+      
+      if (!chatDoc.exists()) {
+        await setDoc(chatRef, {
+          id: chatId,
+          type: 'direct',
+          itemId: item.id,
+          itemTitle: item.title,
+          itemImage: item.image,
+          donorId: item.authorId,
+          donorName: item.author,
+          receiverId: user.id,
+          receiverName: user.name,
+          participants: [item.authorId, user.id],
+          lastMessage: `Chào đệ, mình muốn hỏi về món đồ "${item.title}"...`,
+          lastSenderId: user.id,
+          updatedAt: new Date().toISOString(),
+          giftStatus: 'negotiating'
+        });
 
-  const [newPost, setNewPost] = useState({
-    title: '', category: CATEGORIES[0], condition: 'good' as 'new' | 'good' | 'used', description: '', location: '', contact: '', quantity: 1
-  });
+        // Gửi tin nhắn khởi đầu
+        await addDoc(collection(db, "chats", chatId, "messages"), {
+          senderId: user.id,
+          senderName: user.name,
+          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn đệ!`,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      onNotify('success', "Đang kết nối tới người tặng...");
+      setSelectedItem(null);
+      if (setActiveTab) setActiveTab('messages');
+    } catch (err) {
+      onNotify('error', "Không thể khởi tạo cuộc hội thoại.");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting || isCompressing || selectedMedia.length === 0) {
-      if (selectedMedia.length === 0) onNotify('warning', "Đệ ơi, hãy tải lên ít nhất 1 tấm ảnh nhé!");
-      return;
-    }
+    if (isSubmitting || selectedMedia.length === 0) return;
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "items"), {
-        ...newPost, quantity: Number(newPost.quantity), 
-        image: selectedMedia[0].url, gallery: selectedMedia,
-        author: user.name, authorId: user.id, createdAt: new Date().toISOString()
+        ...newPost,
+        image: selectedMedia[0].url,
+        author: user.name,
+        authorId: user.id,
+        status: 'available',
+        createdAt: new Date().toISOString()
       });
       setIsModalOpen(false);
-      onNotify('success', `Đã lan tỏa món quà "${newPost.title}"!`);
-      setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', contact: '', quantity: 1 });
+      onNotify('success', "Đã đăng tặng thành công!");
+      setNewPost({ title: '', category: CATEGORIES[0], condition: 'good', description: '', location: '', quantity: 1 });
       setSelectedMedia([]);
-    } catch (err: any) { 
-      console.error("Lỗi đăng Marketplace:", err);
-      onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Đệ hãy thử ít ảnh hơn hoặc ảnh nhẹ hơn nhé)."); 
-    } finally { setIsSubmitting(false); }
+    } catch (err) {
+      onNotify('error', "Có lỗi xảy ra.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const filteredItems = items.filter(item => {
+    const matchCategory = selectedCategory === 'Tất cả' || item.category === selectedCategory;
+    const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchAdvanced = true;
+    if (selectedCategory === 'Quần áo') {
+      if (filterAge !== '') matchAdvanced = matchAdvanced && (item.minAge! <= filterAge && item.maxAge! >= filterAge);
+      if (filterWeight !== '') matchAdvanced = matchAdvanced && (item.minWeight! <= filterWeight && item.maxWeight! >= filterWeight);
+    } else if (selectedCategory === 'Sách vở') {
+      if (filterAuthor) matchAdvanced = matchAdvanced && (item.bookAuthor?.toLowerCase().includes(filterAuthor.toLowerCase()) ?? false);
+      if (filterGenre) matchAdvanced = matchAdvanced && (item.bookGenre?.toLowerCase().includes(filterGenre.toLowerCase()) ?? false);
+    }
+
+    return matchCategory && matchSearch && matchAdvanced;
+  });
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto font-['Inter']">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-black text-emerald-950 italic uppercase tracking-tighter leading-none">Sàn Tặng đồ</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4 italic">Sẻ chia hiện vật, lan tỏa nụ cười</p>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4 italic">Hỗ trợ bởi GIVEBACK AI Vision ✨</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all">Đăng đồ tặng mới</button>
+        <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Đăng đồ tặng mới</button>
       </div>
 
-      <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50 mb-12 flex flex-col md:flex-row gap-6">
-        <div className="flex-1 relative">
-          <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input type="text" placeholder="Tìm món đồ đệ cần..." className="w-full pl-14 pr-6 py-4 bg-gray-50 rounded-full text-xs font-black italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all uppercase tracking-tight" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-        </div>
-        <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-1">
-          {['Tất cả', ...CATEGORIES].map(cat => (
-            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-xl' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}>
-              {cat}
-            </button>
-          ))}
+      <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-emerald-50 mb-12 animate-in fade-in slide-in-from-top-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Tìm kiếm chung</label>
+            <input type="text" placeholder="Tên món đồ..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Phân loại</label>
+            <select className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all font-bold" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+              {['Tất cả', ...CATEGORIES].map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {selectedCategory === 'Quần áo' && (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Độ tuổi của bé (Năm)</label>
+                <input type="number" placeholder="Vd: 5" className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterAge} onChange={e => setFilterAge(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Cân nặng (kg)</label>
+                <input type="number" placeholder="Vd: 20" className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterWeight} onChange={e => setFilterWeight(e.target.value === '' ? '' : Number(e.target.value))} />
+              </div>
+            </>
+          )}
+
+          {selectedCategory === 'Sách vở' && (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Tác giả</label>
+                <input type="text" placeholder="Tên tác giả..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Thể loại</label>
+                <input type="text" placeholder="Vd: Giáo khoa, Truyện..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterGenre} onChange={e => setFilterGenre(e.target.value)} />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {items.filter(item => (selectedCategory === 'Tất cả' || item.category === selectedCategory) && item.title.toLowerCase().includes(searchTerm.toLowerCase())).map(item => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {filteredItems.map(item => (
           <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} />
         ))}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-10 overflow-y-auto">
-          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-3xl rounded-[3.5rem] shadow-2xl p-8 md:p-12 animate-in zoom-in-95 duration-300">
-             <div className="flex justify-between items-center mb-10">
-                <h2 className="text-3xl font-black uppercase italic text-emerald-950 tracking-tighter leading-none">Món quà Đệ muốn tặng</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+      {/* Detail Modal */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 py-10">
+          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedItem(null)}></div>
+          <div className="relative bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+             <div className="h-[400px] relative bg-gray-100">
+                <img src={selectedItem.image} className="w-full h-full object-cover" alt="" />
+                <button onClick={() => setSelectedItem(null)} className="absolute top-8 right-8 bg-black/20 text-white p-3 rounded-full hover:bg-black/40 transition-all z-10">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <div className="absolute bottom-8 left-8 flex gap-3">
+                   <span className="bg-emerald-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl italic">{selectedItem.category}</span>
+                   <span className="bg-white text-emerald-900 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">{selectedItem.condition === 'new' ? 'Mới 100%' : 'Đã sử dụng'}</span>
+                </div>
              </div>
-             <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="space-y-6">
-                      <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500 transition-all" placeholder="Tên món đồ (Vd: Gấu bông, Nồi cơm...)" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
-                      <div className="grid grid-cols-2 gap-4">
-                        <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none cursor-pointer" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
-                          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                        </select>
-                        <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none cursor-pointer" value={newPost.condition} onChange={e => setNewPost({...newPost, condition: e.target.value as any})}>
-                          <option value="new">Mới 100%</option><option value="good">Còn tốt</option><option value="used">Đã dùng</option>
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <input required placeholder="Đệ ở đâu? (Vd: Quận 1)" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.location} onChange={e => setNewPost({...newPost, location: e.target.value})} />
-                        <div className="relative">
-                          <input required type="number" min="1" className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none pr-10" placeholder="Số lượng" value={newPost.quantity} onChange={e => setNewPost({...newPost, quantity: parseInt(e.target.value) || 1})} />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-gray-300 uppercase">Cái</span>
-                        </div>
+             <div className="p-10">
+                <div className="flex items-center justify-between mb-6">
+                   <h3 className="text-3xl font-black italic uppercase text-emerald-950 tracking-tighter leading-none">{selectedItem.title}</h3>
+                   <span className="text-xs font-black text-gray-400">SL: {selectedItem.quantity}</span>
+                </div>
+                
+                <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-50 mb-8">
+                   <p className="text-emerald-950 italic text-sm leading-relaxed">"{selectedItem.description || 'Chủ bài đăng chưa cung cấp mô tả chi tiết cho món quà này.'}"</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-10">
+                   <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-emerald-600 font-black text-xs">{selectedItem.author.charAt(0)}</div>
+                      <div>
+                         <p className="text-[10px] font-black uppercase text-gray-400">Người tặng</p>
+                         <p className="text-xs font-bold text-gray-900">{selectedItem.author}</p>
                       </div>
                    </div>
-                   <div className="space-y-4">
-                      <div className="min-h-[220px] border-4 border-dashed border-emerald-50 rounded-[2.5rem] flex flex-col items-center justify-center bg-gray-50 shadow-inner overflow-hidden">
-                         {selectedMedia.length > 0 ? (
-                            <UploadPreview mediaList={selectedMedia} onRemove={removeMedia} />
-                         ) : (
-                           <div onClick={() => fileInputRef.current?.click()} className="text-center px-4 cursor-pointer hover:scale-105 transition-transform">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-emerald-200 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Nhấn để tải ảnh/video (Tối đa 4)</span>
-                           </div>
-                         )}
+                   <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg></div>
+                      <div>
+                         <p className="text-[10px] font-black uppercase text-gray-400">Khu vực</p>
+                         <p className="text-xs font-bold text-gray-900 truncate">{selectedItem.location || 'Chưa xác định'}</p>
                       </div>
-                      {selectedMedia.length > 0 && selectedMedia.length < 4 && (
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all">
-                          Chọn thêm ảnh khác ({selectedMedia.length}/4) +
-                        </button>
-                      )}
                    </div>
                 </div>
-                <textarea required rows={4} placeholder="Hãy viết vài dòng chân thành về món quà này..." className="w-full bg-gray-50 p-8 rounded-[2.5rem] font-medium italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
-                <button type="submit" disabled={isSubmitting || isCompressing} className="w-full bg-emerald-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-100 hover:scale-[1.02] active:scale-95 transition-all text-[11px] disabled:opacity-50">
-                  {isSubmitting ? 'ĐANG LAN TỎA...' : isCompressing ? 'ĐANG XỬ LÝ ẢNH...' : 'ĐĂNG TIN TẶNG ĐỒ NGAY'}
+
+                <button 
+                  onClick={() => handleStartChat(selectedItem)}
+                  className="w-full bg-emerald-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:bg-black hover:scale-[1.02] active:scale-95"
+                >
+                  BẮT ĐẦU TRÒ CHUYỆN
                 </button>
-             </form>
-             <input ref={fileInputRef} type="file" className="hidden" multiple accept="image/*,video/*" onChange={handleFileChange} />
+             </div>
           </div>
         </div>
       )}
 
-      {selectedItem && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-6">
-           <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedItem(null)}></div>
-           <div className="relative bg-white w-full max-w-2xl rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-400">
-              <div className="h-[400px] bg-gray-100 relative">
-                <MediaGrid mediaList={selectedItem.gallery || [{url: selectedItem.image, type: 'image'}]} />
-                <div className="absolute bottom-8 left-8 flex gap-3">
-                  <div className="bg-emerald-600 text-white text-[9px] font-black px-5 py-2.5 rounded-full uppercase tracking-widest italic shadow-2xl border-2 border-white/20">
-                    TÌNH TRẠNG: {selectedItem.condition === 'new' ? 'MỚI 100%' : selectedItem.condition === 'good' ? 'CÒN TỐT' : 'ĐÃ DÙNG'}
-                  </div>
-                  <div className="bg-amber-500 text-white text-[9px] font-black px-5 py-2.5 rounded-full uppercase tracking-widest italic shadow-2xl border-2 border-white/20">
-                    HIỆN CÓ: {selectedItem.quantity} CÁI
-                  </div>
+      {/* Modal Đăng đồ */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-10">
+          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-3xl rounded-[3.5rem] shadow-2xl p-8 md:p-12 animate-in zoom-in-95 h-fit max-h-[95vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-black uppercase italic text-emerald-950">Quà tặng từ tâm</h2>
+                {isAiScanning && <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full animate-pulse"><span className="text-[10px] font-black text-emerald-600 uppercase">AI Scanning...</span></div>}
+             </div>
+             
+             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                      <div className={`h-64 border-4 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center bg-gray-50 relative overflow-hidden group transition-all ${isAiScanning ? 'border-emerald-400' : 'border-emerald-100'}`}>
+                         {selectedMedia.length > 0 ? (
+                           <img src={selectedMedia[0].url} className="w-full h-full object-cover" alt="" />
+                         ) : (
+                           <div onClick={() => fileInputRef.current?.click()} className="text-center cursor-pointer">
+                              <span className="text-[10px] font-black uppercase text-emerald-300">Tải ảnh lên để AI quét</span>
+                           </div>
+                         )}
+                         {isAiScanning && <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center"><div className="w-full h-1 bg-emerald-500 absolute top-0 animate-scan"></div></div>}
+                      </div>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100">Chọn hình ảnh</button>
+                   </div>
+
+                   <div className="space-y-4">
+                      <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Tên món đồ (AI gợi ý...)" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
+                      <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
+                        {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                      
+                      <div className="bg-emerald-50/50 p-6 rounded-[2rem] space-y-4 border border-emerald-100">
+                        <p className="text-[10px] font-black text-emerald-700 uppercase italic">Thông số AI quét được:</p>
+                        {newPost.category === 'Quần áo' ? (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="text-[11px] font-bold">Tuổi: <span className="text-emerald-600">{newPost.minAge}-{newPost.maxAge}</span></div>
+                            <div className="text-[11px] font-bold">Nặng: <span className="text-emerald-600">{newPost.minWeight}-{newPost.maxWeight}kg</span></div>
+                          </div>
+                        ) : newPost.category === 'Sách vở' ? (
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-bold">Tác giả: <span className="text-emerald-600">{newPost.bookAuthor || '...'}</span></div>
+                            <div className="text-[11px] font-bold">Thể loại: <span className="text-emerald-600">{newPost.bookGenre || '...'}</span></div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 italic">Đang chờ quét ảnh...</p>
+                        )}
+                      </div>
+                   </div>
                 </div>
-                <button onClick={() => setSelectedItem(null)} className="absolute top-8 right-8 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full backdrop-blur-md transition-all z-10"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-              </div>
-              <div className="p-12">
-                 <h3 className="text-4xl font-black italic uppercase text-emerald-950 mb-4 tracking-tighter leading-none">{selectedItem.title}</h3>
-                 <div className="flex items-center gap-3 mb-8">
-                    <span className="text-emerald-600 font-black text-[11px] uppercase tracking-[0.3em] bg-emerald-50 px-4 py-1.5 rounded-full italic">{selectedCategory !== 'Tất cả' ? selectedCategory : selectedItem.category}</span>
-                    <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">📍 {selectedItem.location}</span>
-                 </div>
-                 <div className="bg-emerald-50/30 p-8 rounded-[3rem] mb-10 border border-emerald-50 shadow-inner">
-                    <p className="text-emerald-950 leading-relaxed italic text-base font-medium">"{selectedItem.description}"</p>
-                 </div>
-                 <button 
-                  disabled={selectedItem.quantity <= 0}
-                  onClick={() => {
-                    const chatId = `chat_${selectedItem.id}_${user.id}`;
-                    setDoc(doc(db, "chats", chatId), {
-                      id: chatId, type: 'direct', itemId: selectedItem.id, itemTitle: selectedItem.title, itemImage: selectedItem.image,
-                      donorId: selectedItem.authorId, donorName: selectedItem.author, receiverId: user.id, receiverName: user.name,
-                      participants: [selectedItem.authorId, user.id], lastMessage: "Chào đệ, mình muốn nhận món đồ này...", lastSenderId: user.id,
-                      updatedAt: new Date().toISOString(), giftStatus: 'negotiating'
-                    }).then(() => {
-                      if (setActiveTab) setActiveTab('messages');
-                      setSelectedItem(null);
-                    });
-                  }}
-                  className={`w-full py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 text-[11px] ${selectedItem.quantity > 0 ? 'bg-emerald-600 text-white shadow-emerald-100 hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                >
-                  {selectedItem.quantity > 0 ? "BẮT ĐẦU TRÒ CHUYỆN" : "MÓN QUÀ NÀY ĐÃ ĐƯỢC TRAO HẾT"}
+
+                <textarea required rows={4} placeholder="Mô tả thêm (Vd: Đồ còn rất mới, mình chỉ mặc 1-2 lần...)" className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium italic outline-none" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
+                
+                <button type="submit" disabled={isSubmitting || isAiScanning} className="w-full bg-emerald-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:scale-[1.02] disabled:opacity-50">
+                  {isSubmitting ? 'ĐANG ĐĂNG...' : 'ĐĂNG QUÀ TẶNG NGAY'}
                 </button>
-              </div>
-           </div>
+             </form>
+             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+          </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes scan {
+          0% { top: 0; }
+          100% { top: 100%; }
+        }
+        .animate-scan {
+          animation: scan 2s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
