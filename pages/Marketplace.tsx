@@ -156,7 +156,8 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).slice(0, 4 - selectedMedia.length);
+    // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type errors on file properties
+    const files = (Array.from(e.target.files || []) as File[]).slice(0, 4 - selectedMedia.length);
     if (files.length === 0 && selectedMedia.length >= 4) {
         onNotify('warning', 'Đệ ơi, tối đa 4 ảnh cho mỗi bài đăng để đảm bảo mượt mà nhé!');
         return;
@@ -338,7 +339,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, setActiveTab, onNotify 
                   }}
                   className={`w-full py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 text-[11px] ${selectedItem.quantity > 0 ? 'bg-emerald-600 text-white shadow-emerald-100 hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 >
-                  {selectedItem.quantity > 0 ? "BẮT ĐẦU TRÒ CHUYỆN XIN ĐỒ" : "MÓN QUÀ NÀY ĐÃ ĐƯỢC TRAO HẾT"}
+                  {selectedItem.quantity > 0 ? "BẮT ĐẦU TRÒ CHUYỆN" : "MÓN QUÀ NÀY ĐÃ ĐƯỢC TRAO HẾT"}
                 </button>
               </div>
            </div>

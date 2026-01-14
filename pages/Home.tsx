@@ -182,7 +182,8 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).slice(0, 4 - selectedFiles.length);
+    // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type errors on file properties
+    const files = (Array.from(e.target.files || []) as File[]).slice(0, 4 - selectedFiles.length);
     if (files.length === 0 && selectedFiles.length >= 4) {
       onNotify('warning', 'Tối đa 4 ảnh cho bài viết đệ nhé!');
       return;
@@ -402,7 +403,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                       {selectedFiles.map((f, i) => (
                         <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm group">
                           {f.type === 'video' ? <video src={f.url} className="w-full h-full object-cover" /> : <img src={f.url} className="w-full h-full object-cover" alt="" />}
-                          <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                          <button onClick={() => removeFile(index)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
                         </div>
                       ))}
                     </div>
@@ -528,8 +529,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                            <p className="text-sm font-black text-emerald-950 uppercase">{new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
                         </div>
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50 col-span-2 md:col-span-1">
-                           <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Trạng thái</p>
-                           <p className="text-xs font-black text-amber-600 uppercase italic tracking-tighter">{selectedMission.status === 'upcoming' ? 'Sắp diễn ra' : selectedMission.status === 'ongoing' ? 'Đang triển khai' : 'Hoàn thành'}</p>
+                           <p className="text-[8px] font-black text-amber-600 uppercase italic tracking-tighter">{selectedMission.status === 'upcoming' ? 'Sắp diễn ra' : selectedMission.status === 'ongoing' ? 'Đang triển khai' : 'Hoàn thành'}</p>
                         </div>
                      </section>
                      <section className="space-y-8">
