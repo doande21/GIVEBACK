@@ -133,7 +133,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h2>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
-              {isLoginView ? 'Chào mừng Đệ quay trở lại' : 'Trở thành một phần của GIVEBACK'}
+              {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
             </p>
           </div>
 
@@ -148,7 +148,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {!isLoginView && (
               <input required className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none font-bold text-gray-700 text-sm focus:ring-2 focus:ring-emerald-500/20" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
-            <input required type="email" className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none font-bold text-gray-700 text-sm focus:ring-2 focus:ring-emerald-500/20" placeholder="Email của Đệ..." value={email} onChange={e => setEmail(e.target.value)} />
+            <input required type="email" className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none font-bold text-gray-700 text-sm focus:ring-2 focus:ring-emerald-500/20" placeholder="Email của bạn..." value={email} onChange={e => setEmail(e.target.value)} />
             <div className="relative">
               <input required type={showPassword ? "text" : "password"} className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none font-bold text-gray-700 text-sm focus:ring-2 focus:ring-emerald-500/20" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
@@ -199,7 +199,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
              
              <p className="text-base font-bold italic mb-12 leading-relaxed opacity-90 px-4 drop-shadow-md">
                {isLoginView 
-                ? '"Yêu thương cho đi là yêu thương còn mãi. Đệ đã sẵn sàng lan tỏa chưa?"'
+                ? '"Yêu thương cho đi là yêu thương còn mãi. Bạn đã sẵn sàng lan tỏa chưa?"'
                 : '"Mỗi chuyến đi, một hành trình nhân ái. Hãy bắt đầu cùng chúng tôi ngay hôm nay."'}
              </p>
              
@@ -221,7 +221,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
           
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-[0.5em] opacity-50">
-            Hành trình nhân ái đang chờ Đệ
+            Hành trình nhân ái đang chờ bạn
           </div>
         </div>
 
