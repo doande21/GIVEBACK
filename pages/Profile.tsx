@@ -104,9 +104,10 @@ interface ProfileProps {
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
   onGoToMessages: (partnerId?: string) => void;
   onViewProfile?: (userId: string) => void;
+  onLogout?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, onNotify, onGoToMessages, onViewProfile }) => {
+const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, onNotify, onGoToMessages, onViewProfile, onLogout }) => {
   const [targetUser, setTargetUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -252,6 +253,19 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
       <div className="bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-emerald-50 relative">
         <div className={`h-48 bg-gradient-to-r ${isOrg ? 'from-sky-700 to-blue-900' : isTargetGuest ? 'from-amber-600 to-orange-700' : 'from-emerald-600 to-teal-700'} relative`}>
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+          {isViewingSelf && (
+            <button 
+              onClick={() => {
+                if(window.confirm("Đệ chắc chắn muốn đăng xuất?")) onLogout?.();
+              }}
+              className="absolute top-6 right-6 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-2xl text-white transition-all z-10"
+              title="Đăng xuất nhanh"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          )}
         </div>
         <div className="px-10 pb-12">
           <div className="relative -mt-20 mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
@@ -276,23 +290,120 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                 </div>
               </div>
             </div>
+            {isViewingSelf && (
+               <div className="flex gap-3 justify-center">
+                  <button onClick={() => setIsEditing(!isEditing)} className="bg-gray-100 text-gray-700 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">{isEditing ? 'HỦY BỎ' : 'CHỈNH SỬA'}</button>
+                  <button onClick={() => {if(window.confirm("Đăng xuất khỏi GIVEBACK?")) onLogout?.();}} className="bg-red-50 text-red-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">ĐĂNG XUẤT</button>
+               </div>
+            )}
           </div>
           
-          {isTargetGuest && !isViewingSelf && (
-            <div className="mb-10 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100 flex items-center gap-4 animate-pulse">
-               <div className="bg-amber-100 p-3 rounded-2xl"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-               <p className="text-[11px] font-black text-amber-800 uppercase leading-relaxed">Đây là tài khoản chưa được định danh chính thức. Hãy cẩn thận khi thực hiện các giao dịch trao đổi món quà.</p>
-            </div>
-          )}
+          {isEditing ? (
+            <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-2xl mx-auto md:mx-0 animate-in fade-in slide-in-from-top-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Họ và tên</label>
+                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Khu vực</label>
+                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Tiểu sử (Slogan yêu thương)</label>
+                <textarea className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" rows={3} value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
+              </div>
+              <button type="submit" className="w-full bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.2em] shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">LƯU THAY ĐỔI</button>
+            </form>
+          ) : (
+            <>
+              {targetUser.bio && (
+                <div className="mb-10 p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100">
+                  <p className="text-gray-600 font-bold italic text-sm leading-relaxed">"{targetUser.bio}"</p>
+                </div>
+              )}
 
-          {!isViewingSelf && (
-            <div className="flex flex-col sm:flex-row gap-5 mb-12">
-               <button onClick={handleSendFriendRequest} disabled={!!requestSent || isFriend || isTargetGuest} className={`flex-1 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all ${isFriend ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : requestSent ? 'bg-gray-100 text-gray-400' : isTargetGuest ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'}`}>{isFriend ? 'ĐẠI SỨ NHÂN ÁI' : requestSent ? 'ĐANG CHỜ PHẢN HỒI' : isTargetGuest ? 'GUEST KHÔNG KẾT BẠN' : 'GỬI LỜI MỜI ĐỒNG ĐỘI'}</button>
-               <button onClick={handleOpenChat} className="flex-1 py-5 rounded-[2rem] bg-gray-950 text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-black active:scale-95 transition-all">GỬI LỜI NHẮN</button>
-            </div>
+              {isTargetGuest && !isViewingSelf && (
+                <div className="mb-10 p-6 bg-amber-50 rounded-[2.5rem] border border-amber-100 flex items-center gap-4 animate-pulse">
+                   <div className="bg-amber-100 p-3 rounded-2xl"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                   <p className="text-[11px] font-black text-amber-800 uppercase leading-relaxed">Đây là tài khoản chưa được định danh chính thức. Hãy cẩn thận khi thực hiện các giao dịch trao đổi món quà.</p>
+                </div>
+              )}
+
+              {!isViewingSelf && (
+                <div className="flex flex-col sm:flex-row gap-5 mb-12">
+                   <button onClick={handleSendFriendRequest} disabled={!!requestSent || isFriend || isTargetGuest} className={`flex-1 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all ${isFriend ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : requestSent ? 'bg-gray-100 text-gray-400' : isTargetGuest ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'}`}>{isFriend ? 'ĐẠI SỨ NHÂN ÁI' : requestSent ? 'ĐANG CHỜ PHẢN HỒI' : isTargetGuest ? 'GUEST KHÔNG KẾT BẠN' : 'GỬI LỜI MỜI ĐỒNG ĐỘI'}</button>
+                   <button onClick={handleOpenChat} className="flex-1 py-5 rounded-[2rem] bg-gray-950 text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-black active:scale-95 transition-all">GỬI LỜI NHẮN</button>
+                </div>
+              )}
+              
+              <div className="flex border-b border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
+                 {[
+                   { id: 'posts', label: 'Bài viết' },
+                   { id: 'given', label: 'Món quà đã tặng' },
+                   { id: 'received', label: 'Quà đã nhận' },
+                   { id: 'friends', label: 'Đồng đội' }
+                 ].map(tab => (
+                   <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-all border-b-4 ${activeTab === tab.id ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-400'}`}
+                   >
+                     {tab.label}
+                   </button>
+                 ))}
+              </div>
+
+              <div className="space-y-6">
+                {activeTab === 'posts' && (
+                  userPosts.length > 0 ? userPosts.map(post => (
+                    <div key={post.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                      <p className="text-sm font-medium text-gray-800 leading-relaxed mb-4">{post.content}</p>
+                      <PostMediaGrid media={post.media} mediaUrl={post.mediaUrl} mediaType={post.mediaType} />
+                      <div className="mt-4 flex justify-between items-center text-[9px] font-black text-gray-300 uppercase tracking-widest">
+                         <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                         <span>{post.hearts?.length || 0} ❤️ • {post.comments?.length || 0} 💬</span>
+                      </div>
+                    </div>
+                  )) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa có bài viết nào...</div>
+                )}
+                
+                {activeTab === 'given' && (
+                  givenItems.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {givenItems.map(item => (
+                        <div key={item.id} className="bg-white p-4 rounded-[2rem] border border-gray-100 flex items-center gap-4">
+                           <img src={item.image} className="w-16 h-16 rounded-2xl object-cover" alt="" />
+                           <div className="min-w-0 flex-1">
+                              <h4 className="text-xs font-black uppercase text-gray-900 truncate">{item.title}</h4>
+                              <p className={`text-[8px] font-black uppercase tracking-widest ${item.quantity > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>{item.quantity > 0 ? 'Còn sẵn' : 'Đã hết'}</p>
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa đăng món quà nào...</div>
+                )}
+
+                {activeTab === 'friends' && (
+                  friendsList.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                       {friendsList.map(f => (
+                         <div 
+                          key={f.id} 
+                          onClick={() => onViewProfile?.(f.id)}
+                          className="bg-white p-5 rounded-[2.5rem] border border-gray-100 flex flex-col items-center text-center cursor-pointer hover:bg-emerald-50/30 transition-all"
+                         >
+                            <img src={getAvatar(f.avatar, f.name, f.userType)} className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-sm" alt="" />
+                            <p className="text-[10px] font-black uppercase text-gray-900 line-clamp-1">{f.name}</p>
+                         </div>
+                       ))}
+                    </div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa có đồng đội nào...</div>
+                )}
+              </div>
+            </>
           )}
-          
-          {/* Tabs UI logic... (Hệ thừa từ nội dung cũ) */}
         </div>
       </div>
     </div>

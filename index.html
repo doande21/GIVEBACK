@@ -6,86 +6,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIVEBACK - Nền tảng chia sẻ yêu thương 100% tự nguyện</title>
     
-    <!-- Meta Tags cho SEO -->
-    <meta name="description" content="Diễn đàn kết nối cộng đồng để tặng lại đồ dùng cũ và quyên góp từ thiện với tinh thần tự nguyện 100%.">
-    <meta name="keywords" content="từ thiện, tặng đồ cũ, quyên góp, Giveback, giúp đỡ cộng đồng">
-    <meta name="author" content="Đệ (doande21)">
-
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              emerald: {
+                950: '#022c22',
+                900: '#064e3b',
+              }
+            }
+          }
+        }
+      }
+    </script>
     <style>
         :root {
-            --primary-color: #059669;
-            --primary-hover: #047857;
-            --accent-color: #fbbf24;
-            --border-radius-main: 2.5rem;
-            --font-main: Arial, Helvetica, sans-serif;
+            --primary-color: #10b981; 
+            --bg-main: #f8fafc;
+            --text-main: #064e3b;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        body { 
-            font-family: var(--font-main); 
-            margin: 0; 
-            padding: 0; 
-            background-color: #f9fafb;
-            overflow-x: hidden;
-            font-style: normal !important;
+        /* Khi class .dark được thêm vào thẻ html */
+        .dark {
+            --bg-main: #020617;
+            --text-main: #ecfdf5;
+            --primary-color: #34d399;
         }
 
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* ANIMATION: TRUCK DRIVING EFFECTS */
-        @keyframes truck-bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
+        /* CON TRỎ NHẤP NHÁY MÀU EMERALD */
+        input, textarea {
+            caret-color: #10b981 !important;
+        }
+        .dark input, .dark textarea {
+            caret-color: #34d399 !important;
         }
 
-        @keyframes wheel-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        /* Loại bỏ font-style italic mặc định của browser nếu có */
+        * { font-style: normal !important; }
+        .italic, i, em { font-style: italic !important; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { 
+            background: #10b981; 
+            border-radius: 10px; 
         }
 
-        @keyframes landscape-move {
-            from { background-position: 0 0; }
-            to { background-position: -2000px 0; }
+        @keyframes send-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
+        .send-active { animation: send-pulse 1s infinite; }
 
         @keyframes heart-rise {
             0% { transform: translateY(0) scale(0); opacity: 0; }
             50% { opacity: 0.8; }
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
-
-        .scrolling-landscape {
-            background-image: url('https://www.transparenttextures.com/patterns/p6.png');
-            animation: landscape-move 20s linear infinite;
-        }
-
-        .animate-truck {
-            animation: truck-bounce 0.4s ease-in-out infinite;
-        }
-
-        .animate-wheel {
-            animation: wheel-spin 0.3s linear infinite;
-        }
-
-        .animate-heart {
-            animation: heart-rise 2s ease-out infinite;
-        }
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { 
-            background: var(--primary-color); 
-            border-radius: 10px; 
-        }
-
-        /* Loại bỏ in nghiêng cho mọi thẻ */
-        h1, h2, h3, h4, h5, h6, p, span, div, input, textarea, button {
-            font-style: normal !important;
-        }
+        .animate-heart { animation: heart-rise 2s ease-out infinite; }
     </style>
 <script type="importmap">
 {
@@ -102,7 +94,7 @@
 }
 </script>
 </head>
-<body class="text-gray-900">
+<body class="dark:bg-slate-950 dark:text-slate-100">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>

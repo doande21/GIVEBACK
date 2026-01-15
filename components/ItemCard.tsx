@@ -38,7 +38,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
   return (
     <div 
       onClick={() => onSelect?.(item)}
-      className={`bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative flex flex-col h-full ${isOutOfStock ? 'opacity-80' : ''}`}
+      className={`bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-lg dark:shadow-none border border-emerald-50 dark:border-emerald-900/30 overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative flex flex-col h-full ${isOutOfStock ? 'opacity-80' : ''}`}
     >
       {isAdmin && (
         <button onClick={handleDelete} className="absolute top-4 left-4 z-20 bg-red-500 text-white p-2.5 rounded-2xl shadow-xl opacity-0 group-hover:opacity-100 transition-all">
@@ -46,22 +46,22 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
         </button>
       )}
 
-      <div className="relative h-56 bg-gray-100 overflow-hidden">
+      <div className="relative h-56 bg-gray-100 dark:bg-emerald-950/20 overflow-hidden">
         <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-          <div className="bg-emerald-600 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
+          <div className="bg-emerald-500 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
             {item.category}
           </div>
         </div>
         
         <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
           {(item.minAge !== undefined && item.minAge > 0) && (
-            <div className="bg-white/90 backdrop-blur-md text-emerald-900 text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-sm">
+            <div className="bg-white/90 dark:bg-emerald-900/90 backdrop-blur-md text-emerald-900 dark:text-emerald-100 text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-sm">
               🍼 {item.minAge}-{item.maxAge} Tuổi
             </div>
           )}
           {item.bookAuthor && (
-            <div className="bg-white/90 backdrop-blur-md text-emerald-900 text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-sm truncate max-w-[120px]">
+            <div className="bg-white/90 dark:bg-emerald-900/90 backdrop-blur-md text-emerald-900 dark:text-emerald-100 text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-sm truncate max-w-[120px]">
               ✍️ {item.bookAuthor}
             </div>
           )}
@@ -69,26 +69,26 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
       </div>
 
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-lg font-black uppercase tracking-tighter mb-2 truncate text-gray-950 group-hover:text-emerald-700">
+        <h3 className="text-lg font-black uppercase tracking-tighter mb-2 truncate text-emerald-950 dark:text-emerald-50 group-hover:text-emerald-500 transition-colors">
           {item.title}
         </h3>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-6 h-9 font-medium leading-relaxed">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-6 h-9 font-medium leading-relaxed italic">
           "{item.description || 'Không có mô tả.'}"
         </p>
         
-        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
+        <div className="mt-auto pt-5 border-t border-emerald-50 dark:border-emerald-900/30 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer group/author" onClick={handleAuthorClick}>
-            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-black text-[10px] group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center font-black text-[10px] group-hover/author:bg-emerald-500 group-hover/author:text-white transition-all shadow-sm">
               {item.author.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black text-gray-900 uppercase tracking-tighter truncate max-w-[80px] group-hover/author:text-emerald-600 transition-colors">{item.author}</p>
-              <p className="text-[8px] text-gray-400 font-bold uppercase truncate">{item.location || 'Toàn quốc'}</p>
+              <p className="text-[10px] font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-tighter truncate max-w-[80px] group-hover/author:text-emerald-500 transition-colors">{item.author}</p>
+              <p className="text-[8px] text-gray-400 dark:text-gray-500 font-bold uppercase truncate">{item.location || 'Toàn quốc'}</p>
             </div>
           </div>
           <button 
             onClick={(e) => { e.stopPropagation(); onSelect?.(item); }}
-            className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95"
+            className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all active:scale-95"
           >
             LIÊN HỆ
           </button>

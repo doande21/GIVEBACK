@@ -11,6 +11,7 @@ import MapSearch from './pages/MapSearch';
 import Contact from './pages/Contact';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
+import Missions from './pages/Missions';
 import Login from './pages/Login';
 import AIHelper from './components/AIHelper';
 import { User, ChatSession } from './types';
@@ -23,6 +24,24 @@ const App: React.FC = () => {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) return savedTheme === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Effect quản lý Dark Mode đồng bộ với Tailwind
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isDarkMode) {
+      html.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      html.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (!user) return;
@@ -56,11 +75,8 @@ const App: React.FC = () => {
   };
 
   const handleViewProfile = (userId: string) => {
-    if (user && userId === user.id) {
-      setViewingUserId(null);
-    } else {
-      setViewingUserId(userId);
-    }
+    if (user && userId === user.id) setViewingUserId(null);
+    else setViewingUserId(userId);
     setActiveTab('profile');
   };
 
@@ -68,15 +84,16 @@ const App: React.FC = () => {
     console.log(`[${type.toUpperCase()}] from ${sender || 'System'}: ${message}`);
   };
 
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
+  if (!user) return <Login onLogin={handleLogin} />;
+
+  const isAdmin = user.role === 'admin';
 
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
       case 'market': return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
       case 'auction': return <Auction user={user} onNotify={handleNotify} setActiveTab={setActiveTab} />;
+      case 'missions': return <Missions setActiveTab={setActiveTab} />;
       case 'sponsors': return <Sponsors />;
       case 'admin': return <Admin user={user} onNotify={handleNotify} />;
       case 'profile': return (
@@ -85,8 +102,9 @@ const App: React.FC = () => {
           viewingUserId={viewingUserId} 
           onUpdateUser={(u) => setUser(u)} 
           onNotify={handleNotify} 
-          onGoToMessages={(partnerId) => setActiveTab('messages')}
+          onGoToMessages={() => setActiveTab('messages')}
           onViewProfile={handleViewProfile}
+          onLogout={handleLogout}
         />
       );
       case 'map': return <MapSearch />;
@@ -99,8 +117,16 @@ const App: React.FC = () => {
     }
   };
 
+  const navItems = [
+    { id: 'home', label: 'TRANG CHỦ', icon: <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
+    { id: 'map', label: 'KHÁM PHÁ', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
+    { id: 'plus', label: '', icon: <div className="bg-white dark:bg-emerald-500 text-[#045d43] dark:text-white p-3 rounded-full shadow-lg"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></div> },
+    { id: isAdmin ? 'admin' : 'missions', label: isAdmin ? 'QUẢN TRỊ' : 'CHIẾN DỊCH', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg> },
+    { id: 'profile', label: 'CÁ NHÂN', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> }
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen transition-colors duration-300">
       <Navbar 
         user={user} 
         activeTab={activeTab} 
@@ -108,31 +134,29 @@ const App: React.FC = () => {
         onLogout={handleLogout} 
         pendingRequestsCount={pendingRequestsCount}
         unreadMessagesCount={unreadMessagesCount}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
       
-      <main className="transition-all duration-500">{renderContent()}</main>
+      <main className="pb-24">{renderContent()}</main>
       
       <AIHelper />
 
-      {/* Bottom Navigation chuẩn Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex items-center justify-around h-20 px-2 pb-2">
-         {[
-           { id: 'home', label: 'Trang chủ', icon: <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
-           { id: 'map', label: 'Khám phá', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
-           { id: 'plus', label: '', icon: <div className="bg-emerald-100 text-emerald-600 p-3 rounded-full"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></div> },
-           { id: 'auction', label: 'Chiến dịch', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg> },
-           { id: 'profile', label: 'Cá nhân', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> }
-         ].map(item => (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#045d43] dark:bg-slate-900 border-t border-white/10 flex items-center justify-around h-20 px-2 pb-2">
+         {navItems.map(item => (
            <button 
             key={item.id}
             onClick={() => {
               if (item.id === 'plus') setActiveTab('market');
               else setActiveTab(item.id);
             }}
-            className={`flex flex-col items-center justify-center space-y-1 transition-colors ${activeTab === item.id ? 'text-emerald-700' : 'text-gray-300'}`}
+            className={`flex flex-col items-center justify-center space-y-1 transition-all flex-1 h-full ${activeTab === item.id ? 'text-white' : 'text-white/40 hover:text-white/70'}`}
            >
-             {item.icon}
-             {item.label && <span className="text-[9px] font-bold uppercase tracking-widest">{item.label}</span>}
+             <div className={`${activeTab === item.id && item.id !== 'plus' ? 'scale-110' : ''} transition-transform`}>
+               {item.icon}
+             </div>
+             {item.label && <span className={`text-[8px] font-black uppercase tracking-widest ${activeTab === item.id ? 'opacity-100' : 'opacity-60'}`}>{item.label}</span>}
+             {activeTab === item.id && item.id !== 'plus' && <div className="w-1 h-1 bg-white rounded-full mt-0.5"></div>}
            </button>
          ))}
       </div>
