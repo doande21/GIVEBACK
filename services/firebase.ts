@@ -5,7 +5,7 @@ import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from 'firebase/auth
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCb2WBnZ_md_3isEGuO6kfLbo-RO5tRN-k",
+  apiKey: "AIzaSyCps-abURYQD2mRvfoj26VJcmM0EKiPM9k",
   authDomain: "giveback-336a1.firebaseapp.com",
   projectId: "giveback-336a1",
   storageBucket: "giveback-336a1.firebasestorage.app",
