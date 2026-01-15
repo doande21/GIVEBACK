@@ -27,16 +27,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const translateError = (errorCode: string, rawMessage?: string) => {
     const msg = (rawMessage || "").toLowerCase();
-    
-    // Xử lý lỗi hệ thống (Cấu hình Firebase/Google Cloud)
     if (msg.includes('identitytoolkit') || msg.includes('identity-toolkit')) {
       return '❌ LỖI HỆ THỐNG: Đệ cần đợi 2-5 phút để Google cập nhật API vừa bật nhé!';
     }
     if (msg.includes('unauthorized-domain') || msg.includes('unauthorized domain')) {
       return `❌ LỖI MIỀN: Đệ chưa thêm "${window.location.hostname}" vào Authorized Domains trong Firebase Auth.`;
     }
-
-    // Xử lý lỗi người dùng
     switch (errorCode) {
       case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/user-not-found': return 'Email này chưa đăng ký thành viên.';
@@ -51,13 +47,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const saveUserToFirestore = async (firebaseUser: any, name: string, type: 'individual' | 'organization', customOrgName?: string) => {
     const userDocRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
-    
-    // Nếu user đã tồn tại trong Firestore thì trả về luôn
     if (userDoc.exists()) return { ...userDoc.data(), id: firebaseUser.uid } as User;
-
-    // Phân quyền Admin cho Đệ dựa trên email
     const isDeAdmin = firebaseUser.email?.toLowerCase().includes('de2104') || firebaseUser.email === 'admin@giveback.vn';
-    
     const newUser: User = {
       id: firebaseUser.uid,
       name: name || firebaseUser.displayName || (type === 'organization' ? 'Tổ chức mới' : 'Thành viên mới'),
@@ -69,7 +60,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=${type === 'organization' ? '0369a1' : '059669'}&color=fff`,
       createdAt: new Date().toISOString()
     };
-    
     await setDoc(userDocRef, newUser);
     return newUser;
   };
@@ -83,9 +73,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       onLogin(userData.role, userData);
     } catch (err: any) { 
       setError(translateError(err.code, err.message)); 
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleGuestLogin = () => {
@@ -105,24 +93,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    // Tài khoản Admin thủ công cho Đệ
     if (email === 'de2104@gmail.com' && password === '21042005de') {
       onLogin('admin', { id: 'admin-de', name: 'Đệ Quản Trị', email: email, role: 'admin', userType: 'individual' });
       return;
     }
-
     setLoading(true);
     try {
       if (!isLoginView) {
-        // ĐĂNG KÝ
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         const nameToUse = userType === 'organization' ? orgName : fullName;
         await updateProfile(cred.user, { displayName: nameToUse });
         const newUser = await saveUserToFirestore(cred.user, nameToUse, userType, orgName);
         onLogin(newUser.role, newUser);
       } else {
-        // ĐĂNG NHẬP
         const cred = await signInWithEmailAndPassword(auth, email, password);
         const uDoc = await getDoc(doc(db, "users", cred.user.uid));
         if (uDoc.exists()) {
@@ -132,11 +115,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           onLogin(recoveredUser.role, recoveredUser);
         }
       }
-    } catch (err: any) { 
-      setError(translateError(err.code, err.message)); 
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { setError(translateError(err.code, err.message)); } finally { setLoading(false); }
   };
 
   const isOrg = userType === 'organization';
@@ -197,25 +176,53 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* PANEL PHẢI: OVERLAY TRANG TRÍ */}
-        <div className={`flex-1 hidden md:flex flex-col items-center justify-center p-12 text-center text-white relative overflow-hidden transition-colors duration-1000 ${themeClass}`}>
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        {/* PANEL PHẢI: OVERLAY VỚI ANIMATION ĐỆ THÍCH */}
+        <div className={`flex-1 hidden md:flex flex-col items-center justify-center p-12 text-center text-white relative overflow-hidden transition-colors duration-1000 ${themeClass} scrolling-landscape`}>
+          {/* Heart Particles Overlay */}
+          <div className="absolute inset-0 pointer-events-none">
+            <span className="absolute left-[10%] top-[80%] animate-heart text-2xl" style={{ animationDelay: '0s' }}>❤️</span>
+            <span className="absolute left-[30%] top-[70%] animate-heart text-xl" style={{ animationDelay: '0.5s' }}>💖</span>
+            <span className="absolute left-[60%] top-[85%] animate-heart text-2xl" style={{ animationDelay: '1s' }}>💗</span>
+            <span className="absolute left-[80%] top-[75%] animate-heart text-xl" style={{ animationDelay: '1.5s' }}>💝</span>
+          </div>
+
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
           <div className="relative z-10 animate-in fade-in zoom-in-95 duration-500">
-             <h1 className="text-5xl font-black italic tracking-tighter mb-6 leading-none uppercase">
-               {isLoginView ? 'GIVEBACK' : 'Chào mừng!'}
-             </h1>
-             <p className="text-sm font-medium italic mb-12 leading-relaxed opacity-90 px-4">
+             <div className="mb-8 flex justify-center">
+                <div className="bg-white/20 backdrop-blur-xl p-6 rounded-[3rem] border border-white/30 shadow-2xl">
+                   <h1 className="text-5xl font-black italic tracking-tighter leading-none uppercase">
+                     {isLoginView ? 'GIVEBACK' : 'Chào mừng!'}
+                   </h1>
+                </div>
+             </div>
+             
+             <p className="text-base font-bold italic mb-12 leading-relaxed opacity-90 px-4 drop-shadow-md">
                {isLoginView 
                 ? '"Yêu thương cho đi là yêu thương còn mãi. Đệ đã sẵn sàng lan tỏa chưa?"'
                 : '"Mỗi chuyến đi, một hành trình nhân ái. Hãy bắt đầu cùng chúng tôi ngay hôm nay."'}
              </p>
-             <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="px-12 py-5 bg-white/20 backdrop-blur-md border-2 border-white/40 rounded-3xl font-black uppercase text-[10px] tracking-widest hover:bg-white hover:text-emerald-700 transition-all shadow-2xl active:scale-95">
+             
+             <button 
+              onClick={() => { setIsLoginView(!isLoginView); setError(''); }} 
+              className="px-12 py-5 bg-white text-emerald-950 rounded-3xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95"
+             >
                {isLoginView ? 'Đăng ký ngay' : 'Đăng nhập ngay'}
              </button>
           </div>
 
-          <div className="absolute bottom-12 animate-truck text-4xl">🚚🎁✨</div>
+          {/* Truck Animation Container */}
+          <div className="absolute bottom-16 w-full flex justify-center">
+            <div className="relative">
+              <div className="animate-truck text-6xl drop-shadow-2xl">🚚</div>
+              <div className="absolute -top-4 -right-2 animate-bounce text-2xl">🎁</div>
+              <div className="absolute -top-6 left-2 animate-pulse text-xl">✨</div>
+            </div>
+          </div>
+          
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase tracking-[0.5em] opacity-50">
+            Hành trình nhân ái đang chờ Đệ
+          </div>
         </div>
 
       </div>
