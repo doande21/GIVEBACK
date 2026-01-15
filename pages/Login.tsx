@@ -22,10 +22,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | React.ReactNode>('');
   const [loading, setLoading] = useState(false);
 
-  // Hiệu ứng tim bay ngẫu nhiên
   const [hearts, setHearts] = useState<{id: number, left: string, delay: string}[]>([]);
   
   useEffect(() => {
@@ -38,35 +37,41 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const translateError = (errorCode: string, rawMessage?: string) => {
+  const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
     
-    // Bắt lỗi API Key bị giới hạn (Dựa trên screenshot Đệ gửi)
-    if (msg.includes('api_key_service_blocked') || msg.includes('requests to this api') || msg.includes('blocked')) {
+    // Bắt lỗi CONFIGURATION_NOT_FOUND - Hướng dẫn Đệ cực chi tiết
+    if (msg.includes('configuration_not_found') || errorCode.includes('configuration-not-found')) {
       return (
-        <div className="space-y-2">
-          <p className="font-black">🔐 ĐỆ ƠI, KEY ĐANG BỊ KHÓA!</p>
-          <p className="font-medium">1. Bấm vào tên "Gemini API Key" trong Google Cloud.</p>
-          <p className="font-medium">2. Chỗ "API restrictions", chọn "Don't restrict key".</p>
-          <p className="font-medium">3. Nhấn SAVE rồi F5 lại web nhé!</p>
+        <div className="space-y-3 text-left p-2">
+          <p className="font-black text-red-700 uppercase text-[11px] italic animate-bounce">🆘 ĐỆ ƠI, LÀM 2 BƯỚC NÀY LÀ XONG NÈ:</p>
+          <div className="bg-white/80 p-4 rounded-[1.5rem] border-2 border-red-200 shadow-inner space-y-2">
+            <p className="text-[10px] font-bold text-gray-700">1️⃣ Vào tab <b>Sign-in method</b> trong Firebase: Bật <b>Email/Password</b> lên (nhấn Save).</p>
+            <p className="text-[10px] font-bold text-gray-700">2️⃣ Vào tab <b>Settings</b> -> <b>Authorized Domains</b>: Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
+            <p className="text-[9px] text-red-500 font-black italic mt-2">* Sau khi làm xong, Đệ F5 (tải lại) trang web là được!</p>
+          </div>
         </div>
       );
     }
-    
-    // Lỗi chưa bật API
-    if (msg.includes('identitytoolkit') || msg.includes('service_disabled')) {
-      return '⏳ API ĐANG KHỞI ĐỘNG: Đệ vừa nhấn Enable rồi, hãy đợi 2-5 phút để Google cập nhật hệ thống nhé!';
-    }
 
     if (msg.includes('unauthorized-domain')) {
-      return `❌ LỖI MIỀN: Đệ nhớ thêm "giveback-one.vercel.app" vào Authorized Domains trong Firebase Console -> Auth -> Settings nhé.`;
+      return (
+        <div className="p-2 text-left">
+          <p className="font-black text-red-700 text-[10px]">🌐 CHƯA CẤP PHÉP TÊN MIỀN!</p>
+          <p className="text-[9px] font-medium text-gray-600">Đệ vào Firebase -> Auth -> Settings -> Authorized Domains -> Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
+        </div>
+      );
+    }
+
+    if (msg.includes('api_key_service_blocked') || msg.includes('blocked')) {
+      return '🔐 API Key đang bị giới hạn, Đệ vào Google Cloud gỡ giới hạn cho Key này nhé.';
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
-      case 'auth/email-already-in-use': return 'Email này đã được đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu cần ít nhất 6 ký tự đệ nhé.';
-      default: return 'Có chút trục trặc: ' + (errorCode.split('/')[1] || 'Vui lòng thử lại sau.');
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ.';
+      case 'auth/email-already-in-use': return 'Email này đã được sử dụng rồi.';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
+      default: return `Lỗi: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
 
@@ -99,7 +104,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
       onLogin(userData.role, userData);
     } catch (err: any) { 
-      setError(translateError(err.code, err.message) as any); 
+      setError(translateError(err.code, err.message)); 
     } finally { setLoading(false); }
   };
 
@@ -135,7 +140,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
       }
     } catch (err: any) { 
-      setError(translateError(err.code, err.message) as any); 
+      setError(translateError(err.code, err.message)); 
     } finally { setLoading(false); }
   };
 
@@ -167,9 +172,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức:" : "Họ và tên:"} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
-            <input required type="email" className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Email kết nối:" value={email} onChange={e => setEmail(e.target.value)} />
+            <input required type="email" className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Email kết nối..." value={email} onChange={e => setEmail(e.target.value)} />
             <div className="relative">
               <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-emerald-500 transition-colors">
@@ -178,8 +183,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             
             {error && (
-              <div className="p-5 bg-red-50 rounded-[2rem] border border-red-100 animate-in fade-in slide-in-from-top-2">
-                <div className="text-[11px] text-red-700 leading-relaxed italic">{error}</div>
+              <div className="p-6 bg-red-50 rounded-[2.5rem] border-2 border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4">
+                <div className="text-[12px] text-red-700 leading-relaxed font-medium">{error}</div>
               </div>
             )}
             
