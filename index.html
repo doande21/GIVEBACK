@@ -27,6 +27,7 @@
             padding: 0; 
             background-color: #f9fafb;
             overflow-x: hidden;
+            font-style: normal !important;
         }
 
         .glass-effect {
@@ -79,6 +80,11 @@
         ::-webkit-scrollbar-thumb { 
             background: var(--primary-color); 
             border-radius: 10px; 
+        }
+
+        /* Loại bỏ in nghiêng cho mọi thẻ */
+        h1, h2, h3, h4, h5, h6, p, span, div, input, textarea, button {
+            font-style: normal !important;
         }
     </style>
 <script type="importmap">

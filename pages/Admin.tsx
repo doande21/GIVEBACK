@@ -176,11 +176,11 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   };
 
   return (
-    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen font-['Inter']">
+    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen">
       <div className="flex flex-col lg:flex-row justify-between items-start mb-10 gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter italic uppercase leading-none">Admin Dashboard</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4 italic">Quản lý minh bạch, lan tỏa yêu thương</p>
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase leading-none">Admin Dashboard</h1>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4">Quản lý minh bạch, lan tỏa yêu thương</p>
         </div>
         <div className="flex bg-gray-900 p-1.5 rounded-[2.5rem] shadow-2xl overflow-x-auto scrollbar-hide max-w-full">
           <button onClick={() => setActiveSubTab('missions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'missions' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vùng cứu trợ</button>
@@ -195,8 +195,8 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         <div className="space-y-8 animate-in fade-in duration-500">
            <div className="bg-emerald-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
              <div className="text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-black italic uppercase mb-2">Chiến dịch cứu trợ</h2>
-                <p className="text-emerald-300 font-bold text-xs italic">Quản lý các chuyến đi và ngân sách vùng cao.</p>
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Chiến dịch cứu trợ</h2>
+                <p className="text-emerald-300 font-bold text-xs">Quản lý các chuyến đi và ngân sách vùng cao.</p>
              </div>
              <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [] }); setIsMissionModalOpen(true); }} className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
            </div>
@@ -204,7 +204,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
               {missions.map(m => (
                 <div key={m.id} className="bg-white p-5 rounded-[2.5rem] shadow-sm border border-gray-100 flex gap-5 items-center">
                    <img src={m.image || "https://placehold.co/150x150?text=Mission"} className="w-20 h-20 rounded-[2rem] object-cover" alt="" />
-                   <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase italic text-emerald-950 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
+                   <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
                    <div className="flex gap-2">
                       <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
                       <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -215,13 +215,13 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         </div>
       )}
 
-      {/* AUCTIONS TAB (TRẢ LẠI CHO ĐỆ) */}
+      {/* AUCTIONS TAB */}
       {activeSubTab === 'auctions' && (
         <div className="space-y-8 animate-in fade-in duration-500">
            <div className="bg-indigo-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
              <div className="text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-black italic uppercase mb-2">Quản lý Đấu giá</h2>
-                <p className="text-indigo-300 font-bold text-xs italic">Tổ chức đấu giá gây quỹ nhân văn.</p>
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Quản lý Đấu giá</h2>
+                <p className="text-indigo-300 font-bold text-xs">Tổ chức đấu giá gây quỹ nhân văn.</p>
              </div>
              <button onClick={() => setIsAuctionModalOpen(true)} className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Đưa vật phẩm lên sàn</button>
            </div>
@@ -234,37 +234,37 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                         {a.status === 'active' ? 'Đang diễn ra' : 'Kết thúc'}
                       </div>
                    </div>
-                   <h4 className="text-sm font-black uppercase italic text-gray-900 text-center truncate w-full">{a.title}</h4>
+                   <h4 className="text-sm font-black uppercase text-gray-900 text-center truncate w-full">{a.title}</h4>
                    <p className="text-[10px] text-indigo-600 font-black uppercase mt-1">Giá hiện tại: {a.currentBid.toLocaleString()}đ</p>
                    <button onClick={() => { if(window.confirm("Gỡ vật phẩm đấu giá?")) deleteDoc(doc(db, "auctions", a.id)) }} className="mt-4 p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                 </div>
               ))}
-              {auctions.length === 0 && <div className="col-span-full py-20 text-center text-gray-300 font-black uppercase italic text-xs">Chưa có vật phẩm đấu giá nào...</div>}
+              {auctions.length === 0 && <div className="col-span-full py-20 text-center text-gray-300 font-black uppercase text-xs">Chưa có vật phẩm đấu giá nào...</div>}
            </div>
         </div>
       )}
 
-      {/* POSTS/CENSORSHIP TAB (TRẢ LẠI CHO ĐỆ) */}
+      {/* POSTS/CENSORSHIP TAB */}
       {activeSubTab === 'posts' && (
         <div className="space-y-8 animate-in fade-in duration-500">
            <div className="bg-red-950 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl">
-             <h2 className="text-2xl md:text-3xl font-black italic uppercase mb-2">Kiểm duyệt bài viết</h2>
-             <p className="text-red-300 font-bold text-xs italic">Giám sát và gỡ bỏ nội dung không phù hợp trên Bảng tin.</p>
+             <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Kiểm duyệt bài viết</h2>
+             <p className="text-red-300 font-bold text-xs">Giám sát và gỡ bỏ nội dung không phù hợp trên Bảng tin.</p>
            </div>
            <div className="grid grid-cols-1 gap-4">
               {socialPosts.map(post => (
                 <div key={post.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 flex items-center gap-6 group hover:border-red-100 transition-all">
                    <img src={post.authorAvatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-black uppercase italic text-gray-900">{post.authorName}</h4>
-                      <p className="text-[11px] text-gray-600 italic line-clamp-1">"{post.content}"</p>
+                      <h4 className="text-sm font-black uppercase text-gray-900">{post.authorName}</h4>
+                      <p className="text-[11px] text-gray-600 line-clamp-1">"{post.content}"</p>
                    </div>
                    <button onClick={() => handleDeletePost(post.id)} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                    </button>
                 </div>
               ))}
-              {socialPosts.length === 0 && <div className="py-20 text-center text-gray-300 font-black uppercase italic text-xs">Bảng tin đang trống...</div>}
+              {socialPosts.length === 0 && <div className="py-20 text-center text-gray-300 font-black uppercase text-xs">Bảng tin đang trống...</div>}
            </div>
         </div>
       )}
@@ -274,8 +274,8 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         <div className="space-y-8 animate-in fade-in duration-500">
            <div className="bg-amber-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
              <div className="text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-black italic uppercase mb-2">Bảng Vàng Tri Ân</h2>
-                <p className="text-amber-300 font-bold text-xs italic">Vinh danh những tấm lòng vàng đồng hành cùng dự án.</p>
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Bảng Vàng Tri Ân</h2>
+                <p className="text-amber-300 font-bold text-xs">Vinh danh những tấm lòng vàng đồng hành cùng dự án.</p>
              </div>
              <button onClick={() => setIsSponsorModalOpen(true)} className="bg-white text-amber-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Vinh danh mới</button>
            </div>
@@ -283,9 +283,9 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
               {sponsors.map(s => (
                 <div key={s.id} className="bg-white p-6 rounded-[3rem] shadow-sm border border-gray-100 flex flex-col items-center text-center">
                    <img src={s.avatar || "https://placehold.co/100x100?text=Donor"} className="w-20 h-20 rounded-[2rem] object-cover mb-4 border-2 border-amber-50" alt="" />
-                   <h4 className="text-sm font-black uppercase italic text-gray-900">{s.name}</h4>
+                   <h4 className="text-sm font-black uppercase text-gray-900">{s.name}</h4>
                    <p className="text-[9px] text-amber-600 font-black uppercase mt-1 tracking-widest">Hạng {s.rank}</p>
-                   <p className="text-[10px] text-gray-400 mt-3 italic line-clamp-2">"{s.message}"</p>
+                   <p className="text-[10px] text-gray-400 mt-3 line-clamp-2">"{s.message}"</p>
                    <button onClick={() => { if(window.confirm("Gỡ vinh danh?")) deleteDoc(doc(db, "sponsors", s.id)) }} className="mt-4 text-red-400 hover:text-red-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                 </div>
               ))}
@@ -298,16 +298,16 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsMissionModalOpen(false)}></div>
           <div className="relative bg-white w-full max-w-2xl p-8 md:p-10 rounded-[3rem] shadow-2xl animate-in zoom-in-95 h-fit max-h-[90vh] overflow-y-auto custom-scrollbar">
-             <div className="flex justify-between items-center mb-8"><h3 className="text-xl font-black uppercase italic text-emerald-900">CHI TIẾT SỨ MỆNH</h3><button onClick={() => setIsMissionModalOpen(false)} className="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg></button></div>
+             <div className="flex justify-between items-center mb-8"><h3 className="text-xl font-black uppercase text-emerald-900">CHI TIẾT SỨ MỆNH</h3><button onClick={() => setIsMissionModalOpen(false)} className="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg></button></div>
              <form onSubmit={handleSaveMission} className="space-y-6">
                 <div className="space-y-4">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 italic">Thông tin cơ bản</h4>
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Thông tin cơ bản</h4>
                    <input required className="w-full bg-gray-50 p-4 rounded-xl font-bold outline-none text-sm" placeholder="Vùng cứu trợ" value={missionForm.location} onChange={e => setMissionForm({...missionForm, location: e.target.value})} />
                    <div className="grid grid-cols-2 gap-3"><input type="date" required className="bg-gray-50 p-4 rounded-xl font-bold text-sm" value={missionForm.date} onChange={e => setMissionForm({...missionForm, date: e.target.value})} /><input type="number" className="bg-gray-50 p-4 rounded-xl font-bold text-sm" placeholder="Ngân sách (đ)" value={missionForm.targetBudget || ''} onChange={e => setMissionForm({...missionForm, targetBudget: Number(e.target.value)})} /></div>
-                   <textarea rows={2} className="w-full bg-gray-50 p-4 rounded-xl italic outline-none text-sm" placeholder="Mô tả kế hoạch..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
+                   <textarea rows={2} className="w-full bg-gray-50 p-4 rounded-xl outline-none text-sm" placeholder="Mô tả kế hoạch..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
                 </div>
                 <div className="space-y-4 pt-4 border-t border-gray-100">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 italic">Danh sách nhu yếu phẩm</h4>
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Danh sách nhu yếu phẩm</h4>
                    <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
                       <div className="grid grid-cols-3 gap-2">
                         <input className="col-span-1 bg-white p-3 rounded-xl text-[11px] font-bold outline-none border border-gray-100" placeholder="Tên món đồ" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
@@ -319,7 +319,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                       {missionForm.itemsNeeded.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-white border border-gray-100 p-3 rounded-xl">
-                          <div className="flex flex-col"><span className="text-[11px] font-black uppercase italic text-emerald-950">{item.name}</span><span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Cần: {item.target} {item.unit}</span></div>
+                          <div className="flex flex-col"><span className="text-[11px] font-black uppercase text-emerald-950">{item.name}</span><span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Cần: {item.target} {item.unit}</span></div>
                           <button type="button" onClick={() => removeNeededItem(idx)} className="text-red-400 hover:text-red-600 p-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                       ))}
@@ -343,15 +343,15 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         </div>
       )}
 
-      {/* MODAL: ĐẤU GIÁ (TRẢ LẠI CHO ĐỆ) */}
+      {/* MODAL: ĐẤU GIÁ */}
       {isAuctionModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-md" onClick={() => setIsAuctionModalOpen(false)}></div>
           <div className="relative bg-white w-full max-w-xl p-8 md:p-10 rounded-[3rem] shadow-2xl animate-in zoom-in-95 h-fit max-h-[90vh] overflow-y-auto custom-scrollbar">
-             <h3 className="text-xl font-black uppercase italic text-indigo-900 mb-8 text-center">ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ</h3>
+             <h3 className="text-xl font-black uppercase text-indigo-900 mb-8 text-center">ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ</h3>
              <form onSubmit={handleCreateAuction} className="space-y-5">
                 <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Tên vật phẩm" value={auctionForm.title} onChange={e => setAuctionForm({...auctionForm, title: e.target.value})} />
-                <textarea rows={3} className="w-full bg-gray-50 p-4 rounded-2xl font-medium italic outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Mô tả vật phẩm..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
+                <textarea rows={3} className="w-full bg-gray-50 p-4 rounded-2xl font-medium outline-none border-2 border-transparent focus:border-indigo-500" placeholder="Mô tả vật phẩm..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
                 <div className="grid grid-cols-2 gap-4">
                    <div className="relative">
                       <input type="number" required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Giá khởi điểm" value={auctionForm.startingPrice || ''} onChange={e => setAuctionForm({...auctionForm, startingPrice: Number(e.target.value)})} />
@@ -375,7 +375,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-amber-950/80 backdrop-blur-md" onClick={() => setIsSponsorModalOpen(false)}></div>
           <div className="relative bg-white w-full max-w-xl p-10 rounded-[3rem] shadow-2xl animate-in zoom-in-95">
-             <h3 className="text-xl font-black uppercase italic text-amber-900 mb-8 text-center">VINH DANH NHÀ HẢO TÂM</h3>
+             <h3 className="text-xl font-black uppercase text-amber-900 mb-8 text-center">VINH DANH NHÀ HẢO TÂM</h3>
              <form onSubmit={async (e) => {
                 e.preventDefault();
                 setLoading(true);
@@ -395,7 +395,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                   <input type="number" className="bg-gray-50 p-4 rounded-xl font-bold" placeholder="Tổng tiền (đ)" value={sponsorForm.totalMoney || ''} onChange={e => setSponsorForm({...sponsorForm, totalMoney: Number(e.target.value)})} />
                   <input type="number" className="bg-gray-50 p-4 rounded-xl font-bold" placeholder="Tổng món đồ" value={sponsorForm.totalItemsCount || ''} onChange={e => setSponsorForm({...sponsorForm, totalItemsCount: Number(e.target.value)})} />
                 </div>
-                <textarea className="w-full bg-gray-50 p-4 rounded-xl italic font-medium" placeholder="Lời nhắn gửi..." value={sponsorForm.message} onChange={e => setSponsorForm({...sponsorForm, message: e.target.value})} />
+                <textarea className="w-full bg-gray-50 p-4 rounded-xl font-medium" placeholder="Lời nhắn gửi..." value={sponsorForm.message} onChange={e => setSponsorForm({...sponsorForm, message: e.target.value})} />
                 <button type="submit" disabled={loading} className="w-full bg-amber-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl">{loading ? "ĐANG VINH DANH..." : "LƯU VINH DANH"}</button>
              </form>
           </div>
