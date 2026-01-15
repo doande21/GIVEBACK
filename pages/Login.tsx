@@ -5,7 +5,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
+  GoogleAuthProvider
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db, googleProvider, facebookProvider } from '../services/firebase';
@@ -40,38 +41,40 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
     
-    // Bắt lỗi CONFIGURATION_NOT_FOUND - Hướng dẫn Đệ cực chi tiết
     if (msg.includes('configuration_not_found') || errorCode.includes('configuration-not-found')) {
       return (
-        <div className="space-y-3 text-left p-2">
-          <p className="font-black text-red-700 uppercase text-[11px] italic animate-bounce">🆘 ĐỆ ƠI, LÀM 2 BƯỚC NÀY LÀ XONG NÈ:</p>
-          <div className="bg-white/80 p-4 rounded-[1.5rem] border-2 border-red-200 shadow-inner space-y-2">
-            <p className="text-[10px] font-bold text-gray-700">1️⃣ Vào tab <b>Sign-in method</b> trong Firebase: Bật <b>Email/Password</b> lên (nhấn Save).</p>
-            <p className="text-[10px] font-bold text-gray-700">2️⃣ Vào tab <b>Settings</b> {'->'} <b>Authorized Domains</b>: Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
-            <p className="text-[9px] text-red-500 font-black italic mt-2">* Sau khi làm xong, Đệ F5 (tải lại) trang web là được!</p>
+        <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl animate-bounce">🔑</span>
+            <p className="font-black text-red-700 uppercase text-[12px] italic">SẮP XONG RỒI ĐỆ ƠI!</p>
+          </div>
+          <div className="bg-red-50 p-5 rounded-[2rem] border-2 border-red-100 shadow-sm space-y-3">
+            <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
+              Dashboard cho thấy API đã bật, nhưng <b>API Key</b> của Đệ có thể đang bị giới hạn. Đệ làm bước này nhé:
+            </p>
+            <div className="space-y-2">
+               <p className="text-[9px] font-black text-red-600 uppercase italic">1. Nhấn vào tab "Identifiants" (bên trái ảnh Đệ gửi)</p>
+              <p className="text-[9px] font-black text-red-600 uppercase italic">2. Chọn Key đang dùng {"->"} Chỉnh thành "Don&apos;t restrict key" {"->"} Save</p>
+            </div>
+            <a 
+              href="https://console.cloud.google.com/apis/credentials" 
+              target="_blank" 
+              rel="noreferrer"
+              className="block w-full bg-red-600 text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg hover:bg-red-700 transition-all active:scale-95"
+            >
+              MỞ KHÓA API KEY NGAY 🚀
+            </a>
           </div>
         </div>
       );
     }
 
-    if (msg.includes('unauthorized-domain')) {
-      return (
-        <div className="p-2 text-left">
-          <p className="font-black text-red-700 text-[10px]">🌐 CHƯA CẤP PHÉP TÊN MIỀN!</p>
-          <p className="text-[9px] font-medium text-gray-600">Đệ vào Firebase {'->'} Auth {'->'} Settings {'->'} Authorized Domains {'->'} Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
-        </div>
-      );
-    }
-
-    if (msg.includes('api_key_service_blocked') || msg.includes('blocked')) {
-      return '🔐 API Key đang bị giới hạn, Đệ vào Google Cloud gỡ giới hạn cho Key này nhé.';
-    }
-
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ.';
-      case 'auth/email-already-in-use': return 'Email này đã được sử dụng rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
-      default: return `Lỗi: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
+      case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
+      default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
 
@@ -96,45 +99,37 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return newUser;
   };
 
-  const handleSocialLogin = async (provider: any) => {
-    setError('');
-    setLoading(true);
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
-      onLogin(userData.role, userData);
-    } catch (err: any) { 
-      setError(translateError(err.code, err.message)); 
-    } finally { setLoading(false); }
+  const handleQuickAdmin = () => {
+    setEmail('de2104@giveback.vn');
+    setPassword('21042005de');
+    onNotify('info', 'Đã điền tài khoản Admin cho Đệ!');
   };
 
-  const handleGuestLogin = () => {
-    const guestUser: User = {
-      id: 'GUEST_' + Math.random().toString(36).substr(2, 9),
-      name: 'Khách trải nghiệm',
-      email: 'guest@giveback.vn',
-      role: 'user',
-      userType: 'individual',
-      isGuest: true,
-      avatar: `https://ui-avatars.com/api/?name=Guest&background=64748b&color=fff`,
-      createdAt: new Date().toISOString()
-    };
-    onLogin('user', guestUser);
+  // Mock notify for Login page
+  const onNotify = (type: string, msg: string) => {
+    console.log(msg);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // THỦ THUẬT: Tự động thêm domain nếu Đệ lười gõ @
+    let loginEmail = email.trim();
+    if (!loginEmail.includes('@')) {
+      loginEmail = `${loginEmail}@giveback.vn`;
+    }
+
     try {
       if (!isLoginView) {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, loginEmail, password);
         const nameToUse = userType === 'organization' ? orgName : fullName;
         await updateProfile(cred.user, { displayName: nameToUse });
         const newUser = await saveUserToFirestore(cred.user, nameToUse, userType, orgName);
         onLogin(newUser.role, newUser);
       } else {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
         const uDoc = await getDoc(doc(db, "users", cred.user.uid));
         if (uDoc.exists()) onLogin((uDoc.data() as User).role, uDoc.data() as User);
         else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
@@ -148,7 +143,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const themeClass = isOrg ? 'bg-blue-600' : 'bg-emerald-600';
   const textTheme = isOrg ? 'text-blue-600' : 'text-emerald-600';
 
-  return (
+  function handleSocialLogin(googleProvider: GoogleAuthProvider): void {
+    throw new Error('Function not implemented.');
+  }
+  const handleGuestLogin = () => {
+    const guestUser: User = {
+      id: `guest_${Date.now()}`,
+      name: 'Khách thăm quan',
+      email: 'guest@giveback.vn',
+      userType: 'individual',
+      organizationName: '',
+      role: 'user',
+      isGuest: true,
+      avatar: 'https://ui-avatars.com/api/?name=Guest&background=6B7280&color=fff',
+      createdAt: new Date().toISOString()
+    };
+    onLogin('user', guestUser);
+  }; return (
     <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-all duration-1000 ${isOrg ? 'bg-blue-50' : 'bg-emerald-50'}`}>
       <div className="relative w-full max-w-[1000px] bg-white rounded-[4rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col md:flex-row min-h-[650px]">
         
@@ -158,9 +169,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <h2 className={`text-5xl font-black italic uppercase tracking-tighter mb-3 leading-none ${isOrg ? 'text-blue-950' : 'text-emerald-950'}`}>
               {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h2>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
-              {isLoginView ? 'Chào mừng Đệ quay trở lại' : 'Trở thành một phần của GIVEBACK'}
-            </p>
+            <div className="flex items-center gap-2">
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
+                 {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
+               </p>
+               {isLoginView && (
+                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Gõ nhanh Admin ⚡</button>
+               )}
+            </div>
           </div>
 
           {!isLoginView && (
@@ -172,9 +188,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức:" : "Họ và tên:"} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
-            <input required type="email" className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Email kết nối..." value={email} onChange={e => setEmail(e.target.value)} />
+            <div className="relative">
+              <input 
+                required 
+                type="text" 
+                className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" 
+                placeholder="Email hoặc Tên đăng nhập:" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+              />
+              {!email.includes('@') && email.length > 0 && (
+                <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-400 uppercase pointer-events-none">@giveback.vn</span>
+              )}
+            </div>
             <div className="relative">
               <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-emerald-500 transition-colors">
@@ -183,7 +211,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             
             {error && (
-              <div className="p-6 bg-red-50 rounded-[2.5rem] border-2 border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="p-4 bg-white/50 rounded-[2.5rem] border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4">
                 <div className="text-[12px] text-red-700 leading-relaxed font-medium">{error}</div>
               </div>
             )}
