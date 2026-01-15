@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { getAIAssistance } from '../services/geminiService';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 
 // Helper functions for Audio Encoding/Decoding
 function encode(bytes: Uint8Array) {
@@ -58,9 +58,11 @@ const AIHelper: React.FC = () => {
   const sourcesRef = useRef(new Set<AudioBufferSourceNode>());
 
   const handleOpenKeySelector = async () => {
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+    /* Fix: Using (window as any) to bypass strict Window augmentation check for aistudio */
+    const win = window as any;
+    if (win.aistudio && typeof win.aistudio.openSelectKey === 'function') {
       try {
-        await window.aistudio.openSelectKey();
+        await win.aistudio.openSelectKey();
         setMessages(prev => [...prev, {
           role: 'bot', 
           content: "Đã hiểu! Bạn hãy chọn một API Key từ Project có tính phí (Paid Project) để kích hoạt toàn bộ tính năng Gemini 3 và Veo nhé."
@@ -99,16 +101,27 @@ const AIHelper: React.FC = () => {
     setIsLoading(false);
   };
 
+  const stopVoiceCompanion = () => {
+    setIsVoiceMode(false);
+    if (sessionRef.current) { sessionRef.current.close(); sessionRef.current = null; }
+    sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
+    sourcesRef.current.clear();
+    if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
+    if (outAudioContextRef.current) { outAudioContextRef.current.close(); outAudioContextRef.current = null; }
+  };
+
   const startVoiceCompanion = async () => {
     try {
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-        if (!(await window.aistudio.hasSelectedApiKey())) {
-          await window.aistudio.openSelectKey();
+      /* Fix: Using (window as any) for reliable cross-environment key selection call */
+      const win = window as any;
+      if (win.aistudio && typeof win.aistudio.hasSelectedApiKey === 'function') {
+        if (!(await win.aistudio.hasSelectedApiKey())) {
+          await win.aistudio.openSelectKey();
         }
       }
 
       setIsVoiceMode(true);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
       outAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
@@ -126,7 +139,8 @@ const AIHelper: React.FC = () => {
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-              const pcmBlob = {
+              
+              const pcmBlob: Blob = {
                 data: encode(new Uint8Array(int16.buffer)),
                 mimeType: 'audio/pcm;rate=16000',
               };
@@ -149,14 +163,17 @@ const AIHelper: React.FC = () => {
               sourcesRef.current.add(sourceNode);
             }
             if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => s.stop());
+              sourcesRef.current.forEach(s => {
+                try { s.stop(); } catch(e) {}
+              });
               sourcesRef.current.clear();
               nextStartTimeRef.current = 0;
             }
           },
           onerror: (e: any) => { 
-            if (e.message?.includes("Requested entity was not found") && window.aistudio) {
-              window.aistudio.openSelectKey();
+            const winErr = window as any;
+            if (e.message?.includes("Requested entity was not found") && winErr.aistudio) {
+              winErr.aistudio.openSelectKey();
             }
             stopVoiceCompanion(); 
           },
@@ -171,20 +188,12 @@ const AIHelper: React.FC = () => {
 
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found") && window.aistudio) {
-        await window.aistudio.openSelectKey();
+      const winErr = window as any;
+      if (err.message?.includes("Requested entity was not found") && winErr.aistudio) {
+        await winErr.aistudio.openSelectKey();
       }
       setIsVoiceMode(false);
     }
-  };
-
-  const stopVoiceCompanion = () => {
-    setIsVoiceMode(false);
-    if (sessionRef.current) { sessionRef.current.close(); sessionRef.current = null; }
-    sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
-    sourcesRef.current.clear();
-    if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
-    if (outAudioContextRef.current) { outAudioContextRef.current.close(); outAudioContextRef.current = null; }
   };
 
   return (

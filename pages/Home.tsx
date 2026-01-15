@@ -51,7 +51,7 @@ const PostMediaGrid: React.FC<{ media?: PostMedia[], mediaUrl?: string, mediaTyp
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewingIndex]);
+  }, [viewingIndex, allMedia.length]);
 
   const nextMedia = () => {
     if (viewingIndex !== null && viewingIndex < allMedia.length - 1) setViewingIndex(viewingIndex + 1);
@@ -106,12 +106,10 @@ const PostMediaGrid: React.FC<{ media?: PostMedia[], mediaUrl?: string, mediaTyp
         </div>
       )}
 
-      {/* Fullscreen Gallery Viewer */}
       {viewingIndex !== null && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl" onClick={() => setViewingIndex(null)}></div>
           
-          {/* Controls */}
           <div className="absolute top-8 right-8 flex items-center gap-6 z-10">
             <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] bg-white/10 px-4 py-2 rounded-full border border-white/10">
               {viewingIndex + 1} / {allMedia.length}
@@ -133,7 +131,6 @@ const PostMediaGrid: React.FC<{ media?: PostMedia[], mediaUrl?: string, mediaTyp
             </button>
           )}
 
-          {/* Main Media */}
           <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500">
             {allMedia[viewingIndex].type === 'video' ? (
               <video src={allMedia[viewingIndex].url} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
@@ -149,7 +146,7 @@ const PostMediaGrid: React.FC<{ media?: PostMedia[], mediaUrl?: string, mediaTyp
 
 interface HomeProps {
   user: User;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onNotify: (type: any, message: string, sender?: string) => void;
   onViewProfile: (userId: string) => void;
 }
 
@@ -173,16 +170,16 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    onSnapshot(query(collection(db, "social_posts"), orderBy("createdAt", "desc")), (snap) => {
+    const unsubPosts = onSnapshot(query(collection(db, "social_posts"), orderBy("createdAt", "desc")), (snap) => {
       setPosts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialPost)));
     });
-    onSnapshot(query(collection(db, "missions"), orderBy("createdAt", "desc"), limit(5)), (snap) => {
+    const unsubMissions = onSnapshot(query(collection(db, "missions"), orderBy("createdAt", "desc"), limit(5)), (snap) => {
       setMissions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CharityMission)));
     });
+    return () => { unsubPosts(); unsubMissions(); };
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type errors on file properties
     const files = (Array.from(e.target.files || []) as File[]).slice(0, 4 - selectedFiles.length);
     if (files.length === 0 && selectedFiles.length >= 4) {
       onNotify('warning', 'Tối đa 4 ảnh cho bài viết bạn nhé!');
@@ -206,8 +203,8 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  const removeFile = (idx: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
   const fetchInteractionUsers = async (uids: string[]) => {
@@ -241,6 +238,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       await addDoc(collection(db, "social_posts"), {
         authorId: user.id, authorName: user.name, 
         authorAvatar: user.avatar || `https://ui-avatars.com/api/?name=${user.name}`,
+        authorIsGuest: user.isGuest || false,
         content: content.trim(), media: selectedFiles,
         likes: [], hearts: [], thanks: [], comments: [], sharesCount: 0,
         createdAt: new Date().toISOString()
@@ -248,7 +246,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       setContent(''); setSelectedFiles([]); setIsPosting(false);
       onNotify('success', "Lan tỏa thành công!", 'Hệ thống');
     } catch (err: any) { 
-      console.error("Lỗi đăng bài Social:", err);
       onNotify('error', "Lỗi đăng bài (có thể do ảnh quá nặng, Bạn thử ít ảnh hơn nhé)."); 
     } finally { setLoading(false); }
   };
@@ -296,7 +293,10 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onViewProfile(post.authorId)}>
                   <img src={post.authorAvatar || `https://ui-avatars.com/api/?name=${post.authorName}`} className="w-11 h-11 rounded-2xl object-cover border border-emerald-50" alt="" />
                   <div>
-                    <h4 className="font-black text-sm uppercase italic tracking-tighter text-emerald-950">{post.authorName}</h4>
+                    <h4 className="font-black text-sm uppercase italic tracking-tighter text-emerald-950 flex items-center gap-2">
+                      {post.authorName}
+                      {post.authorIsGuest && <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[7px] font-black uppercase">GUEST</span>}
+                    </h4>
                     <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
                 </div>
@@ -403,7 +403,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                       {selectedFiles.map((f, i) => (
                         <div key={i} className="relative aspect-square rounded-xl overflow-hidden shadow-sm group">
                           {f.type === 'video' ? <video src={f.url} className="w-full h-full object-cover" /> : <img src={f.url} className="w-full h-full object-cover" alt="" />}
-                          <button onClick={() => removeFile(index)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                          <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
                         </div>
                       ))}
                     </div>
@@ -545,13 +545,13 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                         <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-gray-100">
                            <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] mb-6 italic">Nhu yếu phẩm cần thiết</h4>
                            <div className="space-y-6">
-                              {(selectedMission.itemsNeeded || []).map((item, idx) => {
-                                 const progress = (item.current / item.target) * 100;
+                              {(selectedMission.itemsNeeded || []).map((neededItem, idx) => {
+                                 const progress = (neededItem.current / neededItem.target) * 100;
                                  return (
                                     <div key={idx} className="space-y-2">
                                        <div className="flex justify-between text-[11px] font-black uppercase italic tracking-tighter px-1">
-                                          <span>{item.name}</span>
-                                          <span className="text-emerald-600">{item.current} / {item.target} {item.unit}</span>
+                                          <span>{neededItem.name}</span>
+                                          <span className="text-emerald-600">{neededItem.current} / {neededItem.target} {neededItem.unit}</span>
                                        </div>
                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className={`h-full transition-all duration-1000 ${progress >= 100 ? 'bg-emerald-500' : 'bg-emerald-300'}`} style={{ width: `${Math.min(100, progress)}%` }}></div></div>
                                     </div>
@@ -600,6 +600,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       )}
     </div>
   );
-};
+};  
 
 export default Home;

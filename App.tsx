@@ -56,7 +56,6 @@ const App: React.FC = () => {
   };
 
   const handleViewProfile = (userId: string) => {
-    // Nếu là ID của chính mình thì xem profile bản thân (viewingUserId = null)
     if (user && userId === user.id) {
       setViewingUserId(null);
     } else {
@@ -65,8 +64,12 @@ const App: React.FC = () => {
     setActiveTab('profile');
   };
 
+  // Hàm xử lý thông báo dùng chung, nhận đúng tham số như interface yêu cầu
+  const handleNotify = (type: string, message: string, sender?: string) => {
+    console.log(`[${type.toUpperCase()}] from ${sender || 'System'}: ${message}`);
+  };
+
   const handleSetTabFromNavbar = (tab: string) => {
-    // Nếu nhấn từ Navbar vào Profile, mặc định xem profile của mình
     if (tab === 'profile') {
       setViewingUserId(null);
     }
@@ -79,17 +82,17 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <Home user={user} onNotify={() => {}} onViewProfile={handleViewProfile} />;
-      case 'market': return <Marketplace user={user} onNotify={() => {}} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
-      case 'auction': return <Auction user={user} onNotify={() => {}} setActiveTab={setActiveTab} />;
+      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} />;
+      case 'market': return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
+      case 'auction': return <Auction user={user} onNotify={handleNotify} setActiveTab={setActiveTab} />;
       case 'sponsors': return <Sponsors />;
-      case 'admin': return <Admin user={user} onNotify={() => {}} />;
+      case 'admin': return <Admin user={user} onNotify={handleNotify} />;
       case 'profile': return (
         <Profile 
           user={user} 
           viewingUserId={viewingUserId} 
           onUpdateUser={(u) => setUser(u)} 
-          onNotify={() => {}} 
+          onNotify={handleNotify} 
           onGoToMessages={(partnerId) => setActiveTab('messages')}
           onViewProfile={handleViewProfile}
         />
@@ -98,9 +101,9 @@ const App: React.FC = () => {
       case 'contact': return <Contact />;
       case 'messages': return <Messages user={user} onViewProfile={handleViewProfile} />;
       case 'notifications': return (
-        <Notifications user={user} onNotify={() => {}} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
+        <Notifications user={user} onNotify={handleNotify} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
       );
-      default: return <Home user={user} onNotify={() => {}} onViewProfile={handleViewProfile} />;
+      default: return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} />;
     }
   };
 

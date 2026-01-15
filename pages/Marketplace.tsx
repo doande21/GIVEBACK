@@ -34,7 +34,14 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
   });
 };
 
-const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> = ({ user, onNotify, setActiveTab }) => {
+interface MarketplaceProps {
+  user: User;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  setActiveTab?: (tab: string) => void;
+  onViewProfile: (userId: string) => void;
+}
+
+const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab, onViewProfile }) => {
   const [items, setItems] = useState<DonationItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
@@ -131,7 +138,6 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
           giftStatus: 'negotiating'
         });
 
-        // Gửi tin nhắn khởi đầu
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
           senderName: user.name,
@@ -190,7 +196,7 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
   });
 
   return (
-    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto font-['Inter']">
+    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-black text-emerald-950 italic uppercase tracking-tighter leading-none">Sàn Tặng đồ</h1>
@@ -247,7 +253,6 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
         ))}
       </div>
 
-      {/* Detail Modal */}
       {selectedItem && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 py-10">
           <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedItem(null)}></div>
@@ -273,11 +278,11 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-10">
-                   <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-emerald-600 font-black text-xs">{selectedItem.author.charAt(0)}</div>
+                   <div className="flex items-center space-x-3 cursor-pointer group/author" onClick={() => onViewProfile(selectedItem.authorId)}>
+                      <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-emerald-600 font-black text-xs group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all">{selectedItem.author.charAt(0)}</div>
                       <div>
                          <p className="text-[10px] font-black uppercase text-gray-400">Người tặng</p>
-                         <p className="text-xs font-bold text-gray-900">{selectedItem.author}</p>
+                         <p className="text-xs font-bold text-gray-900 group-hover/author:text-emerald-600 transition-colors">{selectedItem.author}</p>
                       </div>
                    </div>
                    <div className="flex items-center space-x-3">
@@ -300,7 +305,6 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
         </div>
       )}
 
-      {/* Modal Đăng đồ */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 py-10">
           <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsModalOpen(false)}></div>
@@ -325,34 +329,28 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
                       </div>
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-4 rounded-2xl bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100">Chọn hình ảnh</button>
                    </div>
-
                    <div className="space-y-4">
                       <input required className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" placeholder="Tên món đồ (AI gợi ý...)" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} />
                       <select className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
                         {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                       </select>
-                      
-                      <div className="bg-emerald-50/50 p-6 rounded-[2rem] space-y-4 border border-emerald-100">
+                      <div className="bg-emerald-50/50 p-6 rounded-[2rem] space-y-4 border border-emerald-100 text-[11px] font-bold">
                         <p className="text-[10px] font-black text-emerald-700 uppercase italic">Thông số AI quét được:</p>
                         {newPost.category === 'Quần áo' ? (
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="text-[11px] font-bold">Tuổi: <span className="text-emerald-600">{newPost.minAge}-{newPost.maxAge}</span></div>
-                            <div className="text-[11px] font-bold">Nặng: <span className="text-emerald-600">{newPost.minWeight}-{newPost.maxWeight}kg</span></div>
+                            <div>Tuổi: <span className="text-emerald-600">{newPost.minAge}-{newPost.maxAge}</span></div>
+                            <div>Nặng: <span className="text-emerald-600">{newPost.minWeight}-{newPost.maxWeight}kg</span></div>
                           </div>
                         ) : newPost.category === 'Sách vở' ? (
                           <div className="space-y-2">
-                            <div className="text-[11px] font-bold">Tác giả: <span className="text-emerald-600">{newPost.bookAuthor || '...'}</span></div>
-                            <div className="text-[11px] font-bold">Thể loại: <span className="text-emerald-600">{newPost.bookGenre || '...'}</span></div>
+                            <div>Tác giả: <span className="text-emerald-600">{newPost.bookAuthor || '...'}</span></div>
+                            <div>Thể loại: <span className="text-emerald-600">{newPost.bookGenre || '...'}</span></div>
                           </div>
-                        ) : (
-                          <p className="text-[10px] text-gray-400 italic">Đang chờ quét ảnh...</p>
-                        )}
+                        ) : <p className="text-gray-400 italic">Đang chờ quét ảnh...</p>}
                       </div>
                    </div>
                 </div>
-
-                <textarea required rows={4} placeholder="Mô tả thêm (Vd: Đồ còn rất mới, mình chỉ mặc 1-2 lần...)" className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium italic outline-none" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
-                
+                <textarea required rows={4} placeholder="Mô tả thêm..." className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium italic outline-none" value={newPost.description} onChange={e => setNewPost({...newPost, description: e.target.value})} />
                 <button type="submit" disabled={isSubmitting || isAiScanning} className="w-full bg-emerald-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:scale-[1.02] disabled:opacity-50">
                   {isSubmitting ? 'ĐANG ĐĂNG...' : 'ĐĂNG QUÀ TẶNG NGAY'}
                 </button>
@@ -361,16 +359,6 @@ const Marketplace: React.FC<{ user: User, onNotify: any, setActiveTab?: any }> =
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes scan {
-          0% { top: 0; }
-          100% { top: 100%; }
-        }
-        .animate-scan {
-          animation: scan 2s linear infinite;
-        }
-      `}</style>
     </div>
   );
 };

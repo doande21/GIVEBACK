@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { AuctionItem, User, Bid } from '../types';
+/* Fix: Removed non-existent 'Bid' import to resolve TS error */
+import { AuctionItem, User } from '../types';
 import { 
   collection, 
   onSnapshot, 
@@ -17,7 +18,7 @@ import { db } from '../services/firebase';
 interface AuctionProps {
   user: User;
   setActiveTab?: (tab: any) => void;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onNotify: (type: any, message: string, sender?: string) => void;
 }
 
 const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {

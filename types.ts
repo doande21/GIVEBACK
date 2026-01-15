@@ -11,7 +11,7 @@ export interface User {
   createdAt?: string;
   organizationName?: string;
   friends?: string[];
-  isGuest?: boolean; // Thuộc tính mới để nhận diện tài khoản dùng thử
+  isGuest?: boolean;
 }
 
 export interface PostMedia {
@@ -19,7 +19,6 @@ export interface PostMedia {
   type: 'image' | 'video';
 }
 
-// Fix: Added missing PostComment interface used in social posts
 export interface PostComment {
   id: string;
   authorId: string;
@@ -41,7 +40,7 @@ export interface DonationItem {
   location: string;
   author: string;
   authorId: string;
-  authorIsGuest?: boolean; // Gắn nhãn cho món đồ
+  authorIsGuest?: boolean;
   status: 'available' | 'claimed' | 'hidden';
   createdAt: string;
   minAge?: number;
@@ -60,7 +59,7 @@ export interface ChatMessage {
   id?: string;
   senderId: string;
   senderName: string;
-  senderIsGuest?: boolean; // Nhận diện người gửi tin nhắn
+  senderIsGuest?: boolean;
   text: string;
   createdAt: string;
 }
@@ -138,7 +137,6 @@ export interface CharityMission {
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;
   updatedAt?: string;
-  // Fix: Added missing targetHouseholds property used in mission overview
   targetHouseholds?: number;
 }
 
@@ -160,13 +158,6 @@ export interface AuctionItem {
   highestBidderName?: string;
 }
 
-export interface Bid {
-  bidderId: string;
-  bidderName: string;
-  amount: number;
-  timestamp: string;
-}
-
 export interface SocialPost {
   id: string;
   authorId: string;
@@ -178,7 +169,6 @@ export interface SocialPost {
   mediaUrl?: string; 
   mediaType?: 'image' | 'video'; 
   createdAt: string;
-  // Fix: Added missing interaction and metadata properties to resolve errors in Home.tsx
   hearts?: string[];
   thanks?: string[];
   comments?: PostComment[];

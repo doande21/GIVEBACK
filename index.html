@@ -37,35 +37,29 @@
         }
 
         /* ANIMATION: TRUCK DRIVING EFFECTS */
-        
-        /* Hiệu ứng xe nhún nhảy */
         @keyframes truck-bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-4px); }
         }
 
-        /* Hiệu ứng bánh xe quay nhanh */
         @keyframes wheel-spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
 
-        /* Hiệu ứng phong cảnh trôi (Parallax) */
         @keyframes landscape-move {
             from { background-position: 0 0; }
             to { background-position: -2000px 0; }
         }
 
-        /* Hiệu ứng tim bay lên từ xe */
         @keyframes heart-rise {
             0% { transform: translateY(0) scale(0); opacity: 0; }
             50% { opacity: 0.8; }
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
 
-        /* Lớp nền phong cảnh trôi */
         .scrolling-landscape {
-            background-image: url('https://www.transparenttextures.com/patterns/p6.png'); /* Pattern cỏ/đường */
+            background-image: url('https://www.transparenttextures.com/patterns/p6.png');
             animation: landscape-move 20s linear infinite;
         }
 
@@ -81,7 +75,6 @@
             animation: heart-rise 2s ease-out infinite;
         }
 
-        /* Tối ưu scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { 
@@ -106,6 +99,6 @@
 </head>
 <body class="text-gray-900">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
+// Fix: Removed ambiguous Blob import and cast to resolve type collision with browser native Blob
 export const analyzeDonationItem = async (imageData: string, description: string) => {
   if (!process.env.API_KEY) return null;
   try {
@@ -24,12 +25,12 @@ export const analyzeDonationItem = async (imageData: string, description: string
       "householdType": "Loại đồ gia dụng"
     }`;
 
-    // Fix: Using correctly structured contents with parts for multi-modal input
+    // Fix: Using object literal for inlineData instead of explicit cast to avoid type collision with browser Blob
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: {
         parts: [
-          { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] } },
+          { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] || "" } },
           { text: prompt }
         ]
       },
@@ -120,8 +121,9 @@ export const searchCharityLocations = async (query: string, lat?: number, lng?: 
       };
     }
 
+    // Fix: Updated model to gemini-2.5-flash for better Maps grounding support as per guidelines
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-native-audio-preview-12-2025",
+      model: "gemini-2.5-flash",
       contents: query,
       config: config,
     });

@@ -13,7 +13,7 @@ const MapSearch: React.FC = () => {
     { label: '🥖 Bánh mì 0đ', query: 'Thùng bánh mì từ thiện miễn phí gần đây' },
     { label: '🏠 Mái ấm / Chùa', query: 'Mái ấm tình thương hoặc chùa nhận đồ từ thiện' },
     { label: '🧊 Trạm nước miễn phí', query: 'Thùng nước uống miễn phí ven đường' },
-    { label: '🏥 Phòng khám 0đ', query: 'Phòng khám chữa bệnh miễn phí cho người nghèo' }
+    { label: '🏠 Nhà tình thương', query: 'Nhà tình thương gần đây' }
   ];
 
   useEffect(() => {
@@ -28,8 +28,12 @@ const MapSearch: React.FC = () => {
     const searchQuery = customQuery || query;
     if (!searchQuery.trim()) return;
     
-    if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
-      await window.aistudio.openSelectKey();
+    /* Hammer Fix: Bypass TS checks with any */
+    const win = window as any;
+    if (win.aistudio && typeof win.aistudio.hasSelectedApiKey === 'function') {
+      if (!(await win.aistudio.hasSelectedApiKey())) {
+        await win.aistudio.openSelectKey();
+      }
     }
 
     setLoading(true);
@@ -41,13 +45,11 @@ const MapSearch: React.FC = () => {
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-6xl mx-auto min-h-screen font-['Inter']">
-      {/* Header Section */}
       <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
         <h1 className="text-5xl font-black text-emerald-950 italic uppercase tracking-tighter mb-3 leading-none">GIVEBACK MAPS</h1>
         <p className="text-emerald-600 font-black text-[10px] uppercase tracking-[0.4em] italic">Tìm kiếm địa điểm thiện nguyện thông minh bằng AI</p>
       </div>
 
-      {/* Search Section */}
       <div className="bg-white p-8 md:p-12 rounded-[4rem] shadow-2xl border border-emerald-50 mb-10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-1000"></div>
         
@@ -59,7 +61,7 @@ const MapSearch: React.FC = () => {
               </svg>
               <input 
                 type="text" 
-                placeholder="Bạn muốn tìm gì? (Vd: Quán cơm 2k gần đây...)" 
+                placeholder="Đệ muốn tìm gì? (Vd: Quán cơm 2k gần đây...)" 
                 className="w-full pl-16 pr-8 py-5 bg-gray-50 border-2 border-transparent focus:border-emerald-500 rounded-[2rem] outline-none font-bold text-gray-700 text-lg transition-all shadow-inner"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -80,7 +82,6 @@ const MapSearch: React.FC = () => {
             </button>
           </div>
 
-          {/* Quick Search Chips */}
           <div className="flex flex-wrap gap-2 justify-center">
             {quickSearchTags.map((tag, i) => (
               <button 
@@ -95,10 +96,8 @@ const MapSearch: React.FC = () => {
         </div>
       </div>
 
-      {/* Results Display */}
       {results && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* AI Narration Card */}
           <div className="lg:col-span-2">
             <div className="bg-white p-10 rounded-[3.5rem] border border-emerald-50 shadow-xl relative overflow-hidden h-full">
               <div className="absolute top-0 left-0 w-2 h-full bg-emerald-600"></div>
@@ -109,13 +108,12 @@ const MapSearch: React.FC = () => {
                 "{results.text}"
               </div>
               <div className="mt-10 p-6 bg-emerald-50 rounded-[2.5rem] border border-emerald-100">
-                <p className="text-[9px] font-black text-emerald-800 uppercase tracking-widest italic">💡 Lời khuyên của mình:</p>
-                <p className="text-[11px] text-emerald-700 mt-2 font-medium">Bạn nên gọi điện trước cho các địa điểm này để xác nhận thông tin nhé, vì các hoạt động thiện nguyện đôi khi có thay đổi theo ngày.</p>
+                <p className="text-[9px] font-black text-emerald-800 uppercase tracking-widest italic">💡 Lời khuyên của Huynh:</p>
+                <p className="text-[11px] text-emerald-700 mt-2 font-medium">Đệ nên gọi điện trước cho các địa điểm này để xác nhận thông tin nhé, vì các hoạt động thiện nguyện đôi khi có thay đổi theo ngày.</p>
               </div>
             </div>
           </div>
 
-          {/* Location Links Card */}
           <div className="space-y-6">
             <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em] ml-6 italic">Bản đồ chi tiết</h3>
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
@@ -151,7 +149,6 @@ const MapSearch: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {!results && !loading && (
         <div className="py-24 text-center opacity-40 animate-pulse">
           <div className="w-32 h-32 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8 border-4 border-white shadow-2xl">
