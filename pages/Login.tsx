@@ -41,19 +41,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const translateError = (errorCode: string, rawMessage?: string) => {
     const msg = (rawMessage || "").toLowerCase();
     
-    // Bắt lỗi cụ thể Identity Toolkit API bị tắt
-    if (msg.includes('identitytoolkit') || msg.includes('service_disabled')) {
-      return '❌ LỖI NGHIÊM TRỌNG: Đệ ơi, đệ cần click vào cái link màu xanh trong bảng Console (F12) rồi nhấn nút ENABLE (Bật) thì mới đăng nhập được nhé!';
+    // Bắt lỗi API Key bị giới hạn (Dựa trên screenshot Đệ gửi)
+    if (msg.includes('api_key_service_blocked') || msg.includes('requests to this api') || msg.includes('blocked')) {
+      return (
+        <div className="space-y-2">
+          <p className="font-black">🔐 ĐỆ ƠI, KEY ĐANG BỊ KHÓA!</p>
+          <p className="font-medium">1. Bấm vào tên "Gemini API Key" trong Google Cloud.</p>
+          <p className="font-medium">2. Chỗ "API restrictions", chọn "Don't restrict key".</p>
+          <p className="font-medium">3. Nhấn SAVE rồi F5 lại web nhé!</p>
+        </div>
+      );
     }
+    
+    // Lỗi chưa bật API
+    if (msg.includes('identitytoolkit') || msg.includes('service_disabled')) {
+      return '⏳ API ĐANG KHỞI ĐỘNG: Đệ vừa nhấn Enable rồi, hãy đợi 2-5 phút để Google cập nhật hệ thống nhé!';
+    }
+
     if (msg.includes('unauthorized-domain')) {
-      return `❌ LỖI MIỀN: Đệ chưa thêm "giveback-one.vercel.app" vào Authorized Domains trong cài đặt Firebase Auth.`;
+      return `❌ LỖI MIỀN: Đệ nhớ thêm "giveback-one.vercel.app" vào Authorized Domains trong Firebase Console -> Auth -> Settings nhé.`;
     }
 
     switch (errorCode) {
       case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/email-already-in-use': return 'Email này đã được đăng ký rồi.';
       case 'auth/weak-password': return 'Mật khẩu cần ít nhất 6 ký tự đệ nhé.';
-      default: return 'Có lỗi: ' + (errorCode.split('/')[1] || 'Vui lòng thử lại sau 5 phút để Google cập nhật.');
+      default: return 'Có chút trục trặc: ' + (errorCode.split('/')[1] || 'Vui lòng thử lại sau.');
     }
   };
 
@@ -86,7 +99,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
       onLogin(userData.role, userData);
     } catch (err: any) { 
-      setError(translateError(err.code, err.message)); 
+      setError(translateError(err.code, err.message) as any); 
     } finally { setLoading(false); }
   };
 
@@ -122,7 +135,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
       }
     } catch (err: any) { 
-      setError(translateError(err.code, err.message)); 
+      setError(translateError(err.code, err.message) as any); 
     } finally { setLoading(false); }
   };
 
@@ -141,7 +154,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h2>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
-              {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
+              {isLoginView ? 'Chào mừng Đệ quay trở lại' : 'Trở thành một phần của GIVEBACK'}
             </p>
           </div>
 
@@ -158,13 +171,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             )}
             <input required type="email" className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Email kết nối:" value={email} onChange={e => setEmail(e.target.value)} />
             <div className="relative">
-              <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Mật khẩu:" value={password} onChange={e => setPassword(e.target.value)} />
+              <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-emerald-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showPassword ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.024 10.024 0 014.13-5.541M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 21l-2-2m-3.5-3.5L3 3"} /></svg>
               </button>
             </div>
             
-            {error && <div className="p-5 bg-red-50 rounded-[2rem] border border-red-100 animate-bounce"><p className="text-[11px] text-red-600 font-black leading-relaxed italic">{error}</p></div>}
+            {error && (
+              <div className="p-5 bg-red-50 rounded-[2rem] border border-red-100 animate-in fade-in slide-in-from-top-2">
+                <div className="text-[11px] text-red-700 leading-relaxed italic">{error}</div>
+              </div>
+            )}
             
             <button type="submit" disabled={loading} className={`w-full py-6 rounded-3xl font-black uppercase text-xs tracking-[0.2em] text-white shadow-2xl transition-all active:scale-95 disabled:opacity-50 ${themeClass}`}>
               {loading ? 'Đang kết nối...' : (isLoginView ? 'Bắt đầu hành trình' : 'Tạo tài khoản ngay')}
@@ -173,7 +190,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <div className="mt-10 flex items-center gap-6">
              <div className="flex-1 h-px bg-gray-100"></div>
-             <span className="text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Hoặc</span>
+             <span className="text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Hoặc sẻ chia qua</span>
              <div className="flex-1 h-px bg-gray-100"></div>
           </div>
 
@@ -195,7 +212,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <h1 className="text-6xl font-black italic tracking-tighter leading-none uppercase">GIVEBACK</h1>
              </div>
              <p className="text-lg font-bold italic mb-12 leading-relaxed opacity-90 px-6 drop-shadow-xl">
-               {isLoginView ? '"Yêu thương cho đi là yêu thương còn mãi."' : '"Mỗi chuyến đi, một hành trình nhân ái."'}
+               {isLoginView ? '"Yêu thương cho đi là yêu thương còn mãi."' : '"Mỗi món quà, một hành trình nhân ái."'}
              </p>
              <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="px-14 py-6 bg-white text-emerald-950 rounded-[2.5rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95 border-4 border-emerald-100">
                {isLoginView ? 'Đăng ký ngay' : 'Đăng nhập ngay'}
@@ -208,7 +225,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="absolute -top-10 left-4 animate-pulse text-2xl">✨</div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60 italic">Hành trình nhân ái cùng bạn</div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60 italic">Hành trình nhân ái cùng Đệ</div>
         </div>
       </div>
     </div>
