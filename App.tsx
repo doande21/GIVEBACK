@@ -1,217 +1,128 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { User, ChatSession, FriendRequest } from './types';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import AIHelper from './components/AIHelper';
 import Home from './pages/Home';
 import Marketplace from './pages/Marketplace';
 import Auction from './pages/Auction';
-import Admin from './pages/Admin';
-import Messages from './pages/Messages';
-import Profile from './pages/Profile';
-import Notifications from './pages/Notifications';
 import Sponsors from './pages/Sponsors';
+import Admin from './pages/Admin';
+import Profile from './pages/Profile';
 import MapSearch from './pages/MapSearch';
 import Contact from './pages/Contact';
+import Messages from './pages/Messages';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
-import { auth, db } from './services/firebase';
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, collection, query, onSnapshot, where } from "firebase/firestore";
-
-type NotificationType = 'success' | 'error' | 'warning' | 'info';
-
-interface Notification {
-  id: string;
-  type: NotificationType;
-  message: string;
-  sender?: string;
-}
+import AIHelper from './components/AIHelper';
+import { User, ChatSession } from './types';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from './services/firebase';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'auction' | 'admin' | 'messages' | 'profile' | 'map' | 'contact' | 'notifications' | 'sponsors'>('home');
+  const [activeTab, setActiveTab] = useState('home');
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const userRef = useRef<User | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
-  const addNotification = useCallback((type: NotificationType, message: string, sender?: string) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [...prev, { id, type, message, sender }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  }, []);
-
   useEffect(() => {
-    userRef.current = user;
-    if (user) {
-      const startTime = new Date().toISOString();
-      
-      const qChats = query(collection(db, "chats"), where("participants", "array-contains", user.id));
-      const unsubChats = onSnapshot(qChats, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "modified" || change.type === "added") {
-            const data = change.doc.data() as ChatSession;
-            if (data.lastMessage && data.updatedAt > startTime && data.lastSenderId !== user.id) {
-              const senderName = data.lastSenderId === data.donorId ? data.donorName : data.receiverName;
-              addNotification('info', data.lastMessage, senderName);
-            }
-          }
-        });
-      });
-
-      const qRequests = query(collection(db, "friend_requests"), where("toId", "==", user.id), where("status", "==", "pending"));
-      const unsubRequests = onSnapshot(qRequests, (snapshot) => {
-        setPendingRequestsCount(snapshot.size);
-
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const req = change.doc.data() as FriendRequest;
-            if (req.createdAt > startTime) {
-              addNotification('success', `${req.fromName} muốn kết nối đồng đội với Đệ!`, 'Bạn bè');
-            }
-          }
-        });
-      });
-
-      return () => {
-        unsubChats();
-        unsubRequests();
-      };
-    }
-  }, [user, addNotification]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-          if (userDoc.exists()) {
-            setUser({ ...userDoc.data(), id: firebaseUser.uid } as User);
-          } else {
-            // Fix: Added missing 'userType' property to satisfy the 'User' interface
-            const tempUser: User = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || 'Thành viên',
-              email: firebaseUser.email || '',
-              userType: 'individual',
-              role: (firebaseUser.email === 'admin@giveback.vn' || firebaseUser.email?.includes('de2104')) ? 'admin' : 'user',
-              avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${firebaseUser.email}&background=random`
-            };
-            setUser(tempUser);
-          }
-        } catch (e) { console.error(e); }
-      } else {
-        if (!userRef.current || userRef.current.id !== 'admin-manual') setUser(null);
-      }
-      setLoading(false);
+    if (!user) return;
+    const qChats = query(collection(db, "chats"), where("participants", "array-contains", user.id));
+    const unsubChats = onSnapshot(qChats, (snapshot) => {
+      const sessions = snapshot.docs.map(d => d.data() as ChatSession);
+      const unread = sessions.filter(s => 
+        s.lastSenderId !== user.id && 
+        (!s.readBy || !s.readBy.includes(user.id))
+      ).length;
+      setUnreadMessagesCount(unread);
     });
-    return () => unsubscribe();
-  }, []);
+    const qReqs = query(collection(db, "friend_requests"), where("toId", "==", user.id), where("status", "==", "pending"));
+    const unsubReqs = onSnapshot(qReqs, (snapshot) => {
+      setPendingRequestsCount(snapshot.size);
+    });
+    return () => { unsubChats(); unsubReqs(); };
+  }, [user?.id]);
 
-  const handleLoginSuccess = (role: 'user' | 'admin', userData?: User) => {
+  const handleLogin = (role: 'user' | 'admin', userData?: User) => {
     if (userData) {
       setUser(userData);
-      addNotification('success', `Chào mừng ${userData.name} đã gia nhập gia đình GIVEBACK!`, 'Hệ thống');
+      setActiveTab('home');
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
+  const handleLogout = () => {
     setUser(null);
     setActiveTab('home');
     setViewingUserId(null);
-    setPendingRequestsCount(0);
-    addNotification('info', 'Bạn đã đăng xuất an toàn. Hẹn sớm gặp lại!', 'Hệ thống');
   };
 
   const handleViewProfile = (userId: string) => {
-    setViewingUserId(userId);
+    // Nếu là ID của chính mình thì xem profile bản thân (viewingUserId = null)
+    if (user && userId === user.id) {
+      setViewingUserId(null);
+    } else {
+      setViewingUserId(userId);
+    }
     setActiveTab('profile');
   };
 
-  const handleGoToMessages = (partnerId?: string) => {
-    setActiveTab('messages');
+  const handleSetTabFromNavbar = (tab: string) => {
+    // Nếu nhấn từ Navbar vào Profile, mặc định xem profile của mình
+    if (tab === 'profile') {
+      setViewingUserId(null);
+    }
+    setActiveTab(tab);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-emerald-50"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-emerald-600"></div></div>;
-  if (!user) return <Login onLogin={handleLoginSuccess} />;
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home': return <Home user={user} onNotify={() => {}} onViewProfile={handleViewProfile} />;
+      case 'market': return <Marketplace user={user} onNotify={() => {}} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
+      case 'auction': return <Auction user={user} onNotify={() => {}} setActiveTab={setActiveTab} />;
+      case 'sponsors': return <Sponsors />;
+      case 'admin': return <Admin user={user} onNotify={() => {}} />;
+      case 'profile': return (
+        <Profile 
+          user={user} 
+          viewingUserId={viewingUserId} 
+          onUpdateUser={(u) => setUser(u)} 
+          onNotify={() => {}} 
+          onGoToMessages={(partnerId) => setActiveTab('messages')}
+          onViewProfile={handleViewProfile}
+        />
+      );
+      case 'map': return <MapSearch />;
+      case 'contact': return <Contact />;
+      case 'messages': return <Messages user={user} onViewProfile={handleViewProfile} />;
+      case 'notifications': return (
+        <Notifications user={user} onNotify={() => {}} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
+      );
+      default: return <Home user={user} onNotify={() => {}} onViewProfile={handleViewProfile} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-[#f8fafc]">
       <Navbar 
         user={user} 
         activeTab={activeTab} 
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (tab !== 'profile') setViewingUserId(null);
-        }} 
+        setActiveTab={handleSetTabFromNavbar} 
         onLogout={handleLogout} 
         pendingRequestsCount={pendingRequestsCount}
+        unreadMessagesCount={unreadMessagesCount}
       />
-      <main>
-        {activeTab === 'home' && <Home user={user} onNotify={addNotification} onViewProfile={handleViewProfile} />}
-        {activeTab === 'market' && <Marketplace user={user} setActiveTab={setActiveTab} onNotify={addNotification} />}
-        {activeTab === 'auction' && <Auction user={user} setActiveTab={setActiveTab} onNotify={addNotification} />}
-        {activeTab === 'sponsors' && <Sponsors />}
-        {activeTab === 'map' && <MapSearch />}
-        {activeTab === 'admin' && <Admin user={user} onNotify={addNotification} />}
-        {activeTab === 'messages' && <Messages user={user} />}
-        {activeTab === 'notifications' && <Notifications user={user} onNotify={addNotification} onUpdateUser={setUser} onViewProfile={handleViewProfile} />}
-        {activeTab === 'profile' && (
-          <Profile 
-            user={user} 
-            viewingUserId={viewingUserId || undefined} 
-            onUpdateUser={(updated) => setUser(updated)} 
-            onNotify={addNotification} 
-            onGoToMessages={handleGoToMessages}
-          />
-        )}
-        {activeTab === 'contact' && <Contact />}
-      </main>
-
-      <div className="fixed top-24 right-6 z-[200] flex flex-col gap-4 w-full max-w-sm pointer-events-none">
-        {notifications.map((n) => (
-          <div 
-            key={n.id} 
-            className={`pointer-events-auto relative overflow-hidden bg-white/90 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/50 animate-in slide-in-from-right duration-500 flex items-start gap-4`}
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-              n.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 
-              n.type === 'error' ? 'bg-red-100 text-red-600' : 
-              n.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
-            }`}>
-              {n.type === 'success' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-              {n.type === 'error' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>}
-              {n.type === 'warning' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-              {n.type === 'info' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>}
-            </div>
-            <div className="flex-1">
-              <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
-                n.type === 'success' ? 'text-emerald-600' : 
-                n.type === 'error' ? 'text-red-600' : 
-                n.type === 'warning' ? 'text-amber-600' : 'text-blue-600'
-              }`}>{n.sender || (n.type === 'success' ? 'Thành công' : n.type === 'error' ? 'Lỗi hệ thống' : 'Thông báo')}</p>
-              <p className="text-sm font-bold text-gray-800 italic leading-snug">"{n.message}"</p>
-            </div>
-            <div className={`absolute bottom-0 left-0 h-1 transition-all duration-[5000ms] ease-linear w-full ${
-              n.type === 'success' ? 'bg-emerald-500' : 
-              n.type === 'error' ? 'bg-red-500' : 
-              n.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
-            }`} style={{ animation: 'progress 5s linear forwards' }}></div>
-          </div>
-        ))}
-      </div>
-
-      <style>{`
-        @keyframes progress {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-      `}</style>
+      <main className="transition-all duration-500">{renderContent()}</main>
       <AIHelper />
+      <footer className="bg-white border-t border-gray-100 py-12 mt-20">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-2xl font-black italic tracking-tighter text-emerald-950 mb-2">GIVEBACK</p>
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest italic">Firebase Cloud Architecture & Real-time Connectivity</p>
+          <p className="text-gray-300 text-[8px] mt-4 uppercase font-bold">© 2025 de2104 - de21042005</p>
+        </div>
+      </footer>
     </div>
   );
 };

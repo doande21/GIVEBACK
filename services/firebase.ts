@@ -1,7 +1,8 @@
 
-import { initializeApp } from "firebase/app";
-import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+// Fix: Ensuring modular Firebase v9+ imports are correctly resolved and used.
+import { initializeApp } from 'firebase/app';
+import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCps-abURYQD2mRvfoj26VJcmM0EKiPM9k",
@@ -13,12 +14,14 @@ const firebaseConfig = {
   measurementId: "G-K7QEFTLXS3"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Export instances for the rest of the application
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Export trực tiếp để tránh lỗi "does not provide an export named"
+// Direct exports for providers to be used in social login
 export const googleProvider = new GoogleAuthProvider();
 export const facebookProvider = new FacebookAuthProvider();
 

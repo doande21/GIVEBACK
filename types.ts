@@ -11,11 +11,22 @@ export interface User {
   createdAt?: string;
   organizationName?: string;
   friends?: string[];
+  isGuest?: boolean; // Thuộc tính mới để nhận diện tài khoản dùng thử
 }
 
 export interface PostMedia {
   url: string;
   type: 'image' | 'video';
+}
+
+// Fix: Added missing PostComment interface used in social posts
+export interface PostComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  text: string;
+  createdAt: string;
 }
 
 export interface DonationItem {
@@ -30,9 +41,9 @@ export interface DonationItem {
   location: string;
   author: string;
   authorId: string;
+  authorIsGuest?: boolean; // Gắn nhãn cho món đồ
   status: 'available' | 'claimed' | 'hidden';
   createdAt: string;
-  // Các trường AI quét tự động (Smart Metadata)
   minAge?: number;
   maxAge?: number;
   minWeight?: number;
@@ -49,6 +60,7 @@ export interface ChatMessage {
   id?: string;
   senderId: string;
   senderName: string;
+  senderIsGuest?: boolean; // Nhận diện người gửi tin nhắn
   text: string;
   createdAt: string;
 }
@@ -59,8 +71,10 @@ export interface ChatSession {
   participants: string[];
   donorId: string;
   donorName: string;
+  donorIsGuest?: boolean;
   receiverId: string;
   receiverName: string;
+  receiverIsGuest?: boolean;
   itemId?: string;
   itemTitle?: string;
   itemImage?: string;
@@ -69,7 +83,6 @@ export interface ChatSession {
   lastSenderId?: string;
   updatedAt: string;
   readBy?: string[];
-  // Added missing properties for group chat support
   groupName?: string;
   groupAdminId?: string;
 }
@@ -86,7 +99,6 @@ export interface ClaimRecord {
   createdAt: string;
 }
 
-// Added missing interface for Sponsor as used in constants.ts and Sponsors.tsx
 export interface Sponsor {
   id: string;
   name: string;
@@ -99,7 +111,6 @@ export interface Sponsor {
   history: Contribution[];
 }
 
-// Added missing interface for Contribution as used in Sponsor history
 export interface Contribution {
   missionName: string;
   amount?: number;
@@ -107,7 +118,6 @@ export interface Contribution {
   date: string;
 }
 
-// Added missing interface for NeededItem as used in CharityMission
 export interface NeededItem {
   name: string;
   target: number;
@@ -115,7 +125,6 @@ export interface NeededItem {
   current: number;
 }
 
-// Added missing interface for CharityMission as used in Admin.tsx
 export interface CharityMission {
   id: string;
   location: string;
@@ -129,9 +138,10 @@ export interface CharityMission {
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;
   updatedAt?: string;
+  // Fix: Added missing targetHouseholds property used in mission overview
+  targetHouseholds?: number;
 }
 
-// Added missing interface for AuctionItem as used in Auction.tsx and Admin.tsx
 export interface AuctionItem {
   id: string;
   title: string;
@@ -150,7 +160,6 @@ export interface AuctionItem {
   highestBidderName?: string;
 }
 
-// Added missing interface for Bid as used in Auction.tsx
 export interface Bid {
   bidderId: string;
   bidderName: string;
@@ -158,20 +167,25 @@ export interface Bid {
   timestamp: string;
 }
 
-// Added missing interface for SocialPost as used in Admin.tsx and Profile.tsx
 export interface SocialPost {
   id: string;
   authorId: string;
   authorName: string;
   authorAvatar: string;
+  authorIsGuest?: boolean;
   content: string;
   media?: PostMedia[];
-  mediaUrl?: string; // Support for legacy fields
-  mediaType?: 'image' | 'video'; // Support for legacy fields
+  mediaUrl?: string; 
+  mediaType?: 'image' | 'video'; 
   createdAt: string;
+  // Fix: Added missing interaction and metadata properties to resolve errors in Home.tsx
+  hearts?: string[];
+  thanks?: string[];
+  comments?: PostComment[];
+  likes?: string[];
+  sharesCount?: number;
 }
 
-// Added missing interface for FriendRequest as used in Profile.tsx and Notifications.tsx
 export interface FriendRequest {
   id: string;
   fromId: string;

@@ -67,6 +67,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     finally { setLoading(false); }
   };
 
+  const handleGuestLogin = () => {
+    const guestUser: User = {
+      id: 'GUEST_' + Math.random().toString(36).substr(2, 9),
+      name: 'Người dùng ẩn danh',
+      email: 'guest@giveback.vn',
+      role: 'user',
+      userType: 'individual',
+      isGuest: true,
+      avatar: `https://ui-avatars.com/api/?name=Guest&background=64748b&color=fff`,
+      createdAt: new Date().toISOString(),
+      bio: 'Tài khoản trải nghiệm hệ thống.'
+    };
+    onLogin('user', guestUser);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(''); setSuccessMsg('');
@@ -102,7 +117,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const isOrg = userType === 'organization';
   const mainColorClass = isOrg ? 'bg-blue-600' : 'bg-emerald-600';
-  const lightColorClass = isOrg ? 'bg-blue-50' : 'bg-emerald-50';
+  const textAccentClass = isOrg ? 'text-blue-600' : 'text-emerald-600';
 
   return (
     <div className={`min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden transition-all duration-1000 ${isOrg ? 'bg-blue-100' : 'bg-emerald-100'}`}>
@@ -112,12 +127,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-white/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
       {/* MAIN CONTAINER */}
-      <div className="relative w-full max-w-[900px] h-auto md:h-[600px] bg-white rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-[900px] h-auto md:h-[630px] bg-white rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col">
         
         {/* FORMS LAYER */}
         <div className="relative flex-1 w-full h-full">
           
-          {/* REGISTER FORM (Ẩn hiện linh hoạt) */}
+          {/* REGISTER FORM */}
           <div className={`w-full md:w-1/2 h-full p-10 md:p-14 flex flex-col justify-center transition-all duration-700 absolute left-0 top-0 z-10 ${isLoginView ? 'opacity-0 -translate-x-full pointer-events-none' : 'opacity-100 translate-x-0'}`}>
             <h2 className={`text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-2 ${isOrg ? 'text-blue-950' : 'text-emerald-950'}`}>Đăng ký</h2>
             <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest mb-6">Trở thành một phần của GIVEBACK</p>
@@ -134,13 +149,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button type="submit" disabled={loading} className={`w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest text-white shadow-lg transition-all active:scale-95 ${mainColorClass}`}>{loading ? 'Đang xử lý...' : 'Tạo tài khoản'}</button>
             </form>
 
-            <div className="mt-6 flex justify-center gap-4">
-               <button onClick={() => handleSocialLogin(googleProvider)} className="p-3 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="" /></button>
-               <button onClick={() => handleSocialLogin(facebookProvider)} className="p-3 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-5 h-5" alt="" /></button>
+            <div className="mt-6 flex items-center gap-2">
+               <button onClick={() => handleSocialLogin(googleProvider)} className="flex-1 py-3 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-gray-100 flex items-center justify-center"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="" /></button>
+               <button onClick={() => handleSocialLogin(facebookProvider)} className="flex-1 py-3 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-gray-100 flex items-center justify-center"><img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-5 h-5" alt="" /></button>
+               <button onClick={handleGuestLogin} className={`flex-1 py-3 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-gray-100 flex flex-col items-center justify-center ${textAccentClass}`}><span className="text-sm">👤</span><span className="text-[7px] font-black uppercase">Guest</span></button>
             </div>
           </div>
 
-          {/* LOGIN FORM (Ẩn hiện linh hoạt) */}
+          {/* LOGIN FORM */}
           <div className={`w-full md:w-1/2 h-full p-10 md:p-14 flex flex-col justify-center transition-all duration-700 absolute right-0 top-0 z-10 ${!isLoginView ? 'opacity-0 translate-x-full pointer-events-none' : 'opacity-100 translate-x-0'}`}>
             <h2 className={`text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-2 ${isOrg ? 'text-blue-950' : 'text-emerald-950'}`}>Đăng nhập</h2>
             <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest mb-8">Chào mừng bạn quay trở lại</p>
@@ -163,14 +179,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <div className="flex-1 h-px bg-gray-100"></div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
-               <button onClick={() => handleSocialLogin(googleProvider)} className="flex items-center justify-center gap-2 py-3.5 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="" /><span className="text-[9px] font-black uppercase text-gray-500">Google</span></button>
-               <button onClick={() => handleSocialLogin(facebookProvider)} className="flex items-center justify-center gap-2 py-3.5 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-4 h-4" alt="" /><span className="text-[9px] font-black uppercase text-gray-500">Facebook</span></button>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+               <button onClick={() => handleSocialLogin(googleProvider)} className="flex flex-col items-center justify-center gap-1 py-3 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-4 h-4" alt="" /><span className="text-[8px] font-black uppercase text-gray-400">Google</span></button>
+               <button onClick={() => handleSocialLogin(facebookProvider)} className="flex flex-col items-center justify-center gap-1 py-3 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md transition-all border border-gray-100"><img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-4 h-4" alt="" /><span className="text-[8px] font-black uppercase text-gray-400">Facebook</span></button>
+               <button onClick={handleGuestLogin} className={`flex flex-col items-center justify-center gap-1 py-3 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-md transition-all border border-gray-100 ${textAccentClass}`}><span className="text-base">👤</span><span className="text-[8px] font-black uppercase">Dùng thử</span></button>
             </div>
           </div>
         </div>
 
-        {/* OVERLAY PANEL (Tấm màn chuyển động) */}
+        {/* OVERLAY PANEL */}
         <div className={`absolute top-0 w-1/2 h-full transition-all duration-700 ease-in-out z-20 hidden md:block ${isLoginView ? 'left-0' : 'left-1/2'}`}>
           <div className={`relative h-full text-white flex flex-col items-center justify-center p-12 text-center overflow-hidden transition-colors duration-1000 ${mainColorClass} ${isLoginView ? 'rounded-tr-[12rem] rounded-br-[12rem]' : 'rounded-tl-[12rem] rounded-bl-[12rem]'}`}>
             
@@ -194,10 +211,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* MOBILE TOGGLE (Chỉ hiện khi màn hình nhỏ) */}
+        {/* MOBILE TOGGLE */}
         <div className="md:hidden p-6 bg-gray-50 border-t flex items-center justify-center gap-2">
            <span className="text-[10px] font-bold text-gray-400 uppercase italic">{isLoginView ? "Chưa có tài khoản?" : "Đã có tài khoản?"}</span>
-           <button onClick={() => setIsLoginView(!isLoginView)} className={`text-[10px] font-black uppercase tracking-widest ${isOrg ? 'text-blue-600' : 'text-emerald-600'}`}>
+           <button onClick={() => setIsLoginView(!isLoginView)} className={`text-[10px] font-black uppercase tracking-widest ${textAccentClass}`}>
              {isLoginView ? "Đăng ký ngay" : "Đăng nhập ngay"}
            </button>
         </div>
