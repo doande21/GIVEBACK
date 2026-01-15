@@ -68,20 +68,13 @@ const App: React.FC = () => {
     console.log(`[${type.toUpperCase()}] from ${sender || 'System'}: ${message}`);
   };
 
-  const handleSetTabFromNavbar = (tab: string) => {
-    if (tab === 'profile') {
-      setViewingUserId(null);
-    }
-    setActiveTab(tab);
-  };
-
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} />;
+      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
       case 'market': return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
       case 'auction': return <Auction user={user} onNotify={handleNotify} setActiveTab={setActiveTab} />;
       case 'sponsors': return <Sponsors />;
@@ -102,29 +95,47 @@ const App: React.FC = () => {
       case 'notifications': return (
         <Notifications user={user} onNotify={handleNotify} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
       );
-      default: return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} />;
+      default: return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-white">
       <Navbar 
         user={user} 
         activeTab={activeTab} 
-        setActiveTab={handleSetTabFromNavbar} 
+        setActiveTab={setActiveTab} 
         onLogout={handleLogout} 
         pendingRequestsCount={pendingRequestsCount}
         unreadMessagesCount={unreadMessagesCount}
       />
+      
       <main className="transition-all duration-500">{renderContent()}</main>
+      
       <AIHelper />
-      <footer className="bg-white border-t border-gray-100 py-12 mt-20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-2xl font-black tracking-tighter text-emerald-950 mb-2">GIVEBACK</p>
-          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Firebase Cloud Architecture & Real-time Connectivity</p>
-          <p className="text-gray-300 text-[8px] mt-4 uppercase font-bold">© 2025 de2104 - de21042005</p>
-        </div>
-      </footer>
+
+      {/* Bottom Navigation chuẩn Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 flex items-center justify-around h-20 px-2 pb-2">
+         {[
+           { id: 'home', label: 'Trang chủ', icon: <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> },
+           { id: 'map', label: 'Khám phá', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
+           { id: 'plus', label: '', icon: <div className="bg-emerald-100 text-emerald-600 p-3 rounded-full"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></div> },
+           { id: 'auction', label: 'Chiến dịch', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg> },
+           { id: 'profile', label: 'Cá nhân', icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> }
+         ].map(item => (
+           <button 
+            key={item.id}
+            onClick={() => {
+              if (item.id === 'plus') setActiveTab('market');
+              else setActiveTab(item.id);
+            }}
+            className={`flex flex-col items-center justify-center space-y-1 transition-colors ${activeTab === item.id ? 'text-emerald-700' : 'text-gray-300'}`}
+           >
+             {item.icon}
+             {item.label && <span className="text-[9px] font-bold uppercase tracking-widest">{item.label}</span>}
+           </button>
+         ))}
+      </div>
     </div>
   );
 };
