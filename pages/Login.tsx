@@ -47,7 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <p className="font-black text-red-700 uppercase text-[11px] italic animate-bounce">🆘 ĐỆ ƠI, LÀM 2 BƯỚC NÀY LÀ XONG NÈ:</p>
           <div className="bg-white/80 p-4 rounded-[1.5rem] border-2 border-red-200 shadow-inner space-y-2">
             <p className="text-[10px] font-bold text-gray-700">1️⃣ Vào tab <b>Sign-in method</b> trong Firebase: Bật <b>Email/Password</b> lên (nhấn Save).</p>
-            <p className="text-[10px] font-bold text-gray-700">2️⃣ Vào tab <b>Settings</b> -> <b>Authorized Domains</b>: Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
+            <p className="text-[10px] font-bold text-gray-700">2️⃣ Vào tab <b>Settings</b> {'->'} <b>Authorized Domains</b>: Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
             <p className="text-[9px] text-red-500 font-black italic mt-2">* Sau khi làm xong, Đệ F5 (tải lại) trang web là được!</p>
           </div>
         </div>
@@ -58,7 +58,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return (
         <div className="p-2 text-left">
           <p className="font-black text-red-700 text-[10px]">🌐 CHƯA CẤP PHÉP TÊN MIỀN!</p>
-          <p className="text-[9px] font-medium text-gray-600">Đệ vào Firebase -> Auth -> Settings -> Authorized Domains -> Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
+          <p className="text-[9px] font-medium text-gray-600">Đệ vào Firebase {'->'} Auth {'->'} Settings {'->'} Authorized Domains {'->'} Thêm <b>giveback-one.vercel.app</b> vào nhé.</p>
         </div>
       );
     }
