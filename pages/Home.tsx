@@ -11,9 +11,7 @@ import {
   updateDoc,
   doc,
   arrayUnion,
-  arrayRemove,
-  setDoc,
-  getDoc
+  arrayRemove
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -50,8 +48,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
   const [postContent, setPostContent] = useState('');
   const [postMedia, setPostMedia] = useState<{url: string, type: 'image' | 'video'} | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -92,52 +88,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
     }
   };
 
-  const handleHeart = async (post: SocialPost) => {
-    const postRef = doc(db, "social_posts", post.id);
-    const hasHearted = post.hearts?.includes(user.id);
-    try {
-      await updateDoc(postRef, {
-        hearts: hasHearted ? arrayRemove(user.id) : arrayUnion(user.id)
-      });
-    } catch (err) { console.error(err); }
-  };
-
-  const handleAddComment = async (postId: string) => {
-    if (!commentText.trim()) return;
-    const postRef = doc(db, "social_posts", postId);
-    const newComment: PostComment = {
-      id: Date.now().toString(),
-      authorId: user.id,
-      authorName: user.name,
-      authorAvatar: user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`,
-      text: commentText.trim(),
-      createdAt: new Date().toISOString()
-    };
-    try {
-      await updateDoc(postRef, { comments: arrayUnion(newComment) });
-      setCommentText('');
-    } catch (err) { onNotify('error', "Lỗi gửi bình luận."); }
-  };
-
-  const handleStartChat = async (post: SocialPost) => {
-    if (post.authorId === user.id) return;
-    const chatId = user.id < post.authorId ? `chat_${user.id}_${post.authorId}` : `chat_${post.authorId}_${user.id}`;
-    try {
-      const chatRef = doc(db, "chats", chatId);
-      const chatDoc = await getDoc(chatRef);
-      if (!chatDoc.exists()) {
-        await setDoc(chatRef, {
-          id: chatId, type: 'direct', participants: [user.id, post.authorId],
-          donorId: post.authorId, donorName: post.authorName,
-          receiverId: user.id, receiverName: user.name,
-          lastMessage: `Chào đệ, mình thấy bài đăng của đệ rất hay!`,
-          updatedAt: new Date().toISOString()
-        });
-      }
-      setActiveTab('messages');
-    } catch (err) { onNotify('error', "Lỗi kết nối."); }
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -157,123 +107,125 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
 
   return (
     <div className="pt-20 pb-24 max-w-4xl mx-auto px-4 space-y-8">
-      {/* Post Box */}
-      <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2rem] p-5 shadow-sm border border-gray-100 dark:border-slate-800 flex items-center space-x-4 cursor-pointer hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all active:scale-95">
-        <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`} className="w-10 h-10 rounded-full bg-gray-100 object-cover" alt="" />
-        <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold">Đệ ơi, bạn đang nghĩ gì thế?</div>
-        <div className="flex space-x-2 text-emerald-600">
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2-2v8a2 2 0 002 2z" /></svg>
+      <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-emerald-50 dark:border-slate-800 flex items-center space-x-5 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all active:scale-95 group">
+        <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`} className="w-12 h-12 rounded-2xl bg-gray-100 object-cover shadow-sm group-hover:rotate-6 transition-transform" alt="" />
+        <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold italic">
+          {user.name} ơi, bạn đang nghĩ gì thế?
+        </div>
+        <div className="flex space-x-3 text-emerald-600">
+           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
+           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" /></svg>
         </div>
       </div>
 
-      {/* Hero Mission */}
       {currentMission && (
-        <div onClick={() => setActiveTab('missions')} className="bg-[#045d43] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl group cursor-pointer hover:scale-[1.01] transition-all">
-          <h2 className="text-4xl font-black uppercase tracking-tighter mb-3 italic">VÌ {currentMission.location} THÂN YÊU</h2>
-          <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden p-0.5 mt-6">
-            <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-200 rounded-full transition-all duration-1000 shadow-emerald-500/50" style={{ width: `${missionProgress}%` }}></div>
+        <div onClick={() => setActiveTab('missions')} className="bg-[#045d43] rounded-[3.5rem] p-12 text-white relative overflow-hidden shadow-2xl group cursor-pointer hover:scale-[1.01] transition-all">
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 italic leading-none">VÌ {currentMission.location} THÂN YÊU</h2>
+            <div className="w-full h-5 bg-white/10 rounded-full overflow-hidden p-0.5 mt-8 shadow-inner">
+              <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-200 rounded-full transition-all duration-1000 shadow-emerald-500/50" style={{ width: `${missionProgress}%` }}></div>
+            </div>
+            <div className="flex justify-between items-center mt-4">
+              <p className="text-[10px] font-black uppercase text-emerald-300 tracking-[0.2em]">Tiến độ quyên góp: {missionProgress}%</p>
+              <button className="bg-white/20 hover:bg-white text-white hover:text-emerald-900 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md">Chi tiết &rarr;</button>
+            </div>
           </div>
-          <p className="text-[10px] font-black uppercase mt-3 text-emerald-300">Tiến độ quyên góp: {missionProgress}%</p>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
         </div>
       )}
 
-      {/* Post Feed */}
-      <div className="space-y-8">
+      <div className="space-y-10">
         {posts.map(post => {
           const isHearted = post.hearts?.includes(user.id);
-          const isCommentOpen = activeCommentPostId === post.id;
           return (
-            <div key={post.id} className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-sm border border-gray-50 dark:border-slate-800 overflow-hidden hover:shadow-2xl transition-all duration-500">
+            <div key={post.id} className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-sm border border-gray-50 dark:border-slate-800 overflow-hidden hover:shadow-2xl transition-all duration-500">
               <div className="p-8 flex items-center justify-between">
                 <div className="flex items-center space-x-5 cursor-pointer" onClick={() => onViewProfile(post.authorId)}>
-                  <img src={post.authorAvatar} className="w-14 h-14 rounded-3xl border-2 border-gray-50 dark:border-slate-800 object-cover shadow-sm" alt="" />
+                  <img src={post.authorAvatar} className="w-16 h-16 rounded-[2rem] border-4 border-gray-50 dark:border-slate-800 object-cover shadow-md" alt="" />
                   <div>
-                    <h4 className="font-black text-sm uppercase text-emerald-950 dark:text-emerald-400 tracking-tighter leading-none">{post.authorName}</h4>
-                    <p className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em] mt-1">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
+                    <h4 className="font-black text-base uppercase text-emerald-950 dark:text-emerald-400 tracking-tighter leading-none">{post.authorName}</h4>
+                    <p className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em] mt-1.5">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
                 </div>
               </div>
-              <div className="px-10 pb-8"><p className="text-base text-emerald-950 dark:text-slate-200 font-medium italic">"{post.content}"</p></div>
+              <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium italic leading-relaxed">"{post.content}"</p></div>
               {post.media?.[0] && (
-                <div className="px-8 pb-8">
-                  {post.media[0].type === 'video' ? <video src={post.media[0].url} className="w-full rounded-[3.5rem] shadow-2xl" controls /> : <img src={post.media[0].url} className="w-full rounded-[3.5rem] shadow-2xl" alt="" />}
+                <div className="px-8 pb-10">
+                  {post.media[0].type === 'video' ? 
+                    <video src={post.media[0].url} className="w-full max-h-[500px] rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800 object-contain bg-black" controls /> : 
+                    <img src={post.media[0].url} className="w-full rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800" alt="" />
+                  }
                 </div>
               )}
-              <div className="px-10 py-6 flex items-center justify-between border-t border-gray-50 dark:border-slate-800 bg-gray-50/10 dark:bg-slate-900/10">
-                 <div className="flex space-x-6">
-                   <button onClick={() => handleHeart(post)} className={`flex items-center space-x-2 transition-all ${isHearted ? 'text-red-500' : 'text-gray-300 dark:text-gray-600 hover:text-red-400'}`}>
-                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isHearted ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                     <span className="text-xs font-black">{post.hearts?.length || 0}</span>
-                   </button>
-                   <button onClick={() => setActiveCommentPostId(isCommentOpen ? null : post.id)} className={`flex items-center space-x-2 transition-all ${isCommentOpen ? 'text-emerald-600' : 'text-gray-300 dark:text-gray-600 hover:text-emerald-500'}`}>
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-                     <span className="text-xs font-black">{post.comments?.length || 0}</span>
+              <div className="px-12 py-8 flex items-center justify-between border-t border-gray-50 dark:border-slate-800 bg-gray-50/20 dark:bg-slate-900/10">
+                 <div className="flex space-x-8">
+                   <button onClick={() => {
+                     const postRef = doc(db, "social_posts", post.id);
+                     updateDoc(postRef, {
+                       hearts: isHearted ? arrayRemove(user.id) : arrayUnion(user.id)
+                     });
+                   }} className={`flex items-center space-x-3 transition-all ${isHearted ? 'text-red-500 scale-110' : 'text-gray-300 dark:text-gray-600 hover:text-red-400'}`}>
+                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${isHearted ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0 -6.364 -6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0 -6.364 0z" /></svg>
+                     <span className="text-sm font-black">{post.hearts?.length || 0}</span>
                    </button>
                  </div>
-                 <button onClick={() => handleStartChat(post)} className="text-emerald-600 font-black text-[10px] uppercase tracking-widest px-4 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-2xl transition-all">Nhắn tin</button>
+                 <button onClick={() => {
+                   if (post.authorId === user.id) return;
+                   setActiveTab('messages');
+                 }} className="bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest px-8 py-3 rounded-2xl hover:bg-emerald-700 active:scale-95 transition-all shadow-xl shadow-emerald-100 dark:shadow-none">Nhắn tin</button>
               </div>
-
-              {/* COMMENT SECTION: FB STYLE WITH EMERALD CARET */}
-              {isCommentOpen && (
-                <div className="px-10 py-8 bg-gray-50/30 dark:bg-slate-950/20 border-t border-gray-50 dark:border-slate-800 animate-in slide-in-from-top-4 duration-300">
-                  <div className="space-y-6 mb-8 max-h-64 overflow-y-auto pr-4 custom-scrollbar">
-                    {post.comments?.length ? post.comments.map(c => (
-                      <div key={c.id} className="flex space-x-4">
-                        <img src={c.authorAvatar} className="w-8 h-8 rounded-xl object-cover shadow-sm" alt="" />
-                        <div className="flex-1 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
-                          <h5 className="text-[10px] font-black uppercase text-emerald-950 dark:text-emerald-400 mb-1">{c.authorName}</h5>
-                          <p className="text-xs text-gray-700 dark:text-slate-300 font-medium">{c.text}</p>
-                        </div>
-                      </div>
-                    )) : <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-widest py-4 italic">Hãy là người đầu tiên bình luận...</p>}
-                  </div>
-
-                  <div className="flex items-center space-x-3 group/input">
-                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-9 h-9 rounded-2xl shadow-sm" alt="" />
-                    <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full px-5 py-2.5 flex items-center border border-transparent focus-within:border-emerald-500/30 focus-within:bg-white dark:focus-within:bg-slate-700 transition-all shadow-inner">
-                      <input 
-                        type="text" 
-                        placeholder={`Bình luận dưới tên ${user.name}...`} 
-                        className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-800 dark:text-slate-200 placeholder:text-gray-400 italic py-1.5"
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                      />
-                      {/* Interaction Icons Like FB */}
-                      <div className="flex items-center space-x-2 text-gray-400 dark:text-gray-500 mr-2">
-                        <button className="hover:text-emerald-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
-                        <button className="hover:text-emerald-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg></button>
-                        <button className="hover:text-emerald-500 transition-colors"><div className="text-[10px] font-black border border-current rounded px-1 scale-90">GIF</div></button>
-                      </div>
-                      <button 
-                        onClick={() => handleAddComment(post.id)}
-                        disabled={!commentText.trim()}
-                        className={`transition-all ${commentText.trim() ? 'text-emerald-600 scale-110 send-active' : 'text-gray-300'}`}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rotate-45" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
 
-      {/* Post Modal */}
       {isPostModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
-          <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-             <div className="flex justify-between items-center mb-8">
-               <h3 className="text-2xl font-black uppercase italic text-emerald-950 dark:text-emerald-400">Tạo bài viết</h3>
-               <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+             <div className="flex justify-between items-center mb-10">
+               <h3 className="text-3xl font-black uppercase italic text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
+               <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
-             <form onSubmit={handleCreatePost} className="space-y-6">
-                <textarea required rows={5} className="w-full bg-gray-50 dark:bg-slate-800 p-8 rounded-[2.5rem] font-bold text-lg outline-none border-2 border-transparent focus:border-emerald-500 transition-all placeholder:text-gray-300 italic dark:text-white" placeholder="Huynh đệ ơi, bạn đang nghĩ gì?" value={postContent} onChange={(e) => setPostContent(e.target.value)} />
-                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-xs">Đăng ngay</button>
+             <form onSubmit={handleCreatePost} className="space-y-8">
+                <textarea 
+                  required 
+                  rows={4} 
+                  className="w-full bg-gray-50 dark:bg-slate-800 p-10 rounded-[3rem] font-bold text-xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all placeholder:text-gray-300 italic dark:text-white" 
+                  placeholder={`${user.name} ơi, bạn đang nghĩ gì thế?`} 
+                  value={postContent} 
+                  onChange={(e) => setPostContent(e.target.value)} 
+                />
+
+                {postMedia && (
+                  <div className="relative rounded-[3rem] overflow-hidden border-4 border-emerald-100 shadow-xl bg-gray-50">
+                    {postMedia.type === 'video' ? 
+                      <video src={postMedia.url} className="w-full h-56 object-contain bg-black" controls /> : 
+                      <img src={postMedia.url} className="w-full h-56 object-cover" alt="Preview" />
+                    }
+                    <button 
+                      type="button" 
+                      onClick={() => setPostMedia(null)}
+                      className="absolute top-4 right-4 bg-black/50 text-white p-3 rounded-full hover:bg-red-500 transition-all shadow-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414z" clipRule="evenodd" /></svg>
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-5">
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center space-x-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-800"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
+                    <span>Ảnh / Video</span>
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
+                </div>
+
+                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">Đăng ngay</button>
              </form>
           </div>
         </div>

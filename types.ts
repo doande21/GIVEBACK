@@ -134,6 +134,7 @@ export interface CharityMission {
   image: string;
   qrCode?: string;
   itemsNeeded: NeededItem[];
+  gallery?: string[]; // Danh sách ảnh thực tế của chuyến đi
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;
   updatedAt?: string;
