@@ -64,7 +64,6 @@ const App: React.FC = () => {
     setActiveTab('profile');
   };
 
-  // Hàm xử lý thông báo dùng chung, nhận đúng tham số như interface yêu cầu
   const handleNotify = (type: string, message: string, sender?: string) => {
     console.log(`[${type.toUpperCase()}] from ${sender || 'System'}: ${message}`);
   };
@@ -121,8 +120,8 @@ const App: React.FC = () => {
       <AIHelper />
       <footer className="bg-white border-t border-gray-100 py-12 mt-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-2xl font-black italic tracking-tighter text-emerald-950 mb-2">GIVEBACK</p>
-          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest italic">Firebase Cloud Architecture & Real-time Connectivity</p>
+          <p className="text-2xl font-black tracking-tighter text-emerald-950 mb-2">GIVEBACK</p>
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Firebase Cloud Architecture & Real-time Connectivity</p>
           <p className="text-gray-300 text-[8px] mt-4 uppercase font-bold">© 2025 de2104 - de21042005</p>
         </div>
       </footer>

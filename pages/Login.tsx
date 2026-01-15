@@ -41,7 +41,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
     
-    // XỬ LÝ LỖI FACEBOOK DOMAIN (Như ảnh Đệ gửi)
     if (msg.includes('uri_not_whitelisted') || msg.includes('domain') || errorCode.includes('internal-error')) {
       return (
         <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
@@ -54,13 +53,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Facebook không cho phép đăng nhập từ tên miền <b>giveback-one.vercel.app</b>. Đệ vào <b>developers.facebook.com</b> và làm 3 bước này nhé:
             </p>
             <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-blue-100">
-               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"}Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
-               <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"}Điền link Vercel của Đệ.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"} Điền link Vercel của Đệ.</p>
                <p className="text-[9px] font-black text-blue-800 uppercase">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
             </div>
             <a 
               href="https://developers.facebook.com/apps/" 
-
               target="_blank" 
               rel="noreferrer"
               className="block w-full bg-blue-600 text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg hover:bg-blue-700 transition-all active:scale-95"
@@ -101,11 +99,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
-      case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
-      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Bạn hãy nhấn Đăng ký nhé!';
       case 'auth/operation-not-allowed': return 'Đệ ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
@@ -228,9 +226,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
                  {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
                </p>
-               {isLoginView && (
-                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse"></button>
-               )}
+               
             </div>
           </div>
 
@@ -250,7 +246,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 required 
                 type="text" 
                 className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" 
-                placeholder="Email hoặc Tên đăng nhập:" 
+                placeholder="Email hoặc Tên đăng nhập..." 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
               />

@@ -9,9 +9,10 @@ interface ItemCardProps {
   user?: User | null;
   onSelect?: (item: DonationItem) => void;
   onNotify?: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onViewProfile }) => {
   const isOutOfStock = item.quantity <= 0;
   const isAdmin = user?.role === 'admin';
 
@@ -24,6 +25,13 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify }) =
       } catch (err) {
         if (onNotify) onNotify('error', "Có lỗi xảy ra.", 'Hệ thống');
       }
+    }
+  };
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onViewProfile && item.authorId) {
+      onViewProfile(item.authorId);
     }
   };
 
@@ -41,12 +49,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify }) =
       <div className="relative h-56 bg-gray-100 overflow-hidden">
         <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-          <div className="bg-emerald-600 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg italic">
+          <div className="bg-emerald-600 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg">
             {item.category}
           </div>
         </div>
         
-        {/* Smart Badges hiển thị thông số AI quét được */}
         <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
           {(item.minAge !== undefined && item.minAge > 0) && (
             <div className="bg-white/90 backdrop-blur-md text-emerald-900 text-[8px] font-black uppercase px-3 py-1.5 rounded-lg shadow-sm">
@@ -62,20 +69,20 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify }) =
       </div>
 
       <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-lg font-black uppercase italic tracking-tighter mb-2 truncate text-gray-950 group-hover:text-emerald-700">
+        <h3 className="text-lg font-black uppercase tracking-tighter mb-2 truncate text-gray-950 group-hover:text-emerald-700">
           {item.title}
         </h3>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-6 h-9 italic font-medium leading-relaxed">
+        <p className="text-xs text-gray-500 line-clamp-2 mb-6 h-9 font-medium leading-relaxed">
           "{item.description || 'Không có mô tả.'}"
         </p>
         
         <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-black text-[10px]">
+          <div className="flex items-center space-x-3 cursor-pointer group/author" onClick={handleAuthorClick}>
+            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-black text-[10px] group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all">
               {item.author.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black text-gray-900 uppercase tracking-tighter truncate max-w-[80px]">{item.author}</p>
+              <p className="text-[10px] font-black text-gray-900 uppercase tracking-tighter truncate max-w-[80px] group-hover/author:text-emerald-600 transition-colors">{item.author}</p>
               <p className="text-[8px] text-gray-400 font-bold uppercase truncate">{item.location || 'Toàn quốc'}</p>
             </div>
           </div>
