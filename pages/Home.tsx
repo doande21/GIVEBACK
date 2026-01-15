@@ -277,11 +277,11 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
   };
 
   return (
-    <div className="pt-24 pb-12 px-4 max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 font-['Inter']">
+    <div className="pt-24 pb-12 px-4 max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
       <div className="flex-1 space-y-6">
         <div className="bg-white rounded-[2.5rem] shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
           <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-12 h-12 rounded-2xl object-cover" alt="" />
-          <button onClick={() => setIsPosting(true)} className="flex-1 bg-gray-50 hover:bg-emerald-50 text-gray-400 text-left px-8 py-4 rounded-full text-xs italic font-medium transition-all">
+          <button onClick={() => setIsPosting(true)} className="flex-1 bg-gray-50 hover:bg-emerald-50 text-gray-400 text-left px-8 py-4 rounded-full text-xs font-medium transition-all">
             {user.name} ơi, bạn muốn lan tỏa điều gì hôm nay?
           </button>
         </div>
@@ -293,7 +293,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                 <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onViewProfile(post.authorId)}>
                   <img src={post.authorAvatar || `https://ui-avatars.com/api/?name=${post.authorName}`} className="w-11 h-11 rounded-2xl object-cover border border-emerald-50" alt="" />
                   <div>
-                    <h4 className="font-black text-sm uppercase italic tracking-tighter text-emerald-950 flex items-center gap-2">
+                    <h4 className="font-black text-sm uppercase tracking-tighter text-emerald-950 flex items-center gap-2">
                       {post.authorName}
                       {post.authorIsGuest && <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[7px] font-black uppercase">GUEST</span>}
                     </h4>
@@ -301,7 +301,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                   </div>
                 </div>
               </div>
-              <div className="px-8 pb-4"><p className="text-sm text-gray-800 leading-relaxed font-medium italic">"{post.content}"</p></div>
+              <div className="px-8 pb-4"><p className="text-sm text-gray-800 leading-relaxed font-medium">"{post.content}"</p></div>
               <div className="px-4"><PostMediaGrid media={post.media} mediaUrl={post.mediaUrl} mediaType={post.mediaType} /></div>
               
               <div className="px-6 py-4 flex items-center space-x-2 border-t border-gray-50 bg-gray-50/30">
@@ -341,7 +341,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                        <input 
                         type="text" 
                         placeholder="Viết cảm nghĩ của đệ..." 
-                        className="w-full bg-white border border-gray-100 px-6 py-3 rounded-full text-xs font-medium italic outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-inner" 
+                        className="w-full bg-white border border-gray-100 px-6 py-3 rounded-full text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-inner" 
                         value={commentText} 
                         onChange={(e) => setCommentText(e.target.value)} 
                         onKeyDown={(e) => e.key === 'Enter' && handleComment(post.id)} 
@@ -363,15 +363,15 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
 
       <div className="w-full lg:w-80 space-y-6">
         <div className="bg-emerald-900 text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden">
-           <h3 className="text-xl font-black italic uppercase mb-2">Sứ mệnh cứu trợ</h3>
-           <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-6 italic">Quản lý ngân sách và sứ mệnh vùng cao</p>
+           <h3 className="text-xl font-black uppercase mb-2">Sứ mệnh cứu trợ</h3>
+           <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-6">Quản lý ngân sách và sứ mệnh vùng cao</p>
            <div className="space-y-4">
               {missions.map(m => (
                 <div key={m.id} className="relative group cursor-pointer overflow-hidden rounded-[2.5rem] aspect-[4/3] shadow-xl border border-white/10" onClick={() => setSelectedMission(m)}>
                    <img src={m.image || "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=600"} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                    <div className="absolute inset-x-6 bottom-6">
-                      <h4 className="text-lg font-black uppercase italic text-white tracking-tighter leading-none">{m.location}</h4>
+                      <h4 className="text-lg font-black uppercase text-white tracking-tighter leading-none">{m.location}</h4>
                       <p className="text-[8px] text-emerald-300 font-bold mt-1 uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p>
                    </div>
                 </div>
@@ -385,14 +385,14 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
           <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsPosting(false)}></div>
           <div className="relative bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl p-8 md:p-10 animate-in zoom-in-95">
              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-black uppercase italic text-emerald-950">Lan tỏa yêu thương</h3>
+                <h3 className="text-2xl font-black uppercase text-emerald-950">Lan tỏa yêu thương</h3>
                 <button onClick={() => setIsPosting(false)} className="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
              <div className="space-y-6">
                 <textarea 
                   rows={4} 
                   placeholder="Đệ đang nghĩ gì về hành trình hôm nay..." 
-                  className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium italic outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" 
+                  className="w-full bg-gray-50 p-6 rounded-[2.5rem] font-medium outline-none border-2 border-transparent focus:border-emerald-500 transition-all text-sm leading-relaxed" 
                   value={content} 
                   onChange={(e) => setContent(e.target.value)} 
                 />
@@ -409,7 +409,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                     </div>
                   ) : (
                     <div onClick={() => fileInputRef.current?.click()} className="h-full flex flex-col items-center justify-center text-gray-300 cursor-pointer hover:text-emerald-400 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg>
                       <span className="text-[10px] font-black uppercase tracking-widest">Tải ảnh/video hàng loạt (Tối đa 4)</span>
                     </div>
                   )}
@@ -453,14 +453,14 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                         <img src={c.authorAvatar} onClick={() => { setInteractionModalPost(null); onViewProfile(c.authorId); }} className="w-10 h-10 rounded-2xl object-cover cursor-pointer border-2 border-transparent group-hover:border-emerald-500 transition-all shadow-sm" alt="" />
                         <div className="flex-1 bg-gray-50 p-5 rounded-[1.5rem] rounded-tl-none border border-gray-100">
                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="text-[11px] font-black uppercase italic text-emerald-950 cursor-pointer" onClick={() => { setInteractionModalPost(null); onViewProfile(c.authorId); }}>{c.authorName}</h5>
+                              <h5 className="text-[11px] font-black uppercase text-emerald-950 cursor-pointer" onClick={() => { setInteractionModalPost(null); onViewProfile(c.authorId); }}>{c.authorName}</h5>
                               <span className="text-[8px] text-gray-400 font-bold">{new Date(c.createdAt).toLocaleDateString('vi-VN')}</span>
                            </div>
-                           <p className="text-xs text-gray-700 italic font-medium leading-relaxed">"{c.text}"</p>
+                           <p className="text-xs text-gray-700 font-medium leading-relaxed">"{c.text}"</p>
                         </div>
                       </div>
                     ))}
-                    {!interactionModalPost.comments?.length && <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Chưa có bình luận nào...</p>}
+                    {!interactionModalPost.comments?.length && <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase tracking-widest">Chưa có bình luận nào...</p>}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -472,7 +472,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                            <div className="flex items-center space-x-4">
                               <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.name}`} className="w-11 h-11 rounded-2xl object-cover shadow-sm" alt="" />
                               <div>
-                                 <h5 className="text-xs font-black uppercase italic text-gray-900">{u.name}</h5>
+                                 <h5 className="text-xs font-black uppercase text-gray-900">{u.name}</h5>
                                  <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{u.userType === 'organization' ? 'Tổ chức' : 'Thành viên'}</p>
                               </div>
                            </div>
@@ -481,14 +481,14 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                       ))
                     )}
                     {!fetchingInteractions && interactionUsers.length === 0 && (
-                      <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Chưa có ai tương tác mục này...</p>
+                      <p className="text-center py-20 text-[10px] font-black text-gray-300 uppercase tracking-widest">Chưa có ai tương tác mục này...</p>
                     )}
                   </div>
                 )}
              </div>
 
-             <div className="p-8 bg-emerald-900 text-center">
-                <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest italic">Cảm ơn những tấm lòng vàng đã lan tỏa yêu thương</p>
+             <div className="p-8 bg-emerald-950 text-center">
+                <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest">Cảm ơn những tấm lòng vàng đã lan tỏa yêu thương</p>
              </div>
           </div>
         </div>
@@ -507,8 +507,8 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/80 via-transparent to-transparent"></div>
               <div className="absolute bottom-10 left-12 text-white">
-                <h2 className="text-5xl font-black italic uppercase tracking-tighter drop-shadow-2xl">{selectedMission.location}</h2>
-                <p className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em] mt-2 italic">HÀNH TRÌNH NHÂN ÁI - {new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
+                <h2 className="text-5xl font-black uppercase tracking-tighter drop-shadow-2xl">{selectedMission.location}</h2>
+                <p className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em] mt-2">HÀNH TRÌNH NHÂN ÁI - {new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
               </div>
             </div>
 
@@ -516,40 +516,40 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                   <div className="lg:col-span-2 space-y-12">
                      <section>
-                        <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-4 italic">Mục tiêu chiến dịch</h4>
-                        <p className="text-xl text-gray-800 leading-relaxed italic font-medium">"{selectedMission.description}"</p>
+                        <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em] mb-4">Mục tiêu chiến dịch</h4>
+                        <p className="text-xl text-gray-800 leading-relaxed font-medium">"{selectedMission.description}"</p>
                      </section>
                      <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50">
                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Hộ dân hỗ trợ</p>
-                           <p className="text-2xl font-black text-emerald-950 italic">~{selectedMission.targetHouseholds || 50}</p>
+                           <p className="text-2xl font-black text-emerald-950">~{selectedMission.targetHouseholds || 50}</p>
                         </div>
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50">
                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Thời gian</p>
                            <p className="text-sm font-black text-emerald-950 uppercase">{new Date(selectedMission.date).toLocaleDateString('vi-VN')}</p>
                         </div>
                         <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-emerald-50 col-span-2 md:col-span-1">
-                           <p className="text-[8px] font-black text-amber-600 uppercase italic tracking-tighter">{selectedMission.status === 'upcoming' ? 'Sắp diễn ra' : selectedMission.status === 'ongoing' ? 'Đang triển khai' : 'Hoàn thành'}</p>
+                           <p className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">{selectedMission.status === 'upcoming' ? 'Sắp diễn ra' : selectedMission.status === 'ongoing' ? 'Đang triển khai' : 'Hoàn thành'}</p>
                         </div>
                      </section>
                      <section className="space-y-8">
                         <div>
                            <div className="flex justify-between items-end mb-4 px-2">
-                              <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] italic">Ngân sách dự kiến</h4>
-                              <p className="text-sm font-black text-emerald-700 italic">{((selectedMission.currentBudget || 0) / (selectedMission.targetBudget || 1) * 100).toFixed(0)}% <span className="text-[10px] text-gray-400">({(selectedMission.currentBudget || 0).toLocaleString()} / {(selectedMission.targetBudget || 0).toLocaleString()}đ)</span></p>
+                              <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em]">Ngân sách dự kiến</h4>
+                              <p className="text-sm font-black text-emerald-700">{((selectedMission.currentBudget || 0) / (selectedMission.targetBudget || 1) * 100).toFixed(0)}% <span className="text-[10px] text-gray-400">({(selectedMission.currentBudget || 0).toLocaleString()} / {(selectedMission.targetBudget || 0).toLocaleString()}đ)</span></p>
                            </div>
                            <div className="h-5 bg-gray-200 rounded-full overflow-hidden shadow-inner border border-gray-100 p-1">
                               <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${Math.min(100, (selectedMission.currentBudget || 0) / (selectedMission.targetBudget || 1) * 100)}%` }}></div>
                            </div>
                         </div>
                         <div className="bg-white p-8 rounded-[3.5rem] shadow-sm border border-gray-100">
-                           <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] mb-6 italic">Nhu yếu phẩm cần thiết</h4>
+                           <h4 className="text-[10px] font-black text-emerald-950 uppercase tracking-[0.4em] mb-6">Nhu yếu phẩm cần thiết</h4>
                            <div className="space-y-6">
                               {(selectedMission.itemsNeeded || []).map((neededItem, idx) => {
                                  const progress = (neededItem.current / neededItem.target) * 100;
                                  return (
                                     <div key={idx} className="space-y-2">
-                                       <div className="flex justify-between text-[11px] font-black uppercase italic tracking-tighter px-1">
+                                       <div className="flex justify-between text-[11px] font-black uppercase tracking-tighter px-1">
                                           <span>{neededItem.name}</span>
                                           <span className="text-emerald-600">{neededItem.current} / {neededItem.target} {neededItem.unit}</span>
                                        </div>
@@ -557,27 +557,27 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
                                     </div>
                                  );
                               })}
-                              {(!selectedMission.itemsNeeded || selectedMission.itemsNeeded.length === 0) && <p className="text-center py-6 text-[10px] font-black text-gray-300 uppercase italic">Chưa có danh sách chi tiết</p>}
+                              {(!selectedMission.itemsNeeded || selectedMission.itemsNeeded.length === 0) && <p className="text-center py-6 text-[10px] font-black text-gray-300 uppercase">Chưa có danh sách chi tiết</p>}
                            </div>
                         </div>
                      </section>
                   </div>
                   <div className="space-y-8">
                      <div className="bg-white p-8 rounded-[3.5rem] shadow-xl border border-amber-50 text-center sticky top-0 cursor-pointer group/qr" onClick={() => setZoomedQr(selectedMission.qrCode || 'https://placehold.co/800x800?text=QR')}>
-                        <h4 className="text-[11px] font-black text-amber-900 uppercase tracking-[0.3em] mb-6 italic group-hover/qr:text-emerald-600 transition-colors">ỦNG HỘ CHIẾN DỊCH</h4>
+                        <h4 className="text-[11px] font-black text-amber-900 uppercase tracking-[0.3em] mb-6 group-hover/qr:text-emerald-600 transition-colors">ỦNG HỘ CHIẾN DỊCH</h4>
                         <div className="relative mx-auto w-52 h-52 bg-gray-50 rounded-[3rem] border-4 border-white shadow-inner flex items-center justify-center overflow-hidden mb-6 p-4 group-hover/qr:scale-105 transition-transform">
                            <img src={selectedMission.qrCode || 'https://placehold.co/400x400?text=QR'} className="w-full h-full object-contain" alt="QR" />
                            <div className="absolute inset-0 bg-emerald-950/20 opacity-0 group-hover/qr:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[1px]">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                            </div>
                         </div>
-                        <p className="text-[9px] font-bold text-gray-400 uppercase italic leading-relaxed">Nhấn vào mã để phóng to & quét<br/>quyên góp trực tiếp</p>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">Nhấn vào mã để phóng to & quét<br/>quyên góp trực tiếp</p>
                      </div>
                   </div>
                </div>
             </div>
             <div className="p-8 bg-emerald-950 text-center flex-shrink-0">
-               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.5em] italic">GIVEBACK - Nơi yêu thương lan tỏa</p>
+               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.5em]">GIVEBACK - Nơi yêu thương lan tỏa</p>
             </div>
           </div>
         </div>
@@ -592,7 +592,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-black italic uppercase text-emerald-950 tracking-tighter">QUÉT MÃ ỦNG HỘ</h3>
+              <h3 className="text-2xl font-black uppercase text-emerald-950 tracking-tighter">QUÉT MÃ ỦNG HỘ</h3>
             </div>
             <div className="bg-gray-50 p-6 rounded-[3rem] shadow-inner border border-gray-100"><img src={zoomedQr} className="w-full h-auto object-contain rounded-2xl" alt="Zoomed QR" /></div>
           </div>

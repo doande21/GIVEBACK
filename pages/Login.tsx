@@ -47,19 +47,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl animate-bounce">🌐</span>
-            <p className="font-black text-blue-700 uppercase text-[12px] italic">FACEBOOK CHƯA CẤP PHÉP, ĐỆ ƠI!</p>
+            <p className="font-black text-blue-700 uppercase text-[12px]">FACEBOOK CHƯA CẤP PHÉP, ĐỆ ƠI!</p>
           </div>
           <div className="bg-blue-50 p-5 rounded-[2rem] border-2 border-blue-100 shadow-sm space-y-3">
             <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
               Facebook không cho phép đăng nhập từ tên miền <b>giveback-one.vercel.app</b>. Đệ vào <b>developers.facebook.com</b> và làm 3 bước này nhé:
             </p>
             <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-blue-100">
-               <p className="text-[9px] font-black text-blue-800 uppercase italic">1. Settings {">"}Basic {">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
-               <p className="text-[9px] font-black text-blue-800 uppercase italic">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"} Điền link Vercel của Đệ.</p>
-               <p className="text-[9px] font-black text-blue-800 uppercase italic">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"}Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"}Điền link Vercel của Đệ.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
             </div>
             <a 
               href="https://developers.facebook.com/apps/" 
+
               target="_blank" 
               rel="noreferrer"
               className="block w-full bg-blue-600 text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg hover:bg-blue-700 transition-all active:scale-95"
@@ -76,15 +77,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl animate-bounce">🔑</span>
-            <p className="font-black text-red-700 uppercase text-[12px] italic">SẮP XONG RỒI ĐỆ ƠI!</p>
+            <p className="font-black text-red-700 uppercase text-[12px]">SẮP XONG RỒI ĐỆ ƠI!</p>
           </div>
           <div className="bg-red-50 p-5 rounded-[2rem] border-2 border-red-100 shadow-sm space-y-3">
             <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
               Dashboard cho thấy API đã bật, nhưng <b>API Key</b> của Đệ có thể đang bị giới hạn. Đệ làm bước này nhé:
             </p>
             <div className="space-y-2">
-               <p className="text-[9px] font-black text-red-600 uppercase italic">1. Nhấn vào tab "Identifiants" (bên trái ảnh Đệ gửi)</p>
-               <p className="text-[9px] font-black text-red-600 uppercase italic">2. Chọn Key đang dùng {">"} Chỉnh thành "Don't restrict key" {">"} Save</p>
+               <p className="text-[9px] font-black text-red-600 uppercase">1. Nhấn vào tab "Identifiants" (bên trái ảnh Đệ gửi)</p>
+               <p className="text-[9px] font-black text-red-600 uppercase">2. Chọn Key đang dùng {">"} Chỉnh thành "Don't restrict key" {">"} Save</p>
             </div>
             <a 
               href="https://console.cloud.google.com/apis/credentials" 
@@ -100,12 +101,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
-      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
-      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Bạn hãy nhấn Đăng ký nhé!';
-      case 'auth/operation-not-allowed': return 'Bạn ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
+      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
@@ -220,15 +221,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         {/* PANEL TRÁI: FORM */}
         <div className="md:w-[55%] p-8 md:p-16 flex flex-col justify-center relative z-10 bg-white">
           <div className="mb-10">
-            <h2 className={`text-5xl font-black italic uppercase tracking-tighter mb-3 leading-none ${isOrg ? 'text-blue-950' : 'text-emerald-950'}`}>
+            <h2 className={`text-5xl font-black uppercase tracking-tighter mb-3 leading-none ${isOrg ? 'text-blue-950' : 'text-emerald-950'}`}>
               {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h2>
             <div className="flex items-center gap-2">
-               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
                  {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
                </p>
                {isLoginView && (
-                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse">Gõ nhanh Admin ⚡</button>
+                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse"></button>
                )}
             </div>
           </div>
@@ -242,14 +243,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức:" : "Họ và tên:"} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
             <div className="relative">
               <input 
                 required 
                 type="text" 
                 className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" 
-                placeholder="Email hoặc Tên đăng nhập..." 
+                placeholder="Email hoặc Tên đăng nhập:" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
               />
@@ -277,7 +278,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <div className="mt-10 flex items-center gap-6">
              <div className="flex-1 h-px bg-gray-100"></div>
-             <span className="text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Hoặc sẻ chia qua</span>
+             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Hoặc sẻ chia qua</span>
              <div className="flex-1 h-px bg-gray-100"></div>
           </div>
 
@@ -296,9 +297,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="relative z-10 animate-in fade-in zoom-in-95 duration-700">
              <div className="mb-8 inline-block bg-white/20 backdrop-blur-xl p-8 rounded-[4rem] border border-white/30 shadow-2xl">
-                <h1 className="text-6xl font-black italic tracking-tighter leading-none uppercase">GIVEBACK</h1>
+                <h1 className="text-6xl font-black tracking-tighter leading-none uppercase">GIVEBACK</h1>
              </div>
-             <p className="text-lg font-bold italic mb-12 leading-relaxed opacity-90 px-6 drop-shadow-xl">
+             <p className="text-lg font-bold mb-12 leading-relaxed opacity-90 px-6 drop-shadow-xl">
                {isLoginView ? '"Yêu thương cho đi là yêu thương còn mãi."' : '"Mỗi món quà, một hành trình nhân ái."'}
              </p>
              <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="px-14 py-6 bg-white text-emerald-950 rounded-[2.5rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95 border-4 border-emerald-100">
@@ -312,7 +313,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="absolute -top-10 left-4 animate-pulse text-2xl">✨</div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60 italic">Hành trình nhân ái cùng GIVEBACK</div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng GIVEBACK</div>
         </div>
       </div>
     </div>

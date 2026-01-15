@@ -38,7 +38,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </div>
-          <span className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent italic tracking-tighter hidden md:block">GIVEBACK</span>
+          <span className="text-2xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent tracking-tighter hidden md:block">GIVEBACK</span>
         </div>
 
         <div className="flex items-center space-x-1 md:space-x-2">

@@ -82,15 +82,15 @@ const Sponsors: React.FC = () => {
   };
 
   return (
-    <div className="pt-24 pb-20 px-4 max-w-7xl mx-auto min-h-screen font-['Inter']">
+    <div className="pt-24 pb-20 px-4 max-w-7xl mx-auto min-h-screen">
       <div className="text-center mb-20 animate-in fade-in slide-in-from-top-10 duration-1000">
         <div className="inline-block mb-4 p-1 rounded-full bg-gradient-to-r from-yellow-400 via-emerald-500 to-emerald-600">
           <div className="bg-white px-6 py-2 rounded-full">
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-600 italic">Hall of Fame</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-600">Hall of Fame</span>
           </div>
         </div>
-        <h1 className="text-6xl md:text-8xl font-black text-emerald-950 italic uppercase tracking-tighter leading-none mb-4">Bảng Vàng Tri Ân</h1>
-        <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.4em] italic">Nơi lưu giữ những hành trình tử tế</p>
+        <h1 className="text-6xl md:text-8xl font-black text-emerald-950 uppercase tracking-tighter leading-none mb-4">Bảng Vàng Tri Ân</h1>
+        <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.4em]">Nơi lưu giữ những hành trình tử tế</p>
       </div>
 
       <div className="flex justify-center mb-16">
@@ -104,7 +104,7 @@ const Sponsors: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6">
            <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
-           <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest animate-pulse italic">Đang mở phong ấn Bảng Vàng...</p>
+           <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest animate-pulse">Đang mở phong ấn Bảng Vàng...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
@@ -136,8 +136,8 @@ const Sponsors: React.FC = () => {
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-3xl font-black text-emerald-950 uppercase italic tracking-tighter mb-2 leading-none group-hover:text-emerald-700 transition-colors">{s.name}</h3>
-                  <p className={`text-[9px] font-black uppercase tracking-[0.4em] bg-gradient-to-r ${styles.gradient} bg-clip-text text-transparent italic`}>
+                  <h3 className="text-3xl font-black text-emerald-950 uppercase tracking-tighter mb-2 leading-none group-hover:text-emerald-700 transition-colors">{s.name}</h3>
+                  <p className={`text-[9px] font-black uppercase tracking-[0.4em] bg-gradient-to-r ${styles.gradient} bg-clip-text text-transparent`}>
                     {styles.label}
                   </p>
                 </div>
@@ -145,17 +145,17 @@ const Sponsors: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 w-full mb-10">
                   <div className="bg-gray-50/80 p-5 rounded-[2.5rem] border border-gray-100 group-hover:bg-emerald-50 transition-colors">
                     <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Cống hiến</p>
-                    <p className="text-base font-black text-emerald-950 italic">{(s.totalMoney).toLocaleString()}đ</p>
+                    <p className="text-base font-black text-emerald-950">{(s.totalMoney).toLocaleString()}đ</p>
                   </div>
                   <div className="bg-gray-50/80 p-5 rounded-[2.5rem] border border-gray-100 group-hover:bg-amber-50 transition-colors">
                     <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Hiện vật</p>
-                    <p className="text-base font-black text-emerald-950 italic">+{s.totalItemsCount}</p>
+                    <p className="text-base font-black text-emerald-950">+{s.totalItemsCount}</p>
                   </div>
                 </div>
 
                 <div className="relative mb-12 flex-1 flex items-center">
                   <svg className="absolute -top-4 -left-4 w-8 h-8 text-emerald-100 opacity-50" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C20.1216 16 21.017 16.8954 21.017 18V21M14.017 21H21.017M14.017 21C12.9124 21 12.017 20.1046 12.017 19V12C12.017 10.8954 12.9124 10 14.017 10H17.017C18.1216 10 19.017 10.8954 19.017 12V14M3 21L3 18C3 16.8954 3.89543 16 5 16H8C9.10457 16 10 16.8954 10 18V21M3 21H10M3 21C1.89543 21 1 20.1046 1 19V12C1 10.8954 1.89543 10 3 10H6C7.10457 10 8 10.8954 8 12V14" /></svg>
-                  <p className="text-[13px] text-gray-500 leading-relaxed font-medium italic px-4">"{s.message}"</p>
+                  <p className="text-[13px] text-gray-500 leading-relaxed font-medium px-4">"{s.message}"</p>
                 </div>
                 
                 <button 
@@ -184,7 +184,7 @@ const Sponsors: React.FC = () => {
                 <div className="flex items-center space-x-5">
                    <img src={getAvatar(selectedSponsor.avatar, selectedSponsor.name)} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-lg border-2 border-white" alt="" />
                    <div>
-                      <h2 className="text-xl font-black text-emerald-950 uppercase italic tracking-tighter leading-none">{selectedSponsor.name}</h2>
+                      <h2 className="text-xl font-black text-emerald-950 uppercase tracking-tighter leading-none">{selectedSponsor.name}</h2>
                       <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-2">Hành trình nhân ái</p>
                    </div>
                 </div>
@@ -218,7 +218,7 @@ const Sponsors: React.FC = () => {
                          <div className="absolute left-4 top-2 w-4 h-4 bg-emerald-600 rounded-full border-4 border-white shadow-md"></div>
                          <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-2">
-                               <h4 className="text-sm font-black text-emerald-950 uppercase italic tracking-tighter">{h.missionName}</h4>
+                               <h4 className="text-sm font-black text-emerald-950 uppercase tracking-tighter">{h.missionName}</h4>
                                <span className="text-[8px] text-gray-400 font-bold uppercase">{new Date(h.date).toLocaleDateString('vi-VN')}</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -229,7 +229,7 @@ const Sponsors: React.FC = () => {
                       </div>
                    )) : (
                       <div className="text-center py-20">
-                         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic leading-loose">
+                         <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest leading-loose">
                             Nhà hảo tâm này đã đóng góp trực tiếp<br/>vào các quỹ cứu trợ khẩn cấp của hệ thống.
                          </p>
                       </div>
@@ -238,8 +238,8 @@ const Sponsors: React.FC = () => {
              </div>
 
              <div className="p-10 bg-gray-50/50 border-t border-gray-50 text-center">
-                <p className="text-[11px] font-bold text-emerald-900/60 italic leading-relaxed">
-                   "Yêu thương cho đi là yêu thương còn mãi.<br/>Cảm ơn bạn đã đồng hành cùng GIVEBACK."
+                <p className="text-[11px] font-bold text-emerald-900/60 leading-relaxed">
+                   "Yêu thương cho đi là yêu thương còn mãi.<br/>Cảm ơn đệ đã đồng hành cùng GIVEBACK."
                 </p>
              </div>
           </div>
