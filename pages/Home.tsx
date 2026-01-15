@@ -600,6 +600,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile }) => {
       )}
     </div>
   );
-};  
+};
 
 export default Home;

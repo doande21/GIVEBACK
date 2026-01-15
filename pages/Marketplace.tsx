@@ -36,7 +36,7 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
 
 interface MarketplaceProps {
   user: User;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onNotify: (type: string, message: string, sender?: string) => void;
   setActiveTab?: (tab: string) => void;
   onViewProfile: (userId: string) => void;
 }
@@ -236,11 +236,11 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
             <>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Tác giả</label>
-                <input type="text" placeholder="Tên tác giả..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterAuthor} onChange={e => setFilterAuthor(e.target.value)} />
+                <input type="text" placeholder="Tên tác giả..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterAuthor} onChange={(e) => setFilterAuthor(e.target.value)} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Thể loại</label>
-                <input type="text" placeholder="Vd: Giáo khoa, Truyện..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterGenre} onChange={e => setFilterGenre(e.target.value)} />
+                <input type="text" placeholder="Vd: Giáo khoa, Truyện..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={filterGenre} onChange={(e) => setFilterGenre(e.target.value)} />
               </div>
             </>
           )}

@@ -58,7 +58,7 @@ const AIHelper: React.FC = () => {
   const sourcesRef = useRef(new Set<AudioBufferSourceNode>());
 
   const handleOpenKeySelector = async () => {
-    /* Fix: Using (window as any) to bypass strict Window augmentation check for aistudio */
+    /* Hammer Fix: Force any on window to bypass build checks */
     const win = window as any;
     if (win.aistudio && typeof win.aistudio.openSelectKey === 'function') {
       try {
@@ -112,7 +112,6 @@ const AIHelper: React.FC = () => {
 
   const startVoiceCompanion = async () => {
     try {
-      /* Fix: Using (window as any) for reliable cross-environment key selection call */
       const win = window as any;
       if (win.aistudio && typeof win.aistudio.hasSelectedApiKey === 'function') {
         if (!(await win.aistudio.hasSelectedApiKey())) {
