@@ -5,11 +5,11 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider
+  signInWithPopup
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db, googleProvider, facebookProvider } from '../services/firebase';
+import { apiService } from '../services/apiService';
 
 interface LoginProps {
   onLogin: (role: 'user' | 'admin', userData?: User) => void;
@@ -54,7 +54,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </p>
             <div className="space-y-2">
                <p className="text-[9px] font-black text-red-600 uppercase italic">1. Nhấn vào tab "Identifiants" (bên trái ảnh Đệ gửi)</p>
-              <p className="text-[9px] font-black text-red-600 uppercase italic">2. Chọn Key đang dùng {"->"} Chỉnh thành "Don&apos;t restrict key" {"->"} Save</p>
+               <p className="text-[9px] font-black text-red-600 uppercase italic">2. Chọn Key đang dùng {">"} Chỉnh thành "Don't restrict key"{">"}- Save</p>
             </div>
             <a 
               href="https://console.cloud.google.com/apis/credentials" 
@@ -70,10 +70,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
-      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
@@ -99,15 +100,43 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return newUser;
   };
 
-  const handleQuickAdmin = () => {
-    setEmail('de2104@giveback.vn');
-    setPassword('21042005de');
-    onNotify('info', 'Đã điền tài khoản Admin cho Đệ!');
+  // Cải tiến: Đăng nhập Admin siêu tốc
+  const handleQuickAdmin = async () => {
+    setLoading(true);
+    setError('');
+    const adminUser = await apiService.login('de2104', '21042005de');
+    if (adminUser) {
+      onLogin('admin', adminUser);
+    }
+    setLoading(false);
   };
 
-  // Mock notify for Login page
-  const onNotify = (type: string, msg: string) => {
-    console.log(msg);
+  const handleSocialLogin = async (provider: any) => {
+    setError('');
+    setLoading(true);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
+      onLogin(userData.role, userData);
+    } catch (err: any) {
+      setError(translateError(err.code, err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = () => {
+    const guestUser: User = {
+      id: 'guest_' + Math.random().toString(36).substr(2, 9),
+      name: 'Người dùng ẩn danh',
+      email: 'guest@giveback.vn',
+      role: 'user',
+      userType: 'individual',
+      isGuest: true,
+      avatar: `https://ui-avatars.com/api/?name=Guest&background=94a3b8&color=fff`,
+      createdAt: new Date().toISOString()
+    };
+    onLogin('user', guestUser);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,21 +144,34 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
 
-    // THỦ THUẬT: Tự động thêm domain nếu Đệ lười gõ @
-    let loginEmail = email.trim();
+    const inputUser = email.trim();
+    const inputPass = password;
+
+    // BƯỚC 1: Kiểm tra tài khoản "cứng" (Admin de2104)
+    if (isLoginView && (inputUser === 'de2104' || inputUser === 'de2104@giveback.vn') && inputPass === '21042005de') {
+      const adminUser = await apiService.login('de2104', '21042005de');
+      if (adminUser) {
+        onLogin('admin', adminUser);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // BƯỚC 2: Nếu không phải Admin cứng, tiến hành Firebase như bình thường
+    let loginEmail = inputUser;
     if (!loginEmail.includes('@')) {
       loginEmail = `${loginEmail}@giveback.vn`;
     }
 
     try {
       if (!isLoginView) {
-        const cred = await createUserWithEmailAndPassword(auth, loginEmail, password);
+        const cred = await createUserWithEmailAndPassword(auth, loginEmail, inputPass);
         const nameToUse = userType === 'organization' ? orgName : fullName;
         await updateProfile(cred.user, { displayName: nameToUse });
         const newUser = await saveUserToFirestore(cred.user, nameToUse, userType, orgName);
         onLogin(newUser.role, newUser);
       } else {
-        const cred = await signInWithEmailAndPassword(auth, loginEmail, password);
+        const cred = await signInWithEmailAndPassword(auth, loginEmail, inputPass);
         const uDoc = await getDoc(doc(db, "users", cred.user.uid));
         if (uDoc.exists()) onLogin((uDoc.data() as User).role, uDoc.data() as User);
         else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
@@ -143,23 +185,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const themeClass = isOrg ? 'bg-blue-600' : 'bg-emerald-600';
   const textTheme = isOrg ? 'text-blue-600' : 'text-emerald-600';
 
-  function handleSocialLogin(googleProvider: GoogleAuthProvider): void {
-    throw new Error('Function not implemented.');
-  }
-  const handleGuestLogin = () => {
-    const guestUser: User = {
-      id: `guest_${Date.now()}`,
-      name: 'Khách thăm quan',
-      email: 'guest@giveback.vn',
-      userType: 'individual',
-      organizationName: '',
-      role: 'user',
-      isGuest: true,
-      avatar: 'https://ui-avatars.com/api/?name=Guest&background=6B7280&color=fff',
-      createdAt: new Date().toISOString()
-    };
-    onLogin('user', guestUser);
-  }; return (
+  return (
     <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-all duration-1000 ${isOrg ? 'bg-blue-50' : 'bg-emerald-50'}`}>
       <div className="relative w-full max-w-[1000px] bg-white rounded-[4rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col md:flex-row min-h-[650px]">
         
@@ -174,7 +200,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                  {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
                </p>
                {isLoginView && (
-                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Gõ nhanh Admin ⚡</button>
+                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse"></button>
                )}
             </div>
           </div>
@@ -188,7 +214,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức:" : "Họ và tên:"} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
             <div className="relative">
               <input 
