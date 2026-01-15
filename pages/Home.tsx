@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, SocialPost, CharityMission, PostMedia, PostComment } from '../types';
+import { User, SocialPost, CharityMission, PostMedia } from '../types';
 import { 
   collection, 
   onSnapshot, 
@@ -22,7 +22,8 @@ interface HomeProps {
   setActiveTab: (tab: string) => void;
 }
 
-const compressImage = (base64Str: string, maxWidth = 800, quality = 0.6): Promise<string> => {
+// Cải tiến hàm nén ảnh để tiết kiệm dung lượng tối đa (dưới 300KB)
+const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = base64Str;
@@ -35,8 +36,14 @@ const compressImage = (base64Str: string, maxWidth = 800, quality = 0.6): Promis
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } else {
+        resolve(base64Str);
+      }
     };
   });
 };
@@ -81,8 +88,12 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
       setPostMedia(null);
       setIsPostModalOpen(false);
       onNotify('success', "Khoảnh khắc đã được sẻ chia!", "GIVEBACK");
-    } catch (err) {
-      onNotify('error', "Không thể đăng bài.", "Hệ thống");
+    } catch (err: any) {
+      if (err.message?.includes("too large") || err.code === 'resource-exhausted') {
+        onNotify('error', "File quá lớn! Đệ hãy nén lại hoặc dùng video ngắn hơn (Dưới 1MB).", "Hệ thống");
+      } else {
+        onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -91,11 +102,21 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
+      const MAX_SIZE = 850 * 1024; // 850KB để trừ hao
       const isVideo = file.type.startsWith('video/');
+
+      if (isVideo && file.size > MAX_SIZE) {
+        onNotify('warning', "Video quá nặng (>850KB). Đệ hãy cắt ngắn clip dưới 15 giây nhé!", "GIVEBACK AI");
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
       reader.onloadend = async () => {
         let finalData = reader.result as string;
-        if (!isVideo) finalData = await compressImage(finalData);
+        if (!isVideo) {
+          finalData = await compressImage(finalData);
+        }
         setPostMedia({ url: finalData, type: isVideo ? 'video' : 'image' });
       };
       reader.readAsDataURL(file);
@@ -107,6 +128,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
 
   return (
     <div className="pt-20 pb-24 max-w-4xl mx-auto px-4 space-y-8">
+      {/* Create Post Entry */}
       <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-emerald-50 dark:border-slate-800 flex items-center space-x-5 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all active:scale-95 group">
         <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`} className="w-12 h-12 rounded-2xl bg-gray-100 object-cover shadow-sm group-hover:rotate-6 transition-transform" alt="" />
         <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold italic">
@@ -114,7 +136,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
         </div>
         <div className="flex space-x-3 text-emerald-600">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" /></svg>
+           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2-2v8a2 2 0 0 0 2 2z" /></svg>
         </div>
       </div>
 
@@ -134,6 +156,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
         </div>
       )}
 
+      {/* Posts List */}
       <div className="space-y-10">
         {posts.map(post => {
           const isHearted = post.hearts?.includes(user.id);
@@ -165,7 +188,9 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                        hearts: isHearted ? arrayRemove(user.id) : arrayUnion(user.id)
                      });
                    }} className={`flex items-center space-x-3 transition-all ${isHearted ? 'text-red-500 scale-110' : 'text-gray-300 dark:text-gray-600 hover:text-red-400'}`}>
-                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${isHearted ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0 -6.364 -6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0 -6.364 0z" /></svg>
+                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${isHearted ? 'fill-current' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318 a4.5 4.5 0 0 0 0 6.364 L12 20.364 l7.682 -7.682 a4.5 4.5 0 0 0 -6.364 -6.364 L12 7.636 l-1.318 -1.318 a4.5 4.5 0 0 0 -6.364 0 z" />
+                     </svg>
                      <span className="text-sm font-black">{post.hearts?.length || 0}</span>
                    </button>
                  </div>
@@ -179,13 +204,16 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
         })}
       </div>
 
+      {/* Post Modal */}
       {isPostModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
              <div className="flex justify-between items-center mb-10">
                <h3 className="text-3xl font-black uppercase italic text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
-               <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+               <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors">
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+               </button>
              </div>
              <form onSubmit={handleCreatePost} className="space-y-8">
                 <textarea 
@@ -208,7 +236,9 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                       onClick={() => setPostMedia(null)}
                       className="absolute top-4 right-4 bg-black/50 text-white p-3 rounded-full hover:bg-red-500 transition-all shadow-lg"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414z" clipRule="evenodd" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293 a1 1 0 0 1 1.414 0 L10 8.586 l4.293 -4.293 a1 1 0 1 1 1.414 1.414 L11.414 10 l4.293 4.293 a1 1 0 0 1 -1.414 1.414 L10 11.414 l-4.293 4.293 a1 1 0 0 1 -1.414 -1.414 L8.586 10 4.293 5.707 a1 1 0 0 1 0 -1.414 z" clipRule="evenodd" />
+                      </svg>
                     </button>
                   </div>
                 )}
@@ -222,10 +252,16 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
                     <span>Ảnh / Video</span>
                   </button>
+                  <div className="flex flex-col items-end">
+                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Giới hạn Firestore</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Max 850KB</p>
+                  </div>
                   <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
                 </div>
 
-                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">Đăng ngay</button>
+                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">
+                  {isSubmitting ? 'ĐANG LƯU...' : 'Đăng ngay'}
+                </button>
              </form>
           </div>
         </div>
