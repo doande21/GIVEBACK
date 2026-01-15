@@ -26,6 +26,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState<string | React.ReactNode>('');
   const [loading, setLoading] = useState(false);
 
+  // Tính năng bảo mật cho Đệ: Nhấn logo 5 lần để hiện nút Admin
+  const [secretCount, setSecretCount] = useState(0);
+  const [isAdminButtonVisible, setIsAdminButtonVisible] = useState(false);
+
   const [hearts, setHearts] = useState<{id: number, left: string, delay: string}[]>([]);
   
   useEffect(() => {
@@ -37,6 +41,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }, 1500);
     return () => clearInterval(interval);
   }, []);
+
+  const handleSecretClick = () => {
+    const newCount = secretCount + 1;
+    setSecretCount(newCount);
+    if (newCount >= 5) {
+      setIsAdminButtonVisible(true);
+    }
+  };
 
   const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
@@ -53,7 +65,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Facebook không cho phép đăng nhập từ tên miền <b>giveback-one.vercel.app</b>. Đệ vào <b>developers.facebook.com</b> và làm 3 bước này nhé:
             </p>
             <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-blue-100">
-               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic{">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
                <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"} Điền link Vercel của Đệ.</p>
                <p className="text-[9px] font-black text-blue-800 uppercase">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
             </div>
@@ -103,8 +115,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
       case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
       case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
-      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Bạn hãy nhấn Đăng ký nhé!';
-      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. bank hãy nhấn Đăng ký nhé!';
+      case 'auth/operation-not-allowed': return 'Bạn ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
@@ -226,7 +238,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">
                  {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
                </p>
-               
+               {isAdminButtonVisible && isLoginView && (
+                 <button 
+                  onClick={handleQuickAdmin} 
+                  className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse shadow-sm"
+                 >
+                   Gõ nhanh Admin ⚡
+                 </button>
+               )}
             </div>
           </div>
 
@@ -292,7 +311,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           ))}
           <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="relative z-10 animate-in fade-in zoom-in-95 duration-700">
-             <div className="mb-8 inline-block bg-white/20 backdrop-blur-xl p-8 rounded-[4rem] border border-white/30 shadow-2xl">
+             <div 
+              className="mb-8 inline-block bg-white/20 backdrop-blur-xl p-8 rounded-[4rem] border border-white/30 shadow-2xl cursor-pointer active:scale-95 transition-transform"
+              onClick={handleSecretClick}
+              title="Nhấn vào đây 5 lần để hiện tính năng bí mật"
+             >
                 <h1 className="text-6xl font-black tracking-tighter leading-none uppercase">GIVEBACK</h1>
              </div>
              <p className="text-lg font-bold mb-12 leading-relaxed opacity-90 px-6 drop-shadow-xl">
@@ -309,7 +332,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="absolute -top-10 left-4 animate-pulse text-2xl">✨</div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng GIVEBACK</div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng Đệ</div>
         </div>
       </div>
     </div>
