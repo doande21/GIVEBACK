@@ -1,9 +1,12 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Blob } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
-// Fix: Removed ambiguous Blob import and cast to resolve type collision with browser native Blob
+/**
+ * analyzeDonationItem analyzes a donation item's image and description
+ * imageData is expected to be a base64 data URL
+ */
 export const analyzeDonationItem = async (imageData: string, description: string) => {
   if (!process.env.API_KEY) return null;
   try {
@@ -25,12 +28,19 @@ export const analyzeDonationItem = async (imageData: string, description: string
       "householdType": "Loại đồ gia dụng"
     }`;
 
-    // Fix: Using object literal for inlineData instead of explicit cast to avoid type collision with browser Blob
+    // Fix: Explicitly use the @google/genai Blob type for image data to prevent conflict with browser's global Blob
+    const imagePart: { inlineData: Blob } = { 
+      inlineData: { 
+        mimeType: "image/jpeg", 
+        data: imageData.split(',')[1] || "" 
+      } 
+    };
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: {
         parts: [
-          { inlineData: { mimeType: "image/jpeg", data: imageData.split(',')[1] || "" } },
+          imagePart,
           { text: prompt }
         ]
       },
@@ -46,6 +56,9 @@ export const analyzeDonationItem = async (imageData: string, description: string
   }
 };
 
+/**
+ * getAIAssistance provides text-based AI assistance using gemini-3-flash-preview
+ */
 export const getAIAssistance = async (prompt: string) => {
   if (!process.env.API_KEY) return "ERROR_MISSING_KEY";
   try {
@@ -62,7 +75,6 @@ export const getAIAssistance = async (prompt: string) => {
 };
 
 /**
- * Fix: Added missing export generateMissionImage used in Admin.tsx
  * Generates an AI vision image for a charity mission
  */
 export const generateMissionImage = async (location: string, description: string) => {
@@ -71,6 +83,7 @@ export const generateMissionImage = async (location: string, description: string
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = `A conceptual and inspiring image of a charity mission in ${location}. Description: ${description}. Realistic style, cinematic lighting, 16:9 aspect ratio.`;
     
+    // gemini-2.5-flash-image is the recommended model for general image generation
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
@@ -97,7 +110,6 @@ export const generateMissionImage = async (location: string, description: string
 };
 
 /**
- * Fix: Added missing export searchCharityLocations used in MapSearch.tsx
  * Uses Google Maps grounding to find charity-related locations
  */
 export const searchCharityLocations = async (query: string, lat?: number, lng?: number) => {
@@ -121,7 +133,7 @@ export const searchCharityLocations = async (query: string, lat?: number, lng?: 
       };
     }
 
-    // Fix: Updated model to gemini-2.5-flash for better Maps grounding support as per guidelines
+    // gemini-2.5-flash is required for Google Maps grounding
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: query,

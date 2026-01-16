@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [isAiOpen, setIsAiOpen] = useState(false);
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -71,6 +72,7 @@ const App: React.FC = () => {
     setUser(null);
     setActiveTab('home');
     setViewingUserId(null);
+    setIsAiOpen(false);
   };
 
   const handleViewProfile = (userId: string) => {
@@ -148,7 +150,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen transition-colors duration-300">
+    <div className="min-h-screen transition-colors duration-300 overflow-x-hidden">
       <Navbar 
         user={user} 
         activeTab={activeTab} 
@@ -158,13 +160,14 @@ const App: React.FC = () => {
         unreadMessagesCount={unreadMessagesCount}
         isDarkMode={isDarkMode}
         toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        toggleAI={() => setIsAiOpen(!isAiOpen)}
       />
       
       <main className="pb-24">{renderContent()}</main>
       
-      <AIHelper />
+      <AIHelper isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 flex items-center justify-around h-20 px-2 pb-1 overflow-x-auto scrollbar-hide">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 flex items-center justify-around h-20 px-2 pb-1 overflow-x-auto scrollbar-hide shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
          {navItems.map(item => (
            <button 
             key={item.id}

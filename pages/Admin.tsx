@@ -64,6 +64,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   });
 
   const [isAuctionModalOpen, setIsAuctionModalOpen] = useState(false);
+  const [editingAuctionId, setEditingAuctionId] = useState<string | null>(null);
   const [auctionForm, setAuctionForm] = useState({
     title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] as string[]
   });
@@ -112,6 +113,65 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
       setIsMissionModalOpen(false);
       onNotify('success', "Sứ mệnh đã được lưu thành công!");
     } catch (err: any) { onNotify('error', "Lỗi lưu sứ mệnh."); } finally { setLoading(false); }
+  };
+
+  const handleSaveAuction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (auctionForm.gallery.length === 0) {
+      onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+      return;
+    }
+    setLoading(true);
+    try {
+      const dataToSave = { 
+        ...auctionForm, 
+        image: auctionForm.gallery[0],
+        currentBid: Number(auctionForm.startingPrice), // Lưu ý: Trong thực tế nếu đang có thầu, startingPrice có thể không nên reset currentBid
+        status: 'active', 
+        updatedAt: new Date().toISOString() 
+      };
+
+      if (editingAuctionId) {
+        // Chỉ cập nhật các trường thông tin, không reset currentBid nếu startingPrice không đổi
+        // Ở đây Huynh cho cập nhật thông thường
+        await updateDoc(doc(db, "auctions", editingAuctionId), {
+          ...auctionForm,
+          image: auctionForm.gallery[0],
+          updatedAt: new Date().toISOString()
+        });
+        onNotify('success', "Đã cập nhật thông tin vật phẩm!");
+      } else {
+        await addDoc(collection(db, "auctions"), { 
+          ...dataToSave,
+          authorId: user.id, 
+          authorName: user.name, 
+          createdAt: new Date().toISOString() 
+        });
+        onNotify('success', "Vật phẩm đã lên sàn đấu giá!");
+      }
+      
+      setIsAuctionModalOpen(false);
+      setEditingAuctionId(null);
+      setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] });
+    } catch (err) { 
+      onNotify('error', "Lỗi lưu đấu giá."); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
+
+  const handleEditAuctionClick = (a: AuctionItem) => {
+    setEditingAuctionId(a.id);
+    setAuctionForm({
+      title: a.title,
+      description: a.description,
+      startingPrice: a.startingPrice,
+      endTime: a.endTime,
+      missionLocation: a.missionLocation,
+      donorName: a.donorName || '',
+      gallery: a.gallery || [a.image]
+    });
+    setIsAuctionModalOpen(true);
   };
 
   const addNeededItem = () => {
@@ -213,7 +273,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                 <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Quản lý Đấu giá</h2>
                 <p className="text-indigo-300 font-bold text-xs uppercase tracking-widest">Vật phẩm nhân văn gây quỹ cứu trợ.</p>
              </div>
-             <button onClick={() => setIsAuctionModalOpen(true)} className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Đưa vật phẩm lên sàn</button>
+             <button onClick={() => { setEditingAuctionId(null); setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] }); setIsAuctionModalOpen(true); }} className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Đưa vật phẩm lên sàn</button>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {auctions.map(a => (
@@ -226,7 +286,14 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    </div>
                    <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white text-center truncate w-full">{a.title}</h4>
                    <p className="text-[10px] text-indigo-600 font-black uppercase mt-1">Giá hiện tại: {a.currentBid.toLocaleString()}đ</p>
-                   <button onClick={() => { if(window.confirm("Gỡ vật phẩm đấu giá?")) deleteDoc(doc(db, "auctions", a.id)) }} className="mt-4 p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                   <div className="flex gap-2 mt-4">
+                      <button onClick={() => handleEditAuctionClick(a)} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button onClick={() => { if(window.confirm("Gỡ vật phẩm đấu giá?")) deleteDoc(doc(db, "auctions", a.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                   </div>
                 </div>
               ))}
            </div>
@@ -346,44 +413,40 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         </div>
       )}
 
-      {/* MODAL: ĐẤU GIÁ (MULTIPLE IMAGES) */}
+      {/* MODAL: ĐẤU GIÁ (SUPPORT CREATE & EDIT) */}
       {isAuctionModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-md" onClick={() => setIsAuctionModalOpen(false)}></div>
+          <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-md" onClick={() => { setIsAuctionModalOpen(false); setEditingAuctionId(null); }}></div>
           <div className="relative bg-white w-full max-w-xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 max-h-[90vh] overflow-y-auto custom-scrollbar">
-             <h3 className="text-xl font-black uppercase text-indigo-900 mb-8 text-center">ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ</h3>
-             <form onSubmit={async (e) => {
-                e.preventDefault();
-                if (auctionForm.gallery.length === 0) {
-                   onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
-                   return;
-                }
-                setLoading(true);
-                try {
-                  await addDoc(collection(db, "auctions"), { 
-                    ...auctionForm, 
-                    image: auctionForm.gallery[0],
-                    currentBid: Number(auctionForm.startingPrice), 
-                    status: 'active', 
-                    authorId: user.id, 
-                    authorName: user.name, 
-                    createdAt: new Date().toISOString() 
-                  });
-                  setIsAuctionModalOpen(false);
-                  onNotify('success', "Vật phẩm đã lên sàn đấu giá!");
-                  setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] });
-                } catch (err) { onNotify('error', "Lỗi tạo đấu giá."); } finally { setLoading(false); }
-             }} className="space-y-4">
-                <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Tên vật phẩm" value={auctionForm.title} onChange={e => setAuctionForm({...auctionForm, title: e.target.value})} />
-                <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Mô tả..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
-                <div className="grid grid-cols-2 gap-4">
-                   <input type="number" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-indigo-950" placeholder="Giá khởi điểm" value={auctionForm.startingPrice || ''} onChange={e => setAuctionForm({...auctionForm, startingPrice: Number(e.target.value)})} />
-                   <input type="datetime-local" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-xs text-indigo-950" value={auctionForm.endTime} onChange={e => setAuctionForm({...auctionForm, endTime: e.target.value})} />
+             <h3 className="text-xl font-black uppercase text-indigo-900 mb-8 text-center tracking-tight">
+               {editingAuctionId ? "CẬP NHẬT VẬT PHẨM ĐẤU GIÁ" : "ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ"}
+             </h3>
+             <form onSubmit={handleSaveAuction} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Tên vật phẩm</label>
+                  <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Vd: Mô hình Gundam giới hạn..." value={auctionForm.title} onChange={e => setAuctionForm({...auctionForm, title: e.target.value})} />
                 </div>
-                <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Hỗ trợ vùng cứu trợ nào?" value={auctionForm.missionLocation} onChange={e => setAuctionForm({...auctionForm, missionLocation: e.target.value})} />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Mô tả chi tiết</label>
+                  <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Tình trạng, nguồn gốc..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Giá khởi điểm</label>
+                      <input type="number" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-indigo-950 w-full" placeholder="Giá VNĐ" value={auctionForm.startingPrice || ''} onChange={e => setAuctionForm({...auctionForm, startingPrice: Number(e.target.value)})} />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Thời gian kết thúc</label>
+                      <input type="datetime-local" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-xs text-indigo-950 w-full" value={auctionForm.endTime} onChange={e => setAuctionForm({...auctionForm, endTime: e.target.value})} />
+                   </div>
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Vùng cứu trợ hỗ trợ</label>
+                   <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Vd: Hà Giang, Lào Cai..." value={auctionForm.missionLocation} onChange={e => setAuctionForm({...auctionForm, missionLocation: e.target.value})} />
+                </div>
                 
-                <div className="space-y-4">
-                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
+                <div className="space-y-4 pt-4">
+                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4 italic">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
                    <div className="grid grid-cols-3 gap-3">
                       {auctionForm.gallery.map((img, idx) => (
                         <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border-2 border-indigo-50">
@@ -396,16 +459,17 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                       {auctionForm.gallery.length < 5 && (
                          <div 
                           onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, gallery: [...auctionForm.gallery, url]}), 800); i.click(); }}
-                          className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-300"
+                          className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-300 transition-all"
                          >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            <span className="text-[8px] font-black mt-2">THÊM ẢNH</span>
                          </div>
                       )}
                    </div>
                 </div>
 
-                <button type="submit" disabled={loading || auctionForm.gallery.length === 0} className="w-full bg-indigo-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
-                  {loading ? "ĐANG LÊN SÀN..." : "XÁC NHẬN LÊN SÀN 🔨"}
+                <button type="submit" disabled={loading || auctionForm.gallery.length === 0} className="w-full bg-indigo-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 disabled:opacity-50">
+                  {loading ? "ĐANG LƯU..." : editingAuctionId ? "LƯU THAY ĐỔI 🔨" : "XÁC NHẬN LÊN SÀN 🔨"}
                 </button>
              </form>
           </div>
