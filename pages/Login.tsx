@@ -109,12 +109,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
-      case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
-      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
-      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy bật phương thức này trong Firebase Console nhé!';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Bạn hãy nhấn Đăng ký nhé!';
+      case 'auth/operation-not-allowed': return 'Bạn ơi, hãy bật phương thức này trong Firebase Console nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
@@ -335,7 +335,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="absolute -top-10 left-4 animate-pulse text-2xl">✨</div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng Đệ</div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng GIVEBACK</div>
         </div>
       </div>
     </div>
