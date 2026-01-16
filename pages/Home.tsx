@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, SocialPost, CharityMission, PostMedia } from '../types';
+import { User, SocialPost, CharityMission, PostMedia, PostComment } from '../types';
 import { 
   collection, 
   onSnapshot, 
@@ -15,14 +15,8 @@ import {
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
-interface HomeProps {
-  user: User;
-  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
-  onViewProfile: (userId: string) => void;
-  setActiveTab: (tab: string) => void;
-}
+const STICKERS = ["❤️", "🎁", "🙏", "🚚", "✨", "😊", "💪", "🌈", "🔥", "🤝", "👍", "🌸"];
 
-// Cải tiến hàm nén ảnh để tiết kiệm dung lượng tối đa (dưới 300KB)
 const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -36,17 +30,18 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      } else {
-        resolve(base64Str);
-      }
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
   });
 };
+
+interface HomeProps {
+  user: User;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onViewProfile: (userId: string) => void;
+  setActiveTab: (tab: string) => void;
+}
 
 const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab }) => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -55,7 +50,15 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
   const [postContent, setPostContent] = useState('');
   const [postMedia, setPostMedia] = useState<{url: string, type: 'image' | 'video'} | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // States cho Bình luận
+  const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [commentMedia, setCommentMedia] = useState<PostMedia | null>(null);
+  const [showCommentStickers, setShowCommentStickers] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const commentFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const unsubPosts = onSnapshot(query(collection(db, "social_posts"), orderBy("createdAt", "desc")), (snap) => {
@@ -89,35 +92,44 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
       setIsPostModalOpen(false);
       onNotify('success', "Khoảnh khắc đã được sẻ chia!", "GIVEBACK");
     } catch (err: any) {
-      if (err.message?.includes("too large") || err.code === 'resource-exhausted') {
-        onNotify('error', "File quá lớn! Đệ hãy nén lại hoặc dùng video ngắn hơn (Dưới 1MB).", "Hệ thống");
-      } else {
-        onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
-      }
+      onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddComment = async (postId: string) => {
+    if (!commentText.trim() && !commentMedia) return;
+    try {
+      const postRef = doc(db, "social_posts", postId);
+      const newComment: PostComment = {
+        id: Date.now().toString(),
+        authorId: user.id,
+        authorName: user.name,
+        authorAvatar: user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`,
+        text: commentText,
+        media: commentMedia ? [commentMedia] : [],
+        createdAt: new Date().toISOString()
+      };
+      await updateDoc(postRef, {
+        comments: arrayUnion(newComment)
+      });
+      setCommentText('');
+      setCommentMedia(null);
+      setShowCommentStickers(null);
+    } catch (err) {
+      onNotify('error', "Lỗi gửi bình luận.");
+    }
+  };
+
+  const handleCommentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const MAX_SIZE = 850 * 1024; // 850KB để trừ hao
-      const isVideo = file.type.startsWith('video/');
-
-      if (isVideo && file.size > MAX_SIZE) {
-        onNotify('warning', "Video quá nặng (>850KB). Đệ hãy cắt ngắn clip dưới 15 giây nhé!", "GIVEBACK AI");
-        e.target.value = '';
-        return;
-      }
-
       const reader = new FileReader();
       reader.onloadend = async () => {
         let finalData = reader.result as string;
-        if (!isVideo) {
-          finalData = await compressImage(finalData);
-        }
-        setPostMedia({ url: finalData, type: isVideo ? 'video' : 'image' });
+        finalData = await compressImage(finalData, 400); // Bình luận nén nhỏ hơn
+        setCommentMedia({ url: finalData, type: 'image' });
       };
       reader.readAsDataURL(file);
     }
@@ -136,7 +148,6 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
         </div>
         <div className="flex space-x-3 text-emerald-600">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2-2v8a2 2 0 0 0 2 2z" /></svg>
         </div>
       </div>
 
@@ -180,7 +191,9 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                   }
                 </div>
               )}
-              <div className="px-12 py-8 flex items-center justify-between border-t border-gray-50 dark:border-slate-800 bg-gray-50/20 dark:bg-slate-900/10">
+              
+              {/* Actions */}
+              <div className="px-12 py-6 flex items-center justify-between border-t border-gray-50 dark:border-slate-800">
                  <div className="flex space-x-8">
                    <button onClick={() => {
                      const postRef = doc(db, "social_posts", post.id);
@@ -193,18 +206,79 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                      </svg>
                      <span className="text-sm font-black">{post.hearts?.length || 0}</span>
                    </button>
+                   <button onClick={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)} className="flex items-center space-x-3 text-gray-300 hover:text-emerald-500 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                     <span className="text-sm font-black">{post.comments?.length || 0}</span>
+                   </button>
                  </div>
-                 <button onClick={() => {
-                   if (post.authorId === user.id) return;
-                   setActiveTab('messages');
-                 }} className="bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest px-8 py-3 rounded-2xl hover:bg-emerald-700 active:scale-95 transition-all shadow-xl shadow-emerald-100 dark:shadow-none">Nhắn tin</button>
               </div>
+
+              {/* Comments Section */}
+              {commentingPostId === post.id && (
+                <div className="px-8 pb-8 space-y-6 animate-in slide-in-from-top-4 duration-300">
+                  <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                    {post.comments?.map((comment) => (
+                      <div key={comment.id} className="flex space-x-3">
+                        <img src={comment.authorAvatar} className="w-8 h-8 rounded-xl object-cover" alt="" />
+                        <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl flex-1 border border-gray-100 dark:border-slate-700">
+                          <p className="text-[10px] font-black text-emerald-700 uppercase mb-1">{comment.authorName}</p>
+                          <p className="text-sm dark:text-gray-200">{comment.text}</p>
+                          {comment.media?.[0] && (
+                            <img src={comment.media[0].url} className="mt-3 max-w-[200px] rounded-xl shadow-md border-2 border-white" alt="Comment Media" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Comment Input */}
+                  <div className="relative">
+                    {commentMedia && (
+                      <div className="mb-3 relative inline-block">
+                        <img src={commentMedia.url} className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-100 shadow-md" alt="" />
+                        <button onClick={() => setCommentMedia(null)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                      </div>
+                    )}
+                    
+                    {showCommentStickers === post.id && (
+                      <div className="absolute bottom-full mb-4 left-0 right-0 bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-2xl border border-emerald-50 dark:border-slate-700 grid grid-cols-6 gap-2 z-20">
+                        {STICKERS.map((s, i) => (
+                          <button key={i} onClick={() => { setCommentText(prev => prev + s); setShowCommentStickers(null); }} className="text-xl p-2 hover:bg-emerald-50 dark:hover:bg-emerald-800 rounded-xl transition-all">{s}</button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center space-x-3">
+                      <input type="file" ref={commentFileRef} className="hidden" accept="image/*" onChange={handleCommentFileChange} />
+                      <button onClick={() => commentFileRef.current?.click()} className="text-gray-400 hover:text-emerald-500 transition-colors">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
+                      </button>
+                      <div className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl flex items-center px-4 border border-gray-100 dark:border-slate-700">
+                        <input 
+                          type="text" 
+                          placeholder="Viết lời yêu thương..." 
+                          className="w-full bg-transparent py-3 text-sm outline-none dark:text-white"
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                        />
+                        <button onClick={() => setShowCommentStickers(showCommentStickers === post.id ? null : post.id)} className="text-emerald-500">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg>
+                        </button>
+                      </div>
+                      <button onClick={() => handleAddComment(post.id)} className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 transition-all">
+                        <svg className="w-5 h-5 rotate-45" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Post Modal */}
+      {/* Post Modal - Giữ nguyên logic cũ nhưng nén ảnh chuẩn hơn */}
       {isPostModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
@@ -231,15 +305,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                       <video src={postMedia.url} className="w-full h-56 object-contain bg-black" controls /> : 
                       <img src={postMedia.url} className="w-full h-56 object-cover" alt="Preview" />
                     }
-                    <button 
-                      type="button" 
-                      onClick={() => setPostMedia(null)}
-                      className="absolute top-4 right-4 bg-black/50 text-white p-3 rounded-full hover:bg-red-500 transition-all shadow-lg"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.293 4.293 a1 1 0 0 1 1.414 0 L10 8.586 l4.293 -4.293 a1 1 0 1 1 1.414 1.414 L11.414 10 l4.293 4.293 a1 1 0 0 1 -1.414 1.414 L10 11.414 l-4.293 4.293 a1 1 0 0 1 -1.414 -1.414 L8.586 10 4.293 5.707 a1 1 0 0 1 0 -1.414 z" clipRule="evenodd" />
-                      </svg>
-                    </button>
+                    <button type="button" onClick={() => setPostMedia(null)} className="absolute top-4 right-4 bg-black/50 text-white p-3 rounded-full hover:bg-red-500 transition-all shadow-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                   </div>
                 )}
 
@@ -252,11 +318,19 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
                     <span>Ảnh / Video</span>
                   </button>
-                  <div className="flex flex-col items-end">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Giới hạn Firestore</p>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Max 850KB</p>
-                  </div>
-                  <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = async () => {
+                        let finalData = reader.result as string;
+                        const isVideo = file.type.startsWith('video/');
+                        if (!isVideo) finalData = await compressImage(finalData);
+                        setPostMedia({ url: finalData, type: isVideo ? 'video' : 'image' });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} />
                 </div>
 
                 <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">

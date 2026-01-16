@@ -25,6 +25,7 @@ export interface PostComment {
   authorName: string;
   authorAvatar: string;
   text: string;
+  media?: PostMedia[];
   createdAt: string;
 }
 
@@ -61,6 +62,7 @@ export interface ChatMessage {
   senderName: string;
   senderIsGuest?: boolean;
   text: string;
+  media?: PostMedia[];
   createdAt: string;
 }
 

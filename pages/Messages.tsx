@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ChatSession, ChatMessage } from '../types';
+import { User, ChatSession, ChatMessage, PostMedia } from '../types';
 import { 
   collection, 
   onSnapshot, 
@@ -22,6 +22,28 @@ interface MessagesProps {
   onViewProfile: (userId: string) => void;
 }
 
+// Hàm nén ảnh tiết kiệm dung lượng
+const compressImage = (base64Str: string, maxWidth = 500, quality = 0.5): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > height) { if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; } } 
+      else { if (height > maxWidth) { width *= maxWidth / height; height = maxWidth; } }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+  });
+};
+
+const STICKERS = ["❤️", "🎁", "🙏", "🚚", "✨", "😊", "💪", "🌈", "🔥", "🤝", "👍", "🌸"];
+
 const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
@@ -29,19 +51,25 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [showStickers, setShowStickers] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenuId(null);
       }
+      if (showStickers && !(event.target as Element).closest('.sticker-container')) {
+        setShowStickers(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [showStickers]);
 
   useEffect(() => {
     if (!user.id) return;
@@ -80,12 +108,14 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
     }
   }, [messages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedSession) return;
+  const handleSendMessage = async (e?: React.FormEvent, media?: PostMedia[]) => {
+    if (e) e.preventDefault();
+    if (!newMessage.trim() && !media && !isUploading) return;
+    if (!selectedSession) return;
     
     const messageText = newMessage.trim();
     setNewMessage('');
+    setShowStickers(false);
 
     try {
       await addDoc(collection(db, "chats", selectedSession.id, "messages"), {
@@ -93,11 +123,12 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
         senderName: user.name,
         senderIsGuest: user.isGuest || false,
         text: messageText,
+        media: media || [],
         createdAt: new Date().toISOString()
       });
 
       await updateDoc(doc(db, "chats", selectedSession.id), {
-        lastMessage: messageText,
+        lastMessage: media ? (media[0].type === 'image' ? '📸 Hình ảnh' : '🎥 Video') : messageText,
         lastSenderId: user.id,
         updatedAt: new Date().toISOString(),
         readBy: [user.id]
@@ -105,6 +136,31 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
     } catch (err) { 
       console.error("Lỗi gửi tin nhắn:", err);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && selectedSession) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        let finalData = reader.result as string;
+        const isVideo = file.type.startsWith('video/');
+        if (!isVideo) finalData = await compressImage(finalData);
+        
+        await handleSendMessage(undefined, [{ url: finalData, type: isVideo ? 'video' : 'image' }]);
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSendSticker = (sticker: string) => {
+    setNewMessage(sticker);
+    // Tự động gửi luôn khi chọn sticker
+    setTimeout(() => {
+        handleSendMessage();
+    }, 100);
   };
 
   const handleDeleteChat = async (sessionId: string) => {
@@ -198,18 +254,66 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-slate-950/20 custom-scrollbar">
                 {messages.map((m, i) => (
                   <div key={i} className={`flex ${m.senderId === user.id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] px-5 py-3 rounded-[2rem] text-sm font-bold shadow-sm ${m.senderId === user.id ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none border dark:border-slate-700'}`}>
-                      {m.text}
+                    <div className={`max-w-[80%] flex flex-col ${m.senderId === user.id ? 'items-end' : 'items-start'}`}>
+                      {m.text && (
+                        <div className={`px-5 py-3 rounded-[2rem] text-sm font-bold shadow-sm mb-1 ${m.senderId === user.id ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none border dark:border-slate-700'}`}>
+                          {m.text}
+                        </div>
+                      )}
+                      {m.media && m.media.length > 0 && (
+                        <div className="mt-1">
+                          {m.media[0].type === 'video' ? (
+                            <video src={m.media[0].url} controls className="max-w-[250px] rounded-2xl shadow-lg border-2 border-white" />
+                          ) : (
+                            <img src={m.media[0].url} className="max-w-[250px] rounded-2xl shadow-lg border-2 border-white" alt="Chat Media" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
+                {isUploading && (
+                   <div className="flex justify-end animate-pulse">
+                      <div className="bg-emerald-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600 italic">Đang tải ảnh...</div>
+                   </div>
+                )}
                 <div ref={chatEndRef}></div>
               </div>
+
+              {/* STICKER PICKER */}
+              {showStickers && (
+                <div className="sticker-container absolute bottom-24 left-6 right-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-emerald-50 dark:border-slate-700 z-[100] animate-in slide-in-from-bottom-4">
+                  <div className="grid grid-cols-6 gap-3">
+                    {STICKERS.map((s, idx) => (
+                      <button 
+                        key={idx} 
+                        onClick={() => handleSendSticker(s)}
+                        className="text-2xl p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-xl transition-all active:scale-90"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* INPUT BAR */}
               <div className="p-4 md:p-6 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
-                   <button type="button" className="text-emerald-600 p-2"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></button>
+                   <input 
+                    type="file" 
+                    className="hidden" 
+                    ref={fileInputRef} 
+                    accept="image/*,video/*" 
+                    onChange={handleFileChange}
+                   />
+                   <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-emerald-600 p-2 hover:bg-emerald-50 rounded-full transition-all"
+                   >
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                   </button>
                    <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full px-6 py-2 flex items-center">
                       <input 
                         type="text" 
@@ -218,9 +322,19 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                         placeholder="Aa" 
                         className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold dark:text-white py-2"
                       />
-                      <button type="button" className="text-emerald-500"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg></button>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowStickers(!showStickers)}
+                        className={`transition-colors ${showStickers ? 'text-emerald-600' : 'text-emerald-500'}`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg>
+                      </button>
                    </div>
-                   <button type="submit" disabled={!newMessage.trim()} className={`p-3 rounded-full transition-all ${newMessage.trim() ? 'text-emerald-600 scale-110 send-active' : 'text-gray-300'}`}>
+                   <button 
+                    type="submit" 
+                    disabled={!newMessage.trim() && !isUploading} 
+                    className={`p-3 rounded-full transition-all ${newMessage.trim() ? 'text-emerald-600 scale-110 send-active' : 'text-gray-300'}`}
+                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 rotate-45" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                    </button>
                 </form>
