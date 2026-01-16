@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { getAIAssistance } from '../services/geminiService';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAIBlob } from '@google/genai';
 
 // Helper functions for Audio Encoding/Decoding
 function encode(bytes: Uint8Array) {
@@ -111,7 +111,7 @@ const AIHelper: React.FC = () => {
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-              const pcmBlob: Blob = { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
+              const pcmBlob: GenAIBlob = { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
               // Đảm bảo chỉ gửi sau khi session đã sẵn sàng
               sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
             };
@@ -119,7 +119,7 @@ const AIHelper: React.FC = () => {
             scriptProcessor.connect(audioContextRef.current!.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
-            // SỬA LỖI Ở ĐÂY: Thêm optional chaining .? trước [0] để an toàn
+            // Fix: Added safety check for nested audio parts in Live API response
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (base64Audio && outAudioContextRef.current) {
               const ctx = outAudioContextRef.current;

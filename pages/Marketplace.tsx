@@ -199,8 +199,8 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black text-emerald-950 italic uppercase tracking-tighter leading-none">Sàn Tặng đồ</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4 italic">Hỗ trợ bởi GIVEBACK AI Vision ✨</p>
+          <h1 className="text-4xl md:text-5xl font-black text-arial-950 uppercase tracking-tighter leading-none">Sàn Tặng đồ</h1>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4">Hỗ trợ bởi GIVEBACK AI Vision ✨</p>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Đăng đồ tặng mới</button>
       </div>
@@ -208,12 +208,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
       <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-emerald-50 mb-12 animate-in fade-in slide-in-from-top-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Tìm kiếm chung</label>
+            <label className="text-[10px] font-black uppercase text-arial-700 ml-4">Tìm kiếm chung</label>
             <input type="text" placeholder="Tên món đồ..." className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
           
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase text-emerald-700 ml-4">Phân loại</label>
+            <label className="text-[10px] font-black uppercase text-arial-700 ml-4">Phân loại</label>
             <select className="w-full px-6 py-4 bg-gray-50 rounded-2xl text-sm outline-none border-2 border-transparent focus:border-emerald-500 transition-all font-bold" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
               {['Tất cả', ...CATEGORIES].map(c => <option key={c}>{c}</option>)}
             </select>

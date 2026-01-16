@@ -65,7 +65,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
 
   const [isAuctionModalOpen, setIsAuctionModalOpen] = useState(false);
   const [auctionForm, setAuctionForm] = useState({
-    title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', image: ''
+    title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] as string[]
   });
 
   useEffect(() => {
@@ -102,22 +102,6 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
     }
   };
 
-  const handleGenAIVision = async () => {
-    if (!missionForm.location || !missionForm.description) {
-      onNotify('warning', "Đệ hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
-      return;
-    }
-    setIsGeneratingAIVision(true);
-    onNotify('info', "AI đang phác họa tầm nhìn...", "GIVEBACK AI");
-    try {
-      const imageUrl = await generateMissionImage(missionForm.location, missionForm.description);
-      if (imageUrl) {
-        setMissionForm({ ...missionForm, image: imageUrl });
-        onNotify('success', "Tầm nhìn AI đã sẵn sàng!", "GIVEBACK AI");
-      }
-    } catch (err) { onNotify('error', "Lỗi kết nối AI."); } finally { setIsGeneratingAIVision(false); }
-  };
-
   const handleSaveMission = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -140,6 +124,22 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
     const updated = [...missionForm.itemsNeeded];
     updated.splice(idx, 1);
     setMissionForm({ ...missionForm, itemsNeeded: updated });
+  };
+
+  const handleGenAIVision = async () => {
+    if (!missionForm.location || !missionForm.description) {
+      onNotify('warning', "Đệ hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
+      return;
+    }
+    setIsGeneratingAIVision(true);
+    onNotify('info', "AI đang phác họa tầm nhìn...", "GIVEBACK AI");
+    try {
+      const imageUrl = await generateMissionImage(missionForm.location, missionForm.description);
+      if (imageUrl) {
+        setMissionForm({ ...missionForm, image: imageUrl });
+        onNotify('success', "Tầm nhìn AI đã sẵn sàng!", "GIVEBACK AI");
+      }
+    } catch (err) { onNotify('error', "Lỗi kết nối AI."); } finally { setIsGeneratingAIVision(false); }
   };
 
   return (
@@ -173,7 +173,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 dark:text-emerald-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
                    <div className="flex gap-2">
                       <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
-                      <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                      <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                    </div>
                 </div>
               ))}
@@ -346,33 +346,65 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
         </div>
       )}
 
-      {/* MODAL: ĐẤU GIÁ */}
+      {/* MODAL: ĐẤU GIÁ (MULTIPLE IMAGES) */}
       {isAuctionModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-md" onClick={() => setIsAuctionModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50">
+          <div className="relative bg-white w-full max-w-xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 max-h-[90vh] overflow-y-auto custom-scrollbar">
              <h3 className="text-xl font-black uppercase text-indigo-900 mb-8 text-center">ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ</h3>
              <form onSubmit={async (e) => {
                 e.preventDefault();
+                if (auctionForm.gallery.length === 0) {
+                   onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+                   return;
+                }
                 setLoading(true);
                 try {
-                  await addDoc(collection(db, "auctions"), { ...auctionForm, currentBid: Number(auctionForm.startingPrice), status: 'active', authorId: user.id, authorName: user.name, createdAt: new Date().toISOString() });
+                  await addDoc(collection(db, "auctions"), { 
+                    ...auctionForm, 
+                    image: auctionForm.gallery[0],
+                    currentBid: Number(auctionForm.startingPrice), 
+                    status: 'active', 
+                    authorId: user.id, 
+                    authorName: user.name, 
+                    createdAt: new Date().toISOString() 
+                  });
                   setIsAuctionModalOpen(false);
                   onNotify('success', "Vật phẩm đã lên sàn đấu giá!");
-                  setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', image: '' });
+                  setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] });
                 } catch (err) { onNotify('error', "Lỗi tạo đấu giá."); } finally { setLoading(false); }
              }} className="space-y-4">
                 <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Tên vật phẩm" value={auctionForm.title} onChange={e => setAuctionForm({...auctionForm, title: e.target.value})} />
-                <textarea rows={3} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Mô tả..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
+                <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Mô tả..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
                 <div className="grid grid-cols-2 gap-4">
                    <input type="number" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-indigo-950" placeholder="Giá khởi điểm" value={auctionForm.startingPrice || ''} onChange={e => setAuctionForm({...auctionForm, startingPrice: Number(e.target.value)})} />
                    <input type="datetime-local" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-xs text-indigo-950" value={auctionForm.endTime} onChange={e => setAuctionForm({...auctionForm, endTime: e.target.value})} />
                 </div>
                 <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Hỗ trợ vùng cứu trợ nào?" value={auctionForm.missionLocation} onChange={e => setAuctionForm({...auctionForm, missionLocation: e.target.value})} />
-                <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, image:url}), 800); i.click(); }} className="h-40 border-2 border-dashed border-indigo-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 relative overflow-hidden bg-gray-50 group">
-                   {auctionForm.image ? <img src={auctionForm.image} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[9px] font-black uppercase text-indigo-300 text-center px-4">Tải ảnh sản phẩm đấu giá</span>}
+                
+                <div className="space-y-4">
+                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
+                   <div className="grid grid-cols-3 gap-3">
+                      {auctionForm.gallery.map((img, idx) => (
+                        <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border-2 border-indigo-50">
+                           <img src={img} className="w-full h-full object-cover" alt="" />
+                           <button type="button" onClick={() => setAuctionForm({...auctionForm, gallery: auctionForm.gallery.filter((_, i) => i !== idx)})} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                           </button>
+                        </div>
+                      ))}
+                      {auctionForm.gallery.length < 5 && (
+                         <div 
+                          onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, gallery: [...auctionForm.gallery, url]}), 800); i.click(); }}
+                          className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-300"
+                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                         </div>
+                      )}
+                   </div>
                 </div>
-                <button type="submit" disabled={loading || !auctionForm.image} className="w-full bg-indigo-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
+
+                <button type="submit" disabled={loading || auctionForm.gallery.length === 0} className="w-full bg-indigo-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
                   {loading ? "ĐANG LÊN SÀN..." : "XÁC NHẬN LÊN SÀN 🔨"}
                 </button>
              </form>

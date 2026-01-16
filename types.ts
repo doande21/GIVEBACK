@@ -134,7 +134,7 @@ export interface CharityMission {
   image: string;
   qrCode?: string;
   itemsNeeded: NeededItem[];
-  gallery?: string[]; // Danh sách ảnh thực tế của chuyến đi
+  gallery?: string[]; 
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;
   updatedAt?: string;
@@ -151,6 +151,7 @@ export interface AuctionItem {
   missionLocation: string;
   donorName: string;
   image: string;
+  gallery?: string[];
   status: 'active' | 'ended';
   authorId: string;
   authorName: string;

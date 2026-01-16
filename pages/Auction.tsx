@@ -21,6 +21,7 @@ interface AuctionProps {
 const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [selectedAuction, setSelectedAuction] = useState<AuctionItem | null>(null);
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [bidAmount, setBidAmount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
@@ -85,6 +86,16 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
     return `${days}n ${hours}g ${minutes}p`;
   };
 
+  const nextImage = (e: React.MouseEvent, gallery: string[]) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev + 1) % gallery.length);
+  };
+
+  const prevImage = (e: React.MouseEvent, gallery: string[]) => {
+    e.stopPropagation();
+    setCurrentImgIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+  };
+
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
       <div className="mb-12 text-center max-w-2xl mx-auto">
@@ -125,6 +136,12 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                 </span>
               </div>
 
+              {item.gallery && item.gallery.length > 1 && (
+                 <div className="absolute bottom-6 right-6 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black text-white uppercase tracking-widest">
+                    +{item.gallery.length - 1} Góc nhìn
+                 </div>
+              )}
+
               <div className="absolute bottom-6 left-6 right-6">
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Dành cho chuyến cứu trợ</p>
                 <p className="text-lg font-black text-white italic truncate uppercase tracking-tighter">{item.missionLocation}</p>
@@ -150,7 +167,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
               </div>
 
               <button 
-                onClick={() => setSelectedAuction(item)}
+                onClick={() => { setSelectedAuction(item); setCurrentImgIndex(0); }}
                 className="w-full bg-amber-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-amber-100 dark:shadow-none hover:bg-black active:scale-95 transition-all"
               >
                 Đặt giá thầu
@@ -160,28 +177,61 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
         ))}
       </div>
 
-      {auctions.length === 0 && (
-        <div className="text-center py-20">
-           <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 text-amber-200 dark:text-amber-800 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2" /></svg>
-           </div>
-           <p className="text-gray-400 font-black uppercase tracking-[0.4em] italic text-sm">Hiện chưa có phiên đấu giá nào</p>
-        </div>
-      )}
-
       {selectedAuction && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-amber-950/80 backdrop-blur-md" onClick={() => setSelectedAuction(null)}></div>
-          <div className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500">
-             <div className="h-72 relative">
-                <img src={selectedAuction.image} className="w-full h-full object-cover" alt="" />
-                <button onClick={() => setSelectedAuction(null)} className="absolute top-8 right-8 bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition-all">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-                <div className="absolute bottom-6 left-8">
-                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl italic">Premium Item</span>
+          <div className="absolute inset-0 bg-amber-950/90 backdrop-blur-xl" onClick={() => setSelectedAuction(null)}></div>
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-[4rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-500 max-h-[95vh] overflow-y-auto custom-scrollbar">
+             
+             {/* X Button Top Right */}
+             <button 
+               onClick={() => setSelectedAuction(null)} 
+               className="absolute top-8 right-8 bg-black/50 hover:bg-red-500 text-white p-3 rounded-full transition-all z-50 shadow-2xl border-2 border-white/20"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+             </button>
+
+             {/* Gallery Slider */}
+             <div className="h-[400px] relative bg-gray-100 dark:bg-black group">
+                <img 
+                  key={currentImgIndex}
+                  src={selectedAuction.gallery && selectedAuction.gallery.length > 0 ? selectedAuction.gallery[currentImgIndex] : selectedAuction.image} 
+                  className="w-full h-full object-contain animate-in fade-in duration-500" 
+                  alt="" 
+                />
+                
+                {selectedAuction.gallery && selectedAuction.gallery.length > 1 && (
+                  <>
+                    <button 
+                      onClick={(e) => prevImage(e, selectedAuction.gallery!)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white p-3 rounded-full text-white hover:text-black transition-all backdrop-blur-md opacity-0 group-hover:opacity-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button 
+                      onClick={(e) => nextImage(e, selectedAuction.gallery!)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white p-3 rounded-full text-white hover:text-black transition-all backdrop-blur-md opacity-0 group-hover:opacity-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+
+                    {/* Dots indicator */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2">
+                       {selectedAuction.gallery.map((_, idx) => (
+                         <div 
+                          key={idx} 
+                          onClick={(e) => { e.stopPropagation(); setCurrentImgIndex(idx); }}
+                          className={`w-2 h-2 rounded-full transition-all cursor-pointer ${idx === currentImgIndex ? 'bg-amber-500 w-6' : 'bg-white/50 hover:bg-white'}`}
+                         ></div>
+                       ))}
+                    </div>
+                  </>
+                )}
+
+                <div className="absolute top-8 left-8">
+                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl italic">Góc nhìn {currentImgIndex + 1}</span>
                 </div>
              </div>
+
              <div className="p-10">
                 <div className="flex items-center space-x-2 mb-2">
                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -204,7 +254,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                    <div className="relative">
                       <input 
                         type="number" 
-                        className="w-full bg-gray-50 dark:bg-slate-800 border-3 border-transparent focus:border-amber-500 rounded-3xl px-8 py-5 outline-none font-black text-2xl text-amber-900 dark:text-white transition-all"
+                        className="w-full bg-gray-50 dark:bg-slate-800 border-3 border-transparent focus:border-amber-500 rounded-3xl px-8 py-5 outline-none font-black text-2xl text-amber-900 dark:text-white transition-all shadow-inner"
                         placeholder={`Mời trả giá > ${selectedAuction.currentBid}`}
                         value={bidAmount || ''}
                         onChange={e => setBidAmount(parseInt(e.target.value))}
@@ -227,7 +277,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                    <button 
                     onClick={() => handleBid(selectedAuction)}
                     disabled={loading}
-                    className="w-full bg-amber-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-amber-100 dark:shadow-none hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    className="w-full bg-amber-950 text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                   >
                     {loading ? 'Đang gửi...' : 'XÁC NHẬN ĐẶT GIÁ'}
                   </button>
