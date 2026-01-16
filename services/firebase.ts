@@ -1,12 +1,10 @@
 
-// Fix: Ensuring modular Firebase v9+ imports are correctly resolved and used.
-// Using explicit sub-package paths which are standard for Firebase Modular SDK (v9+)
 import { initializeApp } from 'firebase/app';
-import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCps-abURYQD2mRvfoj26VJcmM0EKiPM9k",
+  apiKey: "AIzaSyCb2WBnZ_md_3isEGuO6kfLbo-RO5tRN-k",
   authDomain: "giveback-336a1.firebaseapp.com",
   projectId: "giveback-336a1",
   storageBucket: "giveback-336a1.firebasestorage.app",
@@ -15,17 +13,18 @@ const firebaseConfig = {
   measurementId: "G-K7QEFTLXS3"
 };
 
-// Initialize Firebase
+// Khởi tạo Firebase theo chuẩn Modular
 const app = initializeApp(firebaseConfig);
 
-// Export instances for the rest of the application
+// Xuất các instance để sử dụng trong toàn ứng dụng
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// Direct exports for providers to be used in social login
+// Cấu hình các Provider đăng nhập mạng xã hội
 export const googleProvider = new GoogleAuthProvider();
 export const facebookProvider = new FacebookAuthProvider();
 
+// Thêm quyền truy cập cho Facebook
 facebookProvider.addScope('email');
 facebookProvider.addScope('public_profile');
 

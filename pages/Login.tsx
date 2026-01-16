@@ -1,7 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-// Fix: Removed missing modular imports. Using auth and providers from the local firebase service.
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInWithPopup, 
+  updateProfile 
+} from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../services/firebase';
 import { apiService } from '../services/apiService';
 
@@ -47,21 +52,48 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
     
+    if (errorCode === 'auth/unauthorized-domain' || msg.includes('unauthorized domain') || msg.includes('domain not authorized')) {
+      return (
+        <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl animate-bounce">📧</span>
+            <p className="font-black text-emerald-700 uppercase text-[12px]">GMAIL CHƯA CẤP PHÉP TÊN MIỀN!</p>
+          </div>
+          <div className="bg-emerald-50 p-5 rounded-[2rem] border-2 border-emerald-100 shadow-sm space-y-3">
+            <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
+              Đệ ơi, Firebase chưa cho phép đăng nhập từ <b>giveback-one.vercel.app</b>. Đệ làm 2 bước này là xong ngay:
+            </p>
+            <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-emerald-100">
+               <p className="text-[9px] font-black text-emerald-800 uppercase">1. Vào <b>Firebase Console</b> {">"}  Authentication {">"}  Settings.</p>
+               <p className="text-[9px] font-black text-emerald-800 uppercase">2. Tìm <b>Authorized domains</b> {">"}  Nhấn Add Domain {">"}  Dán <b>giveback-one.vercel.app</b>.</p>
+            </div>
+            <a 
+              href="https://console.firebase.google.com/" 
+              target="_blank" 
+              rel="noreferrer"
+              className="block w-full bg-emerald-600 text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg hover:bg-emerald-700 transition-all active:scale-95"
+            >
+              CẤU HÌNH FIREBASE NGAY 🚀
+            </a>
+          </div>
+        </div>
+      );
+    }
+
     if (msg.includes('uri_not_whitelisted') || msg.includes('domain') || errorCode.includes('internal-error')) {
       return (
         <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl animate-bounce">🌐</span>
-            <p className="font-black text-blue-700 uppercase text-[12px]">FACEBOOK CHƯA CẤP PHÉP, ĐỆ ƠI!</p>
+            <p className="font-black text-blue-700 uppercase text-[12px]">FACEBOOK CHƯA CẤP PHÉP TÊN MIỀN!</p>
           </div>
           <div className="bg-blue-50 p-5 rounded-[2rem] border-2 border-blue-100 shadow-sm space-y-3">
             <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
-              Facebook không cho phép đăng nhập từ tên miền <b>giveback-one.vercel.app</b>. Đệ vào <b>developers.facebook.com</b> và làm 3 bước này nhé:
+              Đúng như ảnh Đệ gửi, Facebook đang chặn link Vercel. Đệ vào <b>developers.facebook.com</b> làm 2 bước này:
             </p>
             <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-blue-100">
-               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
-               <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"} Điền link Vercel của Đệ.</p>
-               <p className="text-[9px] font-black text-blue-800 uppercase">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">1. App Settings {">"} Basic {">"}  Thêm <b>giveback-one.vercel.app</b> vào App Domains.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">2. Facebook Login {">"} Settings {">"}  Thêm <b>https://giveback-336a1.firebaseapp.com/__/auth/handler</b> vào Redirect URIs.</p>
             </div>
             <a 
               href="https://developers.facebook.com/apps/" 
@@ -76,47 +108,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       );
     }
 
-    if (msg.includes('configuration_not_found') || errorCode.includes('configuration-not-found')) {
-      return (
-        <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl animate-bounce">🔑</span>
-            <p className="font-black text-red-700 uppercase text-[12px]">SẮP XONG RỒI ĐỆ ƠI!</p>
-          </div>
-          <div className="bg-red-50 p-5 rounded-[2rem] border-2 border-red-100 shadow-sm space-y-3">
-            <p className="text-[10px] font-bold text-gray-700 leading-relaxed">
-              Dashboard cho thấy API đã bật, nhưng <b>API Key</b> của Đệ có thể đang bị giới hạn. Đệ làm bước này nhé:
-            </p>
-            <div className="space-y-2">
-               <p className="text-[9px] font-black text-red-600 uppercase">1. Nhấn vào tab "Identifiants" (bên trái ảnh Đệ gửi)</p>
-               <p className="text-[9px] font-black text-red-600 uppercase">2. Chọn Key đang dùng {">"} Chỉnh thành "Don't restrict key" {">"} Save</p>
-            </div>
-            <a 
-              href="https://console.cloud.google.com/apis/credentials" 
-              target="_blank" 
-              rel="noreferrer"
-              className="block w-full bg-red-600 text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg hover:bg-red-700 transition-all active:scale-95"
-            >
-              MỞ KHÓA API KEY NGAY 🚀
-            </a>
-          </div>
-        </div>
-      );
-    }
-
     switch (errorCode) {
       case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
       case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
       case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
       case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
-      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
+      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy bật phương thức này trong Firebase Console nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
 
   const saveUserToFirestore = async (firebaseUser: any, name: string, type: 'individual' | 'organization', customOrgName?: string) => {
-    // Dynamic import to use firestore instances
     const { doc, setDoc, getDoc } = await import("firebase/firestore");
     const { db } = await import("../services/firebase");
 
@@ -154,8 +157,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
-      // Fix: Use imported function for sign-in with popup
-      const { signInWithPopup } = await import("firebase/auth");
       const result = await signInWithPopup(auth, provider);
       const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
       onLogin(userData.role, userData);
@@ -204,23 +205,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       if (!isLoginView) {
-        // Fix: Use imported function for account creation
-        const { createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth");
-        const cred = await createUserWithEmailAndPassword(auth, loginEmail, inputPass);
+        const result = await createUserWithEmailAndPassword(auth, loginEmail, inputPass);
         const nameToUse = userType === 'organization' ? orgName : fullName;
-        // Fix: Use imported function for profile update
-        await updateProfile(cred.user, { displayName: nameToUse });
-        const newUser = await saveUserToFirestore(cred.user, nameToUse, userType, orgName);
+        await updateProfile(result.user, { displayName: nameToUse });
+        const newUser = await saveUserToFirestore(result.user, nameToUse, userType, orgName);
         onLogin(newUser.role, newUser);
       } else {
-        // Fix: Use imported function for login
-        const { signInWithEmailAndPassword } = await import("firebase/auth");
-        const cred = await signInWithEmailAndPassword(auth, loginEmail, inputPass);
+        const result = await signInWithEmailAndPassword(auth, loginEmail, inputPass);
         const { doc, getDoc } = await import("firebase/firestore");
         const { db } = await import("../services/firebase");
-        const uDoc = await getDoc(doc(db, "users", cred.user.uid));
+        const uDoc = await getDoc(doc(db, "users", result.user.uid));
         if (uDoc.exists()) onLogin((uDoc.data() as User).role, uDoc.data() as User);
-        else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
+        else onLogin('user', await saveUserToFirestore(result.user, result.user.displayName || '', 'individual'));
       }
     } catch (err: any) { 
       setError(translateError(err.code, err.message)); 
@@ -288,8 +284,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             
             {error && (
-              <div className="p-4 bg-white/50 rounded-[2.5rem] border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4">
-                <div className="text-[12px] text-red-700 leading-relaxed font-medium">{error}</div>
+              <div className="p-4 bg-white/50 rounded-[2.5rem] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-4">
+                <div className="text-[12px] text-gray-700 leading-relaxed font-medium">{error}</div>
               </div>
             )}
             
