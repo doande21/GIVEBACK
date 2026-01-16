@@ -30,6 +30,7 @@ export interface PostComment {
 }
 
 export interface DonationItem {
+  updatedAt: string | number | Date;
   id: string;
   title: string;
   description: string;

@@ -33,7 +33,7 @@
         /* Khi class .dark được thêm vào thẻ html */
         .dark {
             --bg-main: #020617;
-            --text-main: #ecfdf5;
+            --text-main: #f0fdf4;
             --primary-color: #34d399;
         }
 
@@ -48,11 +48,13 @@
         }
 
         /* CON TRỎ NHẤP NHÁY MÀU EMERALD */
-        input, textarea {
+        input, textarea, select {
             caret-color: #10b981 !important;
+            color: inherit;
         }
-        .dark input, .dark textarea {
+        .dark input, .dark textarea, .dark select {
             caret-color: #34d399 !important;
+            color: #f0fdf4 !important;
         }
 
         /* Loại bỏ font-style italic mặc định của browser nếu có */
@@ -78,6 +80,8 @@
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
         .animate-heart { animation: heart-rise 2s ease-out infinite; }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 <script type="importmap">
 {
@@ -94,7 +98,7 @@
 }
 </script>
 </head>
-<body class="dark:bg-slate-950 dark:text-slate-100">
+<body class="dark:bg-slate-950 dark:text-emerald-50">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
 </body>
