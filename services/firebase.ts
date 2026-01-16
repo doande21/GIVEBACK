@@ -1,5 +1,6 @@
 
 // Fix: Ensuring modular Firebase v9+ imports are correctly resolved and used.
+// Using explicit sub-package paths which are standard for Firebase Modular SDK (v9+)
 import { initializeApp } from 'firebase/app';
 import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';

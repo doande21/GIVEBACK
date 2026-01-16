@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -165,6 +164,7 @@ const App: React.FC = () => {
       
       <main className="pb-24">{renderContent()}</main>
       
+      {/* AI SIDEBAR COMPONENT */}
       <AIHelper isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 flex items-center justify-around h-20 px-2 pb-1 overflow-x-auto scrollbar-hide shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">

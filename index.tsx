@@ -1,9 +1,9 @@
 
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 
-// Thiết lập process.env giả lập để tránh lỗi runtime nếu chưa có
+// Thiết lập process.env giả lập. API_KEY sẽ được hệ thống nạp tự động.
 if (typeof window !== 'undefined') {
   (window as any).process = (window as any).process || { env: {} };
 }
@@ -13,7 +13,7 @@ if (!rootElement) {
   throw new Error("Không tìm thấy phần tử root để gắn ứng dụng");
 }
 
-const root = ReactDOM.createRoot(rootElement);
+const root = createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <App />

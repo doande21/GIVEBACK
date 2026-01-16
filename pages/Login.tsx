@@ -1,14 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile,
-  signInWithPopup
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db, googleProvider, facebookProvider } from '../services/firebase';
+// Fix: Removed missing modular imports. Using auth and providers from the local firebase service.
+import { auth, googleProvider, facebookProvider } from '../services/firebase';
 import { apiService } from '../services/apiService';
 
 interface LoginProps {
@@ -65,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Facebook không cho phép đăng nhập từ tên miền <b>giveback-one.vercel.app</b>. Đệ vào <b>developers.facebook.com</b> và làm 3 bước này nhé:
             </p>
             <div className="space-y-2 bg-white/50 p-3 rounded-xl border border-blue-100">
-               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic{">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
+               <p className="text-[9px] font-black text-blue-800 uppercase">1. Settings {">"} Basic {">"} Thêm "giveback-one.vercel.app" vào <b>App Domains</b>.</p>
                <p className="text-[9px] font-black text-blue-800 uppercase">2. Nhấn <b>Add Platform</b> {">"} Chọn "Website" {">"} Điền link Vercel của Đệ.</p>
                <p className="text-[9px] font-black text-blue-800 uppercase">3. <b>Facebook Login</b> {">"} Settings {">"} Thêm "https://giveback-336a1.firebaseapp.com/__/auth/handler" vào <b>Valid OAuth Redirect URIs</b>.</p>
             </div>
@@ -111,17 +105,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
-      case 'auth/invalid-email': return 'Email không hợp lệ rồi bạn ơi.';
-      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. bank hãy nhấn Đăng ký nhé!';
-      case 'auth/operation-not-allowed': return 'Bạn ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
+      case 'auth/invalid-email': return 'Email không hợp lệ rồi Đệ ơi.';
+      case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại. Đệ hãy nhấn Đăng ký nhé!';
+      case 'auth/operation-not-allowed': return 'Đệ ơi, hãy vào Firebase Console -> Authentication -> Sign-in method và BẬT Facebook lên nhé!';
       default: return `Gặp chút trục trặc: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
   };
 
   const saveUserToFirestore = async (firebaseUser: any, name: string, type: 'individual' | 'organization', customOrgName?: string) => {
+    // Dynamic import to use firestore instances
+    const { doc, setDoc, getDoc } = await import("firebase/firestore");
+    const { db } = await import("../services/firebase");
+
     const userDocRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) return { ...userDoc.data(), id: firebaseUser.uid } as User;
@@ -135,7 +133,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       organizationName: customOrgName || '',
       role: isDeAdmin ? 'admin' : 'user',
       isGuest: false,
-      avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=059669&color=fff`,
+      avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=059669&color=fff&bold=true`,
       createdAt: new Date().toISOString()
     };
     await setDoc(userDocRef, newUser);
@@ -156,6 +154,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     try {
+      // Fix: Use imported function for sign-in with popup
+      const { signInWithPopup } = await import("firebase/auth");
       const result = await signInWithPopup(auth, provider);
       const userData = await saveUserToFirestore(result.user, result.user.displayName || '', 'individual');
       onLogin(userData.role, userData);
@@ -204,13 +204,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       if (!isLoginView) {
+        // Fix: Use imported function for account creation
+        const { createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth");
         const cred = await createUserWithEmailAndPassword(auth, loginEmail, inputPass);
         const nameToUse = userType === 'organization' ? orgName : fullName;
+        // Fix: Use imported function for profile update
         await updateProfile(cred.user, { displayName: nameToUse });
         const newUser = await saveUserToFirestore(cred.user, nameToUse, userType, orgName);
         onLogin(newUser.role, newUser);
       } else {
+        // Fix: Use imported function for login
+        const { signInWithEmailAndPassword } = await import("firebase/auth");
         const cred = await signInWithEmailAndPassword(auth, loginEmail, inputPass);
+        const { doc, getDoc } = await import("firebase/firestore");
+        const { db } = await import("../services/firebase");
         const uDoc = await getDoc(doc(db, "users", cred.user.uid));
         if (uDoc.exists()) onLogin((uDoc.data() as User).role, uDoc.data() as User);
         else onLogin('user', await saveUserToFirestore(cred.user, cred.user.displayName || '', 'individual'));
@@ -258,7 +265,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức:" : "Họ và tên:"} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 text-sm transition-all" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
             <div className="relative">
               <input 

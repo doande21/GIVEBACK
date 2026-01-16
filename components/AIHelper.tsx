@@ -1,14 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { getAIAssistance } from '../services/geminiService';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAIBlob } from '@google/genai';
 
 interface AIHelperProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Helper functions for Audio Encoding/Decoding
 function encode(bytes: Uint8Array) {
   let binary = '';
   const len = bytes.byteLength;
@@ -43,13 +42,12 @@ async function decodeAudioData(
 const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string, isError?: boolean}[]>([
-    {role: 'bot', content: 'Chào Đệ! Huynh là GIVEBACK AI. Đệ cần hỏi gì về quà tặng hay các chuyến cứu trợ không?'}
+  const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string, type?: 'text' | 'error' | 'blocked'}[]>([
+    {role: 'bot', content: 'Chào Đệ! Huynh là GIVEBACK AI. Chìa khóa đã sẵn sàng, Đệ cần Huynh giúp gì không?'}
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Live API Refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const outAudioContextRef = useRef<AudioContext | null>(null);
   const sessionRef = useRef<any>(null);
@@ -65,7 +63,7 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
   const handleOpenKeySelector = async () => {
     const win = window as any;
     if (win.aistudio && typeof win.aistudio.openSelectKey === 'function') {
-      try { await win.aistudio.openSelectKey(); } catch (err) { console.error(err); }
+      await win.aistudio.openSelectKey();
     }
   };
 
@@ -75,13 +73,30 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
     setInput('');
     setMessages(prev => [...prev, {role: 'user', content: userMsg}]);
     setIsLoading(true);
-    const response = await getAIAssistance(userMsg);
-    if (response === "ERROR_MISSING_KEY") {
-      setMessages(prev => [...prev, { role: 'bot', content: "Hệ thống cần API Key để kích hoạt AI đệ ơi!", isError: true }]);
-    } else {
-      setMessages(prev => [...prev, {role: 'bot', content: response || "Xin lỗi, Huynh chưa rõ ý Đệ."}]);
+    
+    try {
+      const response = await getAIAssistance(userMsg);
+      
+      if (response === "ERROR_KEY_BLOCKED") {
+        setMessages(prev => [...prev, {
+          role: 'bot', 
+          type: 'blocked',
+          content: "LỖI: API KEY BỊ CHẶN (403 Forbidden). Đệ ơi, đừng lo nhé! Để dùng Gemini Đệ KHÔNG CẦN THẺ. Đệ chỉ cần vào Google AI Studio, tạo một Key mới và dán vào đây là chạy vèo vèo bản Miễn phí ngay!"
+        }]);
+      } else if (response === "ERROR_KEY_INVALID") {
+        setMessages(prev => [...prev, {
+          role: 'bot', 
+          type: 'error',
+          content: "LỖI: API KEY KHÔNG HỢP LỆ. Chìa khóa này có vẻ bị sai định dạng rồi Đệ."
+        }]);
+      } else {
+        setMessages(prev => [...prev, {role: 'bot', content: response}]);
+      }
+    } catch (error: any) {
+       setMessages(prev => [...prev, { role: 'bot', type: 'error', content: "Có chút trục trặc kết nối, Đệ thử lại nhé." }]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const stopVoiceCompanion = () => {
@@ -96,8 +111,7 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
   const startVoiceCompanion = async () => {
     try {
       setIsVoiceMode(true);
-      // Create a new GoogleGenAI instance right before making an API call to ensure it uses the current key
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
       outAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -113,14 +127,10 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-              
-              // Fix: Explicitly type pcmBlob as the SDK's Blob to avoid browser global type conflict
-              const pcmBlob: Blob = { 
+              const pcmBlob: GenAIBlob = { 
                 data: encode(new Uint8Array(int16.buffer)), 
                 mimeType: 'audio/pcm;rate=16000' 
               };
-              
-              // CRITICAL: Solely rely on sessionPromise resolves to send realtime data
               sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(scriptProcessor);
@@ -139,16 +149,8 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(sourceNode);
             }
-            
-            if (message.serverContent?.interrupted) {
-              for (const source of sourcesRef.current.values()) {
-                source.stop();
-                sourcesRef.current.delete(source);
-              }
-              nextStartTimeRef.current = 0;
-            }
           },
-          onerror: (e) => { console.error(e); stopVoiceCompanion(); },
+          onerror: (e) => { stopVoiceCompanion(); },
           onclose: () => stopVoiceCompanion(),
         },
         config: {
@@ -156,25 +158,22 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
-          systemInstruction: 'Bạn là Huynh - một trợ lý nhiệt huyết của GIVEBACK. Trả lời thân thiện, hào sảng bằng tiếng Việt.'
+          systemInstruction: 'Bạn là Huynh - trợ lý GIVEBACK. Trả lời nhiệt huyết bằng tiếng Việt.'
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err: any) { 
-      console.error(err);
       setIsVoiceMode(false); 
     }
   };
 
   return (
     <>
-      {/* OVERLAY */}
       <div 
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] transition-opacity duration-500 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
         onClick={onClose}
       ></div>
 
-      {/* SIDEBAR DRAWER */}
       <div className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white dark:bg-slate-900 z-[210] shadow-[-10px_0_30px_rgba(0,0,0,0.1)] transition-transform duration-500 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col border-l border-emerald-50 dark:border-slate-800`}>
         {/* Header */}
         <div className="p-8 bg-emerald-600 dark:bg-emerald-700 text-white flex justify-between items-center relative overflow-hidden">
@@ -182,8 +181,8 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
           <div className="relative flex items-center space-x-4">
             <div className={`w-3 h-3 bg-green-300 rounded-full ${isVoiceMode ? 'animate-ping' : ''}`}></div>
             <div>
-               <h3 className="font-black text-lg uppercase tracking-tighter italic">GIVEBACK AI</h3>
-               <p className="text-[9px] font-bold uppercase tracking-widest opacity-70">Người bạn đồng hành nhân ái</p>
+               <h3 className="font-black text-lg uppercase tracking-tighter italic text-white">GIVEBACK AI</h3>
+               <p className="text-[9px] font-bold uppercase tracking-widest opacity-70">Sẵn sàng sẻ chia</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
@@ -195,9 +194,32 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50 dark:bg-slate-950/20 custom-scrollbar">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-              <div className={`max-w-[85%] p-4 rounded-[2rem] text-sm font-medium shadow-sm transition-all ${m.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-emerald-50 rounded-tl-none border border-emerald-50 dark:border-slate-700'}`}>
+              <div className={`max-w-[85%] p-4 rounded-[2rem] text-sm font-medium shadow-sm transition-all ${
+                m.role === 'user' 
+                  ? 'bg-emerald-600 text-white rounded-tr-none' 
+                  : m.type === 'blocked' 
+                    ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-2 border-red-200 dark:border-red-900/50 rounded-tl-none'
+                    : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-emerald-50 rounded-tl-none border border-emerald-50 dark:border-slate-700'
+              }`}>
                 {m.content}
-                {m.isError && <button onClick={handleOpenKeySelector} className="block mt-2 text-[10px] underline font-black">CHỌN API KEY 🔑</button>}
+                
+                {m.type === 'blocked' && (
+                  <div className="mt-4 space-y-3">
+                    <button 
+                      onClick={handleOpenKeySelector}
+                      className="w-full bg-red-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-red-700 transition-all active:scale-95"
+                    >
+                      Đổi Key Free Ngay 🔑
+                    </button>
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      className="block text-center text-[8px] font-black text-red-500 underline uppercase"
+                    >
+                      Lấy Key Miễn Phí (Không cần thẻ)
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -213,7 +235,7 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input & Voice Controls */}
+        {/* Input Area */}
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-emerald-50 dark:border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
             <input 
@@ -232,19 +254,13 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
             </button>
           </div>
-          
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={isVoiceMode ? stopVoiceCompanion : startVoiceCompanion}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                <span>{isVoiceMode ? 'DỪNG TRÒ CHUYỆN' : 'TÂM SỰ GIỌNG NÓI'}</span>
-              </button>
-            </div>
-            <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest">v2.0 Beta</p>
-          </div>
+          <button 
+            onClick={isVoiceMode ? stopVoiceCompanion : startVoiceCompanion}
+            className={`w-full flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+            <span>{isVoiceMode ? 'DỪNG TRÒ CHUYỆN' : 'TÂM SỰ GIỌNG NÓI'}</span>
+          </button>
         </div>
       </div>
     </>
