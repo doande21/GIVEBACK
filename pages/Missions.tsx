@@ -40,7 +40,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
   return (
     <div className="pt-24 pb-20 px-4 max-w-6xl mx-auto min-h-screen font-['Plus_Jakarta_Sans']">
       <div className="text-center mb-16">
-        <h1 className="text-6xl font-black text-emerald-950 dark:text-emerald-400 uppercase tracking-tighter italic leading-none">Hành trình Sứ mệnh</h1>
+        <h1 className="text-6xl font-black text-emerald-950 dark:text-emerald-400 uppercase tracking-tighter  leading-none">Hành trình Sứ mệnh</h1>
         <p className="text-emerald-600 font-black text-[10px] uppercase tracking-[0.5em] mt-3">Mỗi chuyến đi, một linh hồn nhân ái</p>
       </div>
 
@@ -57,16 +57,16 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                   <div className="absolute bottom-8 left-10">
                     <span className="bg-white/20 backdrop-blur-md text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/20 mb-3 inline-block">Sứ mệnh tại</span>
-                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">{m.location}</h3>
+                    <h3 className="text-3xl font-black text-white uppercase  tracking-tighter leading-none">{m.location}</h3>
                   </div>
                 </div>
                 <div className="p-10">
-                  <p className="text-gray-500 dark:text-slate-400 text-base font-medium mb-8 line-clamp-2 italic leading-relaxed">"{m.description}"</p>
+                  <p className="text-gray-500 dark:text-slate-400 text-base font-medium mb-8 line-clamp-2  leading-relaxed">"{m.description}"</p>
                   
                   <div className="space-y-4 mb-10">
                     <div className="flex justify-between items-end">
                       <span className="text-[11px] font-black uppercase text-emerald-600 tracking-widest">Tiến độ quyên góp</span>
-                      <span className="text-2xl font-black text-emerald-950 dark:text-white italic">{progress}%</span>
+                      <span className="text-2xl font-black text-emerald-950 dark:text-white ">{progress}%</span>
                     </div>
                     <div className="w-full h-4 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
                       <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50" style={{ width: `${progress}%` }}></div>
@@ -83,7 +83,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
           })}
         </div>
       ) : (
-        <div className="text-center py-24 text-gray-300 font-black uppercase italic tracking-[0.5em] text-sm animate-pulse">Đang chuẩn bị các sứ mệnh tiếp theo...</div>
+        <div className="text-center py-24 text-gray-300 font-black uppercase  tracking-[0.5em] text-sm animate-pulse">Đang chuẩn bị các sứ mệnh tiếp theo...</div>
       )}
 
       {/* Soul of Mission Detail Modal */}
@@ -94,7 +94,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
              <div className="flex justify-between items-center mb-12">
                 <div className="flex items-center space-x-5">
                    <div className="w-3 h-12 bg-emerald-600 rounded-full"></div>
-                   <h2 className="text-4xl font-black uppercase italic text-emerald-950 dark:text-emerald-400 tracking-tighter">Chi tiết Sứ mệnh</h2>
+                   <h2 className="text-4xl font-black uppercase  text-emerald-950 dark:text-emerald-400 tracking-tighter">Chi tiết Sứ mệnh</h2>
                 </div>
                 <button onClick={() => setSelectedMission(null)} className="text-gray-300 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
@@ -139,7 +139,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                                </div>
                             )
                          }) : (
-                            <p className="col-span-full text-gray-400 font-bold italic text-sm text-center py-10">Đang cập nhật danh mục nhu yếu phẩm...</p>
+                            <p className="col-span-full text-gray-400 font-bold  text-sm text-center py-10">Đang cập nhật danh mục nhu yếu phẩm...</p>
                          )}
                       </div>
                    </div>
@@ -169,7 +169,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                    </div>
 
                    <div className="p-8 bg-amber-50 dark:bg-amber-900/10 rounded-[2.5rem] border border-amber-100 dark:border-amber-800">
-                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed italic">"Mỗi tấm hình Đệ thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
+                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed ">"Mỗi tấm hình Đệ thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
                    </div>
                 </div>
              </div>

@@ -320,7 +320,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
             <>
               {targetUser.bio && (
                 <div className="mb-10 p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100">
-                  <p className="text-gray-600 font-bold italic text-sm leading-relaxed">"{targetUser.bio}"</p>
+                  <p className="text-gray-600 font-bold  text-sm leading-relaxed">"{targetUser.bio}"</p>
                 </div>
               )}
 
@@ -366,7 +366,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                          <span>{post.hearts?.length || 0} ❤️ • {post.comments?.length || 0} 💬</span>
                       </div>
                     </div>
-                  )) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa có bài viết nào...</div>
+                  )) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa có bài viết nào...</div>
                 )}
                 
                 {activeTab === 'given' && (
@@ -382,7 +382,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                         </div>
                       ))}
                     </div>
-                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa đăng món quà nào...</div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa đăng món quà nào...</div>
                 )}
 
                 {activeTab === 'friends' && (
@@ -399,7 +399,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                          </div>
                        ))}
                     </div>
-                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest italic">Chưa có đồng đội nào...</div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa có đồng đội nào...</div>
                 )}
               </div>
             </>

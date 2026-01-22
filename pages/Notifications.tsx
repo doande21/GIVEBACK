@@ -65,7 +65,7 @@ const Notifications: React.FC<NotificationsProps> = ({ user, onNotify, onUpdateU
   return (
     <div className="pt-24 pb-12 px-4 max-w-2xl mx-auto min-h-screen font-['Inter']">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-emerald-950 italic uppercase tracking-tighter leading-none">Trung tâm Thông báo</h1>
+        <h1 className="text-3xl font-black text-emerald-950  uppercase tracking-tighter leading-none">Trung tâm Thông báo</h1>
         <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Kết nối những tấm lòng đồng điệu</p>
       </div>
 
@@ -84,7 +84,7 @@ const Notifications: React.FC<NotificationsProps> = ({ user, onNotify, onUpdateU
                 />
                 <div>
                   <p 
-                    className="font-black text-sm text-emerald-950 uppercase italic tracking-tighter cursor-pointer hover:text-emerald-700"
+                    className="font-black text-sm text-emerald-950 uppercase  tracking-tighter cursor-pointer hover:text-emerald-700"
                     onClick={() => onViewProfile(req.fromId)}
                   >
                     {req.fromName}
@@ -116,7 +116,7 @@ const Notifications: React.FC<NotificationsProps> = ({ user, onNotify, onUpdateU
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <p className="text-[10px] font-black uppercase italic text-gray-300 tracking-[0.3em]">Hộp thư thông báo đang trống</p>
+            <p className="text-[10px] font-black uppercase  text-gray-300 tracking-[0.3em]">Hộp thư thông báo đang trống</p>
           </div>
         )}
       </div>

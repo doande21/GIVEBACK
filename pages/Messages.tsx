@@ -197,7 +197,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
         {/* SIDEBAR */}
         <div className={`lg:flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 overflow-hidden ${selectedSession ? 'hidden' : 'flex'} lg:w-[400px] p-6 shadow-sm`}>
           <div className="mb-8 flex justify-between items-center">
-             <h1 className="text-3xl font-black text-emerald-950 dark:text-emerald-400 uppercase italic tracking-tighter">Tâm sự</h1>
+             <h1 className="text-3xl font-black text-emerald-950 dark:text-emerald-400 uppercase  tracking-tighter">Tâm sự</h1>
              <button className="p-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 rounded-full">
                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
              </button>
@@ -235,7 +235,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                 <div className="flex items-center space-x-4">
                   <button onClick={() => setSelectedSession(null)} className="lg:hidden text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
                   <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black">{getPartnerName(selectedSession).charAt(0)}</div>
-                  <h3 className="font-black dark:text-white uppercase text-sm italic">{getPartnerName(selectedSession)}</h3>
+                  <h3 className="font-black dark:text-white uppercase text-sm ">{getPartnerName(selectedSession)}</h3>
                 </div>
                 <div className="relative">
                   <button onClick={() => setActiveMenuId('header')} className="text-gray-400 hover:text-emerald-500 p-2">
@@ -274,7 +274,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                 ))}
                 {isUploading && (
                    <div className="flex justify-end animate-pulse">
-                      <div className="bg-emerald-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600 italic">Đang tải ảnh...</div>
+                      <div className="bg-emerald-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600 ">Đang tải ảnh...</div>
                    </div>
                 )}
                 <div ref={chatEndRef}></div>
@@ -345,7 +345,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-8 border-4 border-white dark:border-slate-800">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-emerald-600/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                </div>
-               <h3 className="text-xl font-black text-gray-400 dark:text-emerald-400/20 uppercase tracking-widest italic">Chọn một người để trò chuyện</h3>
+               <h3 className="text-xl font-black text-gray-400 dark:text-emerald-400/20 uppercase tracking-widest ">Chọn một người để trò chuyện</h3>
             </div>
           )}
         </div>

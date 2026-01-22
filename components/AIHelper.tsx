@@ -184,7 +184,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
           <div className="relative flex items-center space-x-4">
             <div className={`w-3 h-3 bg-green-300 rounded-full ${isVoiceMode ? 'animate-ping' : ''}`}></div>
             <div>
-               <h3 className="font-black text-lg uppercase tracking-tighter italic text-white">GIVEBACK AI</h3>
+               <h3 className="font-black text-lg uppercase tracking-tighter  text-white">GIVEBACK AI</h3>
                <p className="text-[9px] font-bold uppercase tracking-widest opacity-70">Sẵn sàng sẻ chia</p>
             </div>
           </div>

@@ -312,7 +312,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <img src={post.authorAvatar} className="w-14 h-14 rounded-2xl object-cover border-2 border-gray-50 shadow-sm" alt="" />
                    <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 italic">"{post.content}"</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 ">"{post.content}"</p>
                    </div>
                    <button onClick={() => { if(window.confirm("Xóa bài này?")) deleteDoc(doc(db, "social_posts", post.id)) }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -446,7 +446,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                 </div>
                 
                 <div className="space-y-4 pt-4">
-                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4 italic">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
+                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4 ">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
                    <div className="grid grid-cols-3 gap-3">
                       {auctionForm.gallery.map((img, idx) => (
                         <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border-2 border-indigo-50">

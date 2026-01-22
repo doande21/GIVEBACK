@@ -22,7 +22,7 @@ const Contact: React.FC = () => {
       value: 'GIVEBACK - Admin',
       label: 'NHẮN TIN ZALO',
       icon: (
-        <div className="font-black text-xl italic tracking-tighter">Zalo</div>
+        <div className="font-black text-xl  tracking-tighter">Zalo</div>
       ),
       color: 'bg-blue-500',
       lightColor: 'bg-blue-50',
@@ -49,8 +49,8 @@ const Contact: React.FC = () => {
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto min-h-screen">
       <div className="text-center mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50"></div>
-        <h1 className="text-5xl font-black text-blue-900 italic uppercase tracking-tighter mb-4 relative">Liên hệ chúng tôi</h1>
-        <p className="text-emerald-600 font-black text-xs uppercase tracking-[0.4em] italic"> GIVEBACK luôn sẵn sàng lắng nghe</p>
+        <h1 className="text-5xl font-black text-blue-900  uppercase tracking-tighter mb-4 relative">Liên hệ chúng tôi</h1>
+        <p className="text-emerald-600 font-black text-xs uppercase tracking-[0.4em] "> GIVEBACK luôn sẵn sàng lắng nghe</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -70,7 +70,7 @@ const Contact: React.FC = () => {
             </div>
 
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-2 relative">{method.name}</h3>
-            <p className="text-xl font-black text-gray-900 mb-10 relative italic tracking-tight">{method.value}</p>
+            <p className="text-xl font-black text-gray-900 mb-10 relative  tracking-tight">{method.value}</p>
 
             <div className={`mt-auto w-full ${method.color} text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-gray-200 group-hover:shadow-xl group-hover:scale-[1.02] active:scale-95 transition-all`}>
               {method.label}
@@ -83,13 +83,13 @@ const Contact: React.FC = () => {
         <div className="absolute inset-0 bg-emerald-600/10 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left">
-            <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-2"> GIVEBACK</h2>
-            <p className="text-emerald-400 font-bold text-sm italic">41 Nguyễn Quảng, Tỉnh Gia Lai, Việt Nam</p>
+            <h2 className="text-3xl font-black  uppercase tracking-tighter mb-2"> GIVEBACK</h2>
+            <p className="text-emerald-400 font-bold text-sm ">41 Nguyễn Quảng, Tỉnh Gia Lai, Việt Nam</p>
             <p className="text-gray-400 text-xs mt-4 uppercase font-black tracking-widest">Thời gian hỗ trợ: 08:00 - 20:00 hàng ngày</p>
           </div>
           <div className="flex -space-x-4">
             {[1,2,3,4].map(i => (
-              <div key={i} className="w-16 h-16 rounded-full border-4 border-gray-900 bg-emerald-600 flex items-center justify-center font-black text-xl italic shadow-2xl">
+              <div key={i} className="w-16 h-16 rounded-full border-4 border-gray-900 bg-emerald-600 flex items-center justify-center font-black text-xl  shadow-2xl">
                 {String.fromCharCode(64 + i)}
               </div>
             ))}

@@ -72,7 +72,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
         <h3 className="text-lg font-black uppercase tracking-tighter mb-2 truncate text-emerald-950 dark:text-emerald-50 group-hover:text-emerald-500 transition-colors">
           {item.title}
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-6 h-9 font-medium leading-relaxed italic">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-6 h-9 font-medium leading-relaxed ">
           "{item.description || 'Không có mô tả.'}"
         </p>
         

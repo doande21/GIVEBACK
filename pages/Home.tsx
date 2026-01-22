@@ -143,7 +143,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
       {/* Create Post Entry */}
       <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-emerald-50 dark:border-slate-800 flex items-center space-x-5 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all active:scale-95 group">
         <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`} className="w-12 h-12 rounded-2xl bg-gray-100 object-cover shadow-sm group-hover:rotate-6 transition-transform" alt="" />
-        <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold italic">
+        <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold ">
           {user.name} ơi, bạn đang nghĩ gì thế?
         </div>
         <div className="flex space-x-3 text-emerald-600">
@@ -154,7 +154,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
       {currentMission && (
         <div onClick={() => setActiveTab('missions')} className="bg-[#045d43] rounded-[3.5rem] p-12 text-white relative overflow-hidden shadow-2xl group cursor-pointer hover:scale-[1.01] transition-all">
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4 italic leading-none">VÌ {currentMission.location} THÂN YÊU</h2>
+            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4  leading-none">VÌ {currentMission.location} THÂN YÊU</h2>
             <div className="w-full h-5 bg-white/10 rounded-full overflow-hidden p-0.5 mt-8 shadow-inner">
               <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-200 rounded-full transition-all duration-1000 shadow-emerald-500/50" style={{ width: `${missionProgress}%` }}></div>
             </div>
@@ -182,7 +182,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                   </div>
                 </div>
               </div>
-              <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium italic leading-relaxed">"{post.content}"</p></div>
+              <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium  leading-relaxed">"{post.content}"</p></div>
               {post.media?.[0] && (
                 <div className="px-8 pb-10">
                   {post.media[0].type === 'video' ? 
@@ -284,7 +284,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
           <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
              <div className="flex justify-between items-center mb-10">
-               <h3 className="text-3xl font-black uppercase italic text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
+               <h3 className="text-3xl font-black uppercase  text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
                <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
@@ -293,7 +293,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                 <textarea 
                   required 
                   rows={4} 
-                  className="w-full bg-gray-50 dark:bg-slate-800 p-10 rounded-[3rem] font-bold text-xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all placeholder:text-gray-300 italic dark:text-white" 
+                  className="w-full bg-gray-50 dark:bg-slate-800 p-10 rounded-[3rem] font-bold text-xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all placeholder:text-gray-300  dark:text-white" 
                   placeholder={`${user.name} ơi, bạn đang nghĩ gì thế?`} 
                   value={postContent} 
                   onChange={(e) => setPostContent(e.target.value)} 

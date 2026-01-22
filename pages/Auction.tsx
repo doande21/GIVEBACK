@@ -99,7 +99,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
       <div className="mb-12 text-center max-w-2xl mx-auto">
-        <h1 className="text-5xl font-black text-amber-900 dark:text-amber-500 italic uppercase tracking-tighter">Sàn Đấu giá Nhân văn</h1>
+        <h1 className="text-5xl font-black text-amber-900 dark:text-amber-500  uppercase tracking-tighter">Sàn Đấu giá Nhân văn</h1>
         <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.4em] mt-4 leading-relaxed">
           Nơi hội tụ những món đồ quý giá được các nhà tài trợ gửi gắm thông qua Admin GIVEBACK. 
           Số tiền thu được sẽ dành trọn cho hoạt động cứu trợ.
@@ -112,8 +112,8 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
               <path d="M14.7 6.4L13.6 5.3c-.4-.4-1-.4-1.4 0L2.5 15c-.4.4-.4 1 0 1.4l1.1 1.1c.4.4 1 .4 1.4 0L14.7 7.8c.4-.4.4-1 0-1.4z M16.5 10.3l1.8-1.8c.4-.4.4-1 0-1.4l-3.2-3.2c-.4-.4-1-.4-1.4 0l-1.8 1.8 4.6 4.6z"/>
             </svg>
          </div>
-         <h2 className="text-2xl font-black italic uppercase text-amber-900 dark:text-amber-500 mb-4 tracking-tight">Bạn muốn đóng góp vật phẩm đấu giá?</h2>
-         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-8 max-w-md mx-auto italic leading-relaxed">Nếu bạn sở hữu món đồ có giá trị và muốn đấu giá để gây quỹ, hãy liên hệ trực tiếp với Admin để được thẩm định và lên sàn nhé!</p>
+         <h2 className="text-2xl font-black uppercase text-amber-900 dark:text-amber-500 mb-4 tracking-tight">Bạn muốn đóng góp vật phẩm đấu giá?</h2>
+         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-8 max-w-md mx-auto  leading-relaxed">Nếu bạn sở hữu món đồ có giá trị và muốn đấu giá để gây quỹ, hãy liên hệ trực tiếp với Admin để được thẩm định và lên sàn nhé!</p>
          <button 
           onClick={() => setActiveTab?.('contact')}
           className="bg-amber-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-amber-100 dark:shadow-none hover:bg-amber-700 active:scale-95 transition-all"
@@ -130,7 +130,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
               
               <div className="absolute top-6 left-6 flex flex-col space-y-2">
-                <span className="bg-amber-500 text-amber-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic w-fit">Đã xác thực</span>
+                <span className="bg-amber-500 text-amber-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg  w-fit">Đã xác thực</span>
                 <span className="bg-white/90 text-gray-900 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm w-fit">
                    ⏳ {calculateTimeLeft(item.endTime)}
                 </span>
@@ -144,13 +144,13 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
 
               <div className="absolute bottom-6 left-6 right-6">
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Dành cho chuyến cứu trợ</p>
-                <p className="text-lg font-black text-white italic truncate uppercase tracking-tighter">{item.missionLocation}</p>
+                <p className="text-lg font-black text-white  truncate uppercase tracking-tighter">{item.missionLocation}</p>
               </div>
             </div>
 
             <div className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-black italic uppercase text-gray-900 dark:text-white truncate pr-2">{item.title}</h3>
+                <h3 className="text-xl font-black  uppercase text-gray-900 dark:text-white truncate pr-2">{item.title}</h3>
               </div>
               
               <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900 mb-8">
@@ -228,7 +228,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                 )}
 
                 <div className="absolute top-8 left-8">
-                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl italic">Góc nhìn {currentImgIndex + 1}</span>
+                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl ">Góc nhìn {currentImgIndex + 1}</span>
                 </div>
              </div>
 
@@ -237,7 +237,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Phiên đang diễn ra</span>
                 </div>
-                <h3 className="text-3xl font-black italic uppercase text-amber-950 dark:text-amber-500 mb-4 tracking-tight">{selectedAuction.title}</h3>
+                <h3 className="text-3xl font-black  uppercase text-amber-950 dark:text-amber-500 mb-4 tracking-tight">{selectedAuction.title}</h3>
                 
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-8 rounded-[2.5rem] border border-amber-100 dark:border-amber-900 mb-8 text-center">
                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2">Giá cao nhất hiện tại</p>
@@ -246,7 +246,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                       <div className="w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center text-[10px] font-black text-amber-700 dark:text-amber-300">
                         {(selectedAuction.highestBidderName || "?").charAt(0)}
                       </div>
-                      <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold italic">{selectedAuction.highestBidderName || "Hãy là người đặt giá đầu tiên"}</p>
+                      <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold ">{selectedAuction.highestBidderName || "Hãy là người đặt giá đầu tiên"}</p>
                    </div>
                 </div>
 
@@ -285,7 +285,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
 
                 <div className="mt-10 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Góp sức cho:</p>
-                   <p className="text-xs font-black text-amber-900 dark:text-amber-500 italic uppercase">{selectedAuction.missionLocation}</p>
+                   <p className="text-xs font-black text-amber-900 dark:text-amber-500  uppercase">{selectedAuction.missionLocation}</p>
                 </div>
              </div>
           </div>
