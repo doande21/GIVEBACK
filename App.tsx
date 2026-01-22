@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -19,7 +20,7 @@ import { db } from './services/firebase';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('market'); // Tab mặc định là Sàn tặng đồ
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -63,13 +64,13 @@ const App: React.FC = () => {
   const handleLogin = (role: 'user' | 'admin', userData?: User) => {
     if (userData) {
       setUser(userData);
-      setActiveTab('home');
+      setActiveTab('market'); // Chuyển về market sau khi login
     }
   };
 
   const handleLogout = () => {
     setUser(null);
-    setActiveTab('home');
+    setActiveTab('market'); // Reset về market
     setViewingUserId(null);
     setIsAiOpen(false);
   };
@@ -88,8 +89,8 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
       case 'market': return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
+      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
       case 'sponsors': return <Sponsors />;
       case 'auction': return <Auction user={user} onNotify={handleNotify} setActiveTab={setActiveTab} />;
       case 'map': return <MapSearch />;
@@ -111,20 +112,20 @@ const App: React.FC = () => {
         <Notifications user={user} onNotify={handleNotify} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
       );
       case 'missions': return <Missions setActiveTab={setActiveTab} />;
-      default: return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
+      default: return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
     }
   };
 
   const navItems = [
     { 
-      id: 'home', 
-      label: 'BẢN TIN', 
-      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> 
-    },
-    { 
       id: 'market', 
       label: 'TẶNG ĐỒ', 
       icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.89 1.35 12 2.5 11.11 1.35C10.5 0.5 9.75 0 9 0 7.34 0 6 1.34 6 3c0 0.35 0.07 0.69 0.18 1H4c-1.11 0-2 0.89-2 2v13c0 1.11 0.89 2 2 2h16c1.11 0 2-0.89 2-2V6c0-1.11-0.89-2-2-2h-2.18c0.11-0.31 0.18-0.65 0.18-1 0-1.66-1.34-3-3-3-0.75 0-1.5 0.5-2.11 1.35ZM9 2c0.55 0 1 0.45 1 1s-0.45 1-1 1-1-0.45-1-1 0.45-1 1-1ZM15 2c0.55 0 1 0.45 1 1s-0.45 1-1 1-1-0.45-1-1 0.45-1 1-1ZM4 6h16v2H4V6ZM4 19V10h16v9H4Z"/></svg> 
+    },
+    { 
+      id: 'home', 
+      label: 'BẢN TIN', 
+      icon: <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> 
     },
     { 
       id: 'sponsors', 

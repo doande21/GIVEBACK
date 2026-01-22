@@ -49,7 +49,7 @@
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div 
             className="flex items-center space-x-2 cursor-pointer group"
-            onClick={() => setActiveTab('home')}
+            onClick={() => setActiveTab('market')}
           >
             <div className="bg-[#10b981] dark:bg-emerald-500 p-1.5 rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none transition-transform group-hover:scale-110">
               <svg viewBox="0 0 24 24" className="w-5 h-5 text-white fill-current">

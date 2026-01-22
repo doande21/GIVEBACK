@@ -16,7 +16,7 @@ import { db } from '../services/firebase';
 import { analyzeDonationItem } from '../services/geminiService';
 
 const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve) => {
     const img = new Image();
     img.src = base64Str;
     img.onload = () => {
@@ -80,11 +80,18 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
     if (files.length === 0) return;
 
     setIsAiScanning(true);
-    const firstFile = files[0];
+    // Cast to File explicitly, which extends browser Blob
+    const firstFile: File = files[0];
     const reader = new FileReader();
     
     reader.onloadend = async () => {
-      let base64 = reader.result as string;
+      // FileReader result can be string or ArrayBuffer; analyzeDonationItem expects a base64 string
+      const base64 = typeof reader.result === 'string' ? reader.result : '';
+      if (!base64) {
+        setIsAiScanning(false);
+        return;
+      }
+
       const compressed = await compressImage(base64);
       setSelectedMedia([{ url: compressed, type: 'image' }]);
       
@@ -165,7 +172,8 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
         author: user.name,
         authorId: user.id,
         status: 'available',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
       setIsModalOpen(false);
       onNotify('success', "Đã đăng tặng thành công!");

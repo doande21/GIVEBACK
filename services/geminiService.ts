@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, Blob as GenAIBlob } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
@@ -18,7 +18,7 @@ export const getAIAssistance = async (prompt: string) => {
       config: { systemInstruction: SYSTEM_INSTRUCTION }
     });
     
-    // Kiểm tra an toàn trước khi truy cập .text
+    // Correctly access .text property from GenerateContentResponse
     if (response && response.text) {
       return response.text;
     }
@@ -57,7 +57,8 @@ export const analyzeDonationItem = async (imageData: string, description: string
       "bookAuthor": "string", "bookGenre": "string"
     }`;
 
-    const imagePart: { inlineData: GenAIBlob } = { 
+    // Defined the image part structure without using the SDK's Blob type name to avoid conflict with browser Blob
+    const imagePart = { 
       inlineData: { 
         mimeType: "image/jpeg", 
         data: imageData.split(',')[1] || "" 
@@ -96,7 +97,7 @@ export const generateMissionImage = async (location: string, description: string
       config: { imageConfig: { aspectRatio: "16:9" } },
     });
     
-    // Kiểm tra an toàn sâu cho candidates và parts
+    // Safely iterate through candidate parts to find the generated image
     const candidate = response.candidates?.[0];
     const parts = candidate?.content?.parts;
     if (parts) {
@@ -121,8 +122,9 @@ export const searchCharityLocations = async (query: string, lat?: number, lng?: 
 
   try {
     const ai = new GoogleGenAI({ apiKey });
+    // Maps grounding is only supported in Gemini 2.5 series models
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash-latest',
       contents: query,
       config: {
         tools: [{ googleMaps: {} }],

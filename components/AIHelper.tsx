@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { getAIAssistance } from '../services/geminiService';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAIBlob } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 
-interface AIHelperProps {
-  isOpen: boolean;
-  onClose: () => void;
+// Interface defined locally to avoid conflict with browser's global Blob type
+interface SDKBlob {
+  mimeType: string;
+  data: string;
 }
 
 function encode(bytes: Uint8Array) {
@@ -39,7 +40,7 @@ async function decodeAudioData(
   return buffer;
 }
 
-const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
+const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string, type?: 'text' | 'error' | 'blocked'}[]>([
@@ -93,7 +94,7 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
         setMessages(prev => [...prev, {role: 'bot', content: response}]);
       }
     } catch (error: any) {
-       setMessages(prev => [...prev, { role: 'bot', type: 'error', content: "Có chút trục trặc kết nối, Đệ thử lại nhé." }]);
+       setMessages(prev => [...prev, { role: 'bot', type: 'error', content: "Có chút trục thặc kết nối, Đệ thử lại nhé." }]);
     } finally {
       setIsLoading(false);
     }
@@ -127,16 +128,18 @@ const AIHelper: React.FC<AIHelperProps> = ({ isOpen, onClose }) => {
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-              const pcmBlob: GenAIBlob = { 
+              const pcmBlob: SDKBlob = { 
                 data: encode(new Uint8Array(int16.buffer)), 
                 mimeType: 'audio/pcm;rate=16000' 
               };
+              // Initiate sendRealtimeInput after live.connect call resolves to prevent race conditions
               sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(scriptProcessor);
             scriptProcessor.connect(audioContextRef.current!.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
+            // Process the model's output audio bytes from modelTurn
             const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             if (base64Audio && outAudioContextRef.current) {
               const ctx = outAudioContextRef.current;
