@@ -351,7 +351,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <div className="bg-arial-50/50 dark:bg-arial-900/10 p-6 rounded-[2rem] space-y-4 border border-arial-100 dark:border-arial-800 text-[11px] font-bold">
-                        <p className="text-[10px] font-black text-arial-700 dark:text-arial-400 uppercase italic">Thông số AI quét được:</p>
+                        <p className="text-[10px] font-black text-arial-700 dark:text-arial-400 uppercase">Thông số AI quét được:</p>
                         {newPost.category === 'Quần áo' ? (
                           <div className="grid grid-cols-2 gap-4">
                             <div>Tuổi: <span className="text-arial-600">{newPost.minAge}-{newPost.maxAge}</span></div>
