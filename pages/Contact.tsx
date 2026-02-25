@@ -12,9 +12,9 @@ const Contact: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
         </svg>
       ),
-      color: 'bg-emerald-600',
-      lightColor: 'bg-emerald-50',
-      textColor: 'text-emerald-600',
+      color: 'bg-Klavika-600',
+      lightColor: 'bg-Klavika-50',
+      textColor: 'text-Klavika-600',
       link: 'tel:0333297621'
     },
     {
@@ -48,9 +48,9 @@ const Contact: React.FC = () => {
   return (
     <div className="pt-32 pb-20 px-4 max-w-6xl mx-auto min-h-screen">
       <div className="text-center mb-16 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-50"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 w-40 h-40 bg-Klavika-100 rounded-full blur-3xl opacity-50"></div>
         <h1 className="text-5xl font-black text-blue-900  uppercase tracking-tighter mb-4 relative">Liên hệ chúng tôi</h1>
-        <p className="text-emerald-600 font-black text-xs uppercase tracking-[0.4em] "> GIVEBACK luôn sẵn sàng lắng nghe</p>
+        <p className="text-Klavika-600 font-black text-xs uppercase tracking-[0.4em] "> GIVEBACK luôn sẵn sàng lắng nghe</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -80,20 +80,20 @@ const Contact: React.FC = () => {
       </div>
 
       <div className="mt-20 bg-gray-900 rounded-[4rem] p-12 text-white relative overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 bg-emerald-600/10 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div className="absolute inset-0 bg-Klavika-600/10 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left">
             <h2 className="text-3xl font-black  uppercase tracking-tighter mb-2"> GIVEBACK</h2>
-            <p className="text-emerald-400 font-bold text-sm ">41 Nguyễn Quảng, Tỉnh Gia Lai, Việt Nam</p>
+            <p className="text-Klavika-400 font-bold text-sm ">41 Nguyễn Quảng, Tỉnh Gia Lai, Việt Nam</p>
             <p className="text-gray-400 text-xs mt-4 uppercase font-black tracking-widest">Thời gian hỗ trợ: 08:00 - 20:00 hàng ngày</p>
           </div>
           <div className="flex -space-x-4">
             {[1,2,3,4].map(i => (
-              <div key={i} className="w-16 h-16 rounded-full border-4 border-gray-900 bg-emerald-600 flex items-center justify-center font-black text-xl  shadow-2xl">
+              <div key={i} className="w-16 h-16 rounded-full border-4 border-gray-900 bg-Klavika-600 flex items-center justify-center font-black text-xl  shadow-2xl">
                 {String.fromCharCode(64 + i)}
               </div>
             ))}
-            <div className="w-16 h-16 rounded-full border-4 border-gray-900 bg-emerald-100 text-emerald-900 flex items-center justify-center font-black text-xs">
+            <div className="w-16 h-16 rounded-full border-4 border-gray-900 bg-Klavika-100 text-Klavika-900 flex items-center justify-center font-black text-xs">
               +99
             </div>
           </div>

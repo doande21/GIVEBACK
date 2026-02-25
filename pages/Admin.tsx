@@ -207,10 +207,10 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
       <div className="flex flex-col lg:flex-row justify-between items-start mb-10 gap-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase leading-none">Admin Dashboard</h1>
-          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4">Quản lý minh bạch, lan tỏa yêu thương</p>
+          <p className="text-Klavika-600 font-bold text-[10px] uppercase tracking-widest mt-4">Quản lý minh bạch, lan tỏa yêu thương</p>
         </div>
         <div className="flex bg-gray-900 p-1.5 rounded-[2.5rem] shadow-2xl overflow-x-auto scrollbar-hide max-w-full border border-gray-800">
-          <button onClick={() => setActiveSubTab('missions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'missions' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vùng cứu trợ</button>
+          <button onClick={() => setActiveSubTab('missions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'missions' ? 'bg-Klavika-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vùng cứu trợ</button>
           <button onClick={() => setActiveSubTab('sponsors')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'sponsors' ? 'bg-amber-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vinh danh</button>
           <button onClick={() => setActiveSubTab('auctions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'auctions' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Đấu giá</button>
           <button onClick={() => setActiveSubTab('posts')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'posts' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Kiểm duyệt</button>
@@ -219,20 +219,20 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
 
       {activeSubTab === 'missions' && (
         <div className="space-y-8 animate-in fade-in duration-500">
-           <div className="bg-emerald-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
+           <div className="bg-Klavika-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
              <div className="text-center md:text-left">
                 <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Chiến dịch cứu trợ</h2>
-                <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest">Quản lý ngân sách & nhu yếu phẩm vùng cao.</p>
+                <p className="text-Klavika-300 font-bold text-xs uppercase tracking-widest">Quản lý ngân sách & nhu yếu phẩm vùng cao.</p>
              </div>
-             <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [], gallery: [] }); setIsMissionModalOpen(true); }} className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
+             <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [], gallery: [] }); setIsMissionModalOpen(true); }} className="bg-white text-Klavika-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
            </div>
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {missions.map(m => (
                 <div key={m.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 flex gap-5 items-center">
                    <img src={m.image || "https://placehold.co/150x150?text=Mission"} className="w-20 h-20 rounded-[2rem] object-cover" alt="" />
-                   <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 dark:text-emerald-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
+                   <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-Klavika-950 dark:text-Klavika-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
                    <div className="flex gap-2">
-                      <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                      <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-Klavika-50 text-Klavika-600 rounded-xl hover:bg-Klavika-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                       <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                    </div>
                 </div>
@@ -326,51 +326,51 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
       {/* MODAL: SỨ MỆNH */}
       {isMissionModalOpen && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsMissionModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-4xl p-8 md:p-12 rounded-[3rem] shadow-2xl h-fit max-h-[90vh] overflow-y-auto custom-scrollbar border-4 border-emerald-50">
-             <h3 className="text-2xl font-black uppercase text-emerald-900 mb-10 text-center tracking-tighter">CẬP NHẬT CHI TIẾT SỨ MỆNH</h3>
+          <div className="absolute inset-0 bg-Klavika-950/80 backdrop-blur-md" onClick={() => setIsMissionModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-4xl p-8 md:p-12 rounded-[3rem] shadow-2xl h-fit max-h-[90vh] overflow-y-auto custom-scrollbar border-4 border-Klavika-50">
+             <h3 className="text-2xl font-black uppercase text-Klavika-900 mb-10 text-center tracking-tighter">CẬP NHẬT CHI TIẾT SỨ MỆNH</h3>
              <form onSubmit={handleSaveMission} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Vùng cứu trợ</label>
-                      <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Vd: Vân Canh, Hà Giang..." value={missionForm.location} onChange={e => setMissionForm({...missionForm, location: e.target.value})} />
+                      <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-Klavika-950 focus:border-Klavika-500" placeholder="Vd: Vân Canh, Hà Giang..." value={missionForm.location} onChange={e => setMissionForm({...missionForm, location: e.target.value})} />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Ngày đi</label>
-                      <input type="date" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" value={missionForm.date} onChange={e => setMissionForm({...missionForm, date: e.target.value})} />
+                      <input type="date" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-Klavika-950 focus:border-Klavika-500" value={missionForm.date} onChange={e => setMissionForm({...missionForm, date: e.target.value})} />
                    </div>
                 </div>
                 <div className="space-y-2">
                    <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Ngân sách dự kiến (VNĐ)</label>
-                   <input type="number" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Nhập số tiền..." value={missionForm.targetBudget || ''} onChange={e => setMissionForm({...missionForm, targetBudget: Number(e.target.value)})} />
+                   <input type="number" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-Klavika-950 focus:border-Klavika-500" placeholder="Nhập số tiền..." value={missionForm.targetBudget || ''} onChange={e => setMissionForm({...missionForm, targetBudget: Number(e.target.value)})} />
                 </div>
-                <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Mô tả kế hoạch..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
+                <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-Klavika-950 focus:border-Klavika-500" placeholder="Mô tả kế hoạch..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
                 
                 <div className="space-y-4 pt-4 border-t border-gray-100">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Danh sách nhu yếu phẩm</h4>
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-Klavika-600">Danh sách nhu yếu phẩm</h4>
                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <input className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Tên món" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
                         <input type="number" className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Số lượng" value={newItem.target || ''} onChange={e => setNewItem({...newItem, target: Number(e.target.value)})} />
                         <input className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Đơn vị" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} />
                       </div>
-                      <button type="button" onClick={addNeededItem} className="w-full bg-emerald-100 text-emerald-700 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Thêm món +</button>
+                      <button type="button" onClick={addNeededItem} className="w-full bg-Klavika-100 text-Klavika-700 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-Klavika-600 hover:text-white transition-all">Thêm món +</button>
                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                   <div className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden bg-gray-50 group hover:border-emerald-300">
-                      {missionForm.image ? <img src={missionForm.image} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-emerald-300">Ảnh bìa sứ mệnh</span>}
+                   <div className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden bg-gray-50 group hover:border-Klavika-300">
+                      {missionForm.image ? <img src={missionForm.image} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-Klavika-300">Ảnh bìa sứ mệnh</span>}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-3">
-                        <button type="button" onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, image:url}), 800); i.click(); }} className="bg-white text-emerald-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Tải ảnh 📤</button>
-                        <button type="button" onClick={handleGenAIVision} disabled={isGeneratingAIVision} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">AI ✨</button>
+                        <button type="button" onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, image:url}), 800); i.click(); }} className="bg-white text-Klavika-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Tải ảnh 📤</button>
+                        <button type="button" onClick={handleGenAIVision} disabled={isGeneratingAIVision} className="bg-Klavika-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">AI ✨</button>
                       </div>
                    </div>
-                   <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, qrCode:url}), 600); i.click(); }} className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 relative overflow-hidden bg-gray-50 group hover:border-amber-300 transition-all">
+                   <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, qrCode:url}), 600); i.click(); }} className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-Klavika-50 relative overflow-hidden bg-gray-50 group hover:border-amber-300 transition-all">
                       {missionForm.qrCode ? <img src={missionForm.qrCode} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-amber-300 text-center px-4">Tải ảnh mã QR Ngân hàng</span>}
                    </div>
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-emerald-950 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-black transition-all">
+                <button type="submit" disabled={loading} className="w-full bg-Klavika-950 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-black transition-all">
                   {loading ? "ĐANG LƯU..." : "XÁC NHẬN LƯU CHIẾN DỊCH 🚀"}
                 </button>
              </form>

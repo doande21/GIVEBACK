@@ -6,12 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIVEBACK - Nền tảng chia sẻ yêu thương 100% tự nguyện</title>
     
+    <!-- Import Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,800&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              brand: ['Plus Jakarta Sans', 'sans-serif'],
+            },
             colors: {
               emerald: {
                 950: '#022c22',
@@ -27,10 +36,10 @@
             --primary-color: #10b981; 
             --bg-main: #f8fafc;
             --text-main: #064e3b;
-            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            /* Thiết lập font chính */
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Khi class .dark được thêm vào thẻ html */
         .dark {
             --bg-main: #020617;
             --text-main: #f0fdf4;
@@ -41,26 +50,36 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            font-family: var(--font-main);
             background-color: var(--bg-main);
             color: var(--text-main);
             transition: background-color 0.3s ease, color 0.3s ease;
+            /* Đảm bảo toàn hệ thống dùng font Inter */
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ĐỊNH NGHĨA STYLE BRANDING CHO TOÀN BỘ TIÊU ĐỀ */
+        h1, h2, h3, .brand-heading {
+            font-family: 'Klavika', sans-serif !important;
+            font-weight: 900 !important;
+            text-transform: uppercase !important;
+          
+            letter-spacing: -0.05em !important;
         }
 
         /* CON TRỎ NHẤP NHÁY MÀU EMERALD */
         input, textarea, select {
             caret-color: #10b981 !important;
             color: inherit;
+            font-family: inherit;
         }
+        
         .dark input, .dark textarea, .dark select {
             caret-color: #34d399 !important;
             color: #f0fdf4 !important;
         }
 
-        /* Loại bỏ font-style italic mặc định của browser nếu có */
-        * { font-style: normal !important; }
-        .italic, i, em { font-style: italic !important; }
-
+        /* Scrollbar style */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { 
@@ -82,6 +101,15 @@
         .animate-heart { animation: heart-rise 2s ease-out infinite; }
         
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        
+        /* Hiệu ứng quét cho AI */
+        @keyframes scan {
+          0% { top: 0; }
+          100% { top: 100%; }
+        }
+        .animate-scan {
+          animation: scan 2s linear infinite;
+        }
     </style>
 <script type="importmap">
 {

@@ -197,8 +197,8 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
         {/* SIDEBAR */}
         <div className={`lg:flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 overflow-hidden ${selectedSession ? 'hidden' : 'flex'} lg:w-[400px] p-6 shadow-sm`}>
           <div className="mb-8 flex justify-between items-center">
-             <h1 className="text-3xl font-black text-emerald-950 dark:text-emerald-400 uppercase  tracking-tighter">Tâm sự</h1>
-             <button className="p-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 rounded-full">
+             <h1 className="text-3xl font-black text-Klavika-950 dark:text-Klavika-400 uppercase  tracking-tighter">Tâm sự</h1>
+             <button className="p-2 bg-Klavika-100 dark:bg-Klavika-900 text-Klavika-600 rounded-full">
                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
              </button>
           </div>
@@ -210,9 +210,9 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                 <div 
                   key={s.id} 
                   onClick={() => setSelectedSession(s)} 
-                  className={`p-4 rounded-3xl cursor-pointer transition-all border-2 flex items-center space-x-3 ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-900 dark:text-white'}`}
+                  className={`p-4 rounded-3xl cursor-pointer transition-all border-2 flex items-center space-x-3 ${isSelected ? 'bg-Klavika-600 border-Klavika-500 text-white' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-900 dark:text-white'}`}
                 >
-                   <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black">
+                   <div className="w-12 h-12 rounded-2xl bg-Klavika-500 text-white flex items-center justify-center font-black">
                      {getPartnerName(s).charAt(0)}
                    </div>
                    <div className="flex-1 min-w-0">
@@ -233,12 +233,12 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
               {/* HEADER */}
               <div className="px-6 py-4 border-b dark:border-slate-800 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <button onClick={() => setSelectedSession(null)} className="lg:hidden text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black">{getPartnerName(selectedSession).charAt(0)}</div>
+                  <button onClick={() => setSelectedSession(null)} className="lg:hidden text-Klavika-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
+                  <div className="w-10 h-10 rounded-xl bg-Klavika-500 text-white flex items-center justify-center font-black">{getPartnerName(selectedSession).charAt(0)}</div>
                   <h3 className="font-black dark:text-white uppercase text-sm ">{getPartnerName(selectedSession)}</h3>
                 </div>
                 <div className="relative">
-                  <button onClick={() => setActiveMenuId('header')} className="text-gray-400 hover:text-emerald-500 p-2">
+                  <button onClick={() => setActiveMenuId('header')} className="text-gray-400 hover:text-Klavika-500 p-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 12c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2zm14 0c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2zm-7 0c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2z"/></svg>
                   </button>
                   {activeMenuId === 'header' && (
@@ -256,7 +256,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                   <div key={i} className={`flex ${m.senderId === user.id ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] flex flex-col ${m.senderId === user.id ? 'items-end' : 'items-start'}`}>
                       {m.text && (
-                        <div className={`px-5 py-3 rounded-[2rem] text-sm font-bold shadow-sm mb-1 ${m.senderId === user.id ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none border dark:border-slate-700'}`}>
+                        <div className={`px-5 py-3 rounded-[2rem] text-sm font-bold shadow-sm mb-1 ${m.senderId === user.id ? 'bg-Klavika-600 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none border dark:border-slate-700'}`}>
                           {m.text}
                         </div>
                       )}
@@ -274,7 +274,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                 ))}
                 {isUploading && (
                    <div className="flex justify-end animate-pulse">
-                      <div className="bg-emerald-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600 ">Đang tải ảnh...</div>
+                      <div className="bg-Klavika-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-Klavika-600 ">Đang tải ảnh...</div>
                    </div>
                 )}
                 <div ref={chatEndRef}></div>
@@ -282,13 +282,13 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
 
               {/* STICKER PICKER */}
               {showStickers && (
-                <div className="sticker-container absolute bottom-24 left-6 right-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-emerald-50 dark:border-slate-700 z-[100] animate-in slide-in-from-bottom-4">
+                <div className="sticker-container absolute bottom-24 left-6 right-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-Klavika-50 dark:border-slate-700 z-[100] animate-in slide-in-from-bottom-4">
                   <div className="grid grid-cols-6 gap-3">
                     {STICKERS.map((s, idx) => (
                       <button 
                         key={idx} 
                         onClick={() => handleSendSticker(s)}
-                        className="text-2xl p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-xl transition-all active:scale-90"
+                        className="text-2xl p-2 hover:bg-Klavika-50 dark:hover:bg-Klavika-900/50 rounded-xl transition-all active:scale-90"
                       >
                         {s}
                       </button>
@@ -310,7 +310,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                    <button 
                     type="button" 
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-emerald-600 p-2 hover:bg-emerald-50 rounded-full transition-all"
+                    className="text-Klavika-600 p-2 hover:bg-Klavika-50 rounded-full transition-all"
                    >
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
                    </button>
@@ -325,7 +325,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                       <button 
                         type="button" 
                         onClick={() => setShowStickers(!showStickers)}
-                        className={`transition-colors ${showStickers ? 'text-emerald-600' : 'text-emerald-500'}`}
+                        className={`transition-colors ${showStickers ? 'text-Klavika-600' : 'text-Klavika-500'}`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg>
                       </button>
@@ -333,7 +333,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
                    <button 
                     type="submit" 
                     disabled={!newMessage.trim() && !isUploading} 
-                    className={`p-3 rounded-full transition-all ${newMessage.trim() ? 'text-emerald-600 scale-110 send-active' : 'text-gray-300'}`}
+                    className={`p-3 rounded-full transition-all ${newMessage.trim() ? 'text-Klavika-600 scale-110 send-active' : 'text-gray-300'}`}
                    >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 rotate-45" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                    </button>
@@ -342,10 +342,10 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
             </React.Fragment>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-               <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-8 border-4 border-white dark:border-slate-800">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-emerald-600/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+               <div className="w-32 h-32 bg-Klavika-50 dark:bg-Klavika-900/20 rounded-full flex items-center justify-center mb-8 border-4 border-white dark:border-slate-800">
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-Klavika-600/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                </div>
-               <h3 className="text-xl font-black text-gray-400 dark:text-emerald-400/20 uppercase tracking-widest ">Chọn một người để trò chuyện</h3>
+               <h3 className="text-xl font-black text-gray-400 dark:text-Klavika-400/20 uppercase tracking-widest ">Chọn một người để trò chuyện</h3>
             </div>
           )}
         </div>

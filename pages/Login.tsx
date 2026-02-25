@@ -206,15 +206,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   const isOrg = userType === 'organization';
-  const themeClass = isOrg ? 'bg-blue-600' : 'bg-emerald-600';
-  const textTheme = isOrg ? 'text-blue-600' : 'text-emerald-600';
+  const themeClass = isOrg ? 'bg-blue-600' : 'bg-Klavika-600';
+  const textTheme = isOrg ? 'text-blue-600' : 'text-Klavika-600';
 
   return (
-    <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-all duration-1000 ${isOrg ? 'bg-blue-50 dark:bg-slate-950' : 'bg-emerald-50 dark:bg-slate-950'}`}>
+    <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-all duration-1000 ${isOrg ? 'bg-blue-50 dark:bg-slate-950' : 'bg-Klavika-50 dark:bg-slate-950'}`}>
       <div className="relative w-full max-w-[1000px] bg-white dark:bg-slate-900 rounded-[4rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col md:flex-row min-h-[650px]">
         <div className="md:w-[55%] p-8 md:p-16 flex flex-col justify-center relative z-10 bg-white dark:bg-slate-900">
           <div className="mb-10 text-center md:text-left">
-            <h2 className={`text-5xl font-black uppercase tracking-tighter mb-3 leading-none ${isOrg ? 'text-blue-950 dark:text-blue-400' : 'text-emerald-950 dark:text-emerald-400'}`}>
+            <h2 className={`text-5xl font-black uppercase tracking-tighter mb-3 leading-none ${isOrg ? 'text-blue-950 dark:text-blue-400' : 'text-Klavika-950 dark:text-Klavika-400'}`}>
               {isLoginView ? 'Đăng nhập' : 'Đăng ký'}
             </h2>
             <div className="flex items-center justify-center md:justify-start gap-2">
@@ -222,29 +222,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                  {isLoginView ? 'Chào mừng bạn quay trở lại' : 'Trở thành một phần của GIVEBACK'}
                </p>
                {isAdminButtonVisible && isLoginView && (
-                 <button onClick={handleQuickAdmin} className="text-[8px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full font-black uppercase hover:bg-emerald-600 hover:text-white transition-all animate-pulse shadow-sm">Gõ nhanh Admin ⚡</button>
+                 <button onClick={handleQuickAdmin} className="text-[8px] bg-Klavika-50 dark:bg-Klavika-900/30 text-Klavika-600 dark:text-Klavika-400 px-2 py-1 rounded-full font-black uppercase hover:bg-Klavika-600 hover:text-white transition-all animate-pulse shadow-sm">Gõ nhanh Admin ⚡</button>
                )}
             </div>
           </div>
 
           {!isLoginView && (
             <div className="flex gap-2 mb-8 p-1.5 bg-gray-100 dark:bg-slate-800 rounded-[2rem] w-fit mx-auto md:mx-0">
-               <button onClick={() => setUserType('individual')} className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${!isOrg ? 'bg-white dark:bg-slate-700 shadow-md text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>Cá nhân</button>
+               <button onClick={() => setUserType('individual')} className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${!isOrg ? 'bg-white dark:bg-slate-700 shadow-md text-Klavika-600 dark:text-Klavika-400' : 'text-gray-400'}`}>Cá nhân</button>
                <button onClick={() => setUserType('organization')} className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${isOrg ? 'bg-white dark:bg-slate-700 shadow-md text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}>Tổ chức</button>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLoginView && (
-              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
+              <input required className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-Klavika-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder={isOrg ? "Tên tổ chức..." : "Họ và tên..."} value={isOrg ? orgName : fullName} onChange={e => isOrg ? setOrgName(e.target.value) : setFullName(e.target.value)} />
             )}
             <div className="relative">
-              <input required type="text" className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder="Email hoặc Tên đăng nhập..." value={email} onChange={e => setEmail(e.target.value)} />
-              {!email.includes('@') && email.length > 0 && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-emerald-400 uppercase pointer-events-none">@giveback.vn</span>}
+              <input required type="text" className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-Klavika-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder="Email hoặc Tên đăng nhập..." value={email} onChange={e => setEmail(e.target.value)} />
+              {!email.includes('@') && email.length > 0 && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[9px] font-black text-Klavika-400 uppercase pointer-events-none">@giveback.vn</span>}
             </div>
             <div className="relative">
-              <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-emerald-500 transition-colors">
+              <input required type={showPassword ? "text" : "password"} className="w-full px-8 py-5 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-Klavika-500/30 outline-none font-bold text-gray-700 dark:text-white text-sm transition-all shadow-inner" placeholder="Mật khẩu..." value={password} onChange={e => setPassword(e.target.value)} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 hover:text-Klavika-500 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showPassword ? "M15 12a3 3 0 11-6 0 3 3 0 016 0z" : "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.024 10.024 0 014.13-5.541M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 21l-2-2m-3.5-3.5L3 3"} /></svg>
               </button>
             </div>
@@ -275,7 +275,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <h1 className="text-6xl font-black tracking-tighter leading-none uppercase">GIVEBACK</h1>
              </div>
              <p className="text-lg font-bold mb-12 leading-relaxed opacity-90 px-6 drop-shadow-xl">{isLoginView ? '"Yêu thương cho đi là yêu thương còn mãi."' : '"Mỗi món quà, một hành trình nhân ái."'}</p>
-             <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="px-14 py-6 bg-white text-emerald-950 rounded-[2.5rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95 border-4 border-emerald-100">{isLoginView ? 'Đăng ký ngay' : 'Đăng nhập ngay'}</button>
+             <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="px-14 py-6 bg-white text-Klavika-950 rounded-[2.5rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95 border-4 border-Klavika-100">{isLoginView ? 'Đăng ký ngay' : 'Đăng nhập ngay'}</button>
           </div>
           <div className="absolute bottom-20 w-full flex justify-center">
             <div className="relative animate-truck">

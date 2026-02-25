@@ -141,12 +141,12 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
   return (
     <div className="pt-20 pb-24 max-w-4xl mx-auto px-4 space-y-8">
       {/* Create Post Entry */}
-      <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-emerald-50 dark:border-slate-800 flex items-center space-x-5 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all active:scale-95 group">
+      <div onClick={() => setIsPostModalOpen(true)} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border border-Klavika-50 dark:border-slate-800 flex items-center space-x-5 cursor-pointer hover:bg-Klavika-50/50 dark:hover:bg-Klavika-900/10 transition-all active:scale-95 group">
         <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`} className="w-12 h-12 rounded-2xl bg-gray-100 object-cover shadow-sm group-hover:rotate-6 transition-transform" alt="" />
         <div className="flex-1 text-gray-400 dark:text-gray-500 text-sm font-bold ">
           {user.name} ơi, bạn đang nghĩ gì thế?
         </div>
-        <div className="flex space-x-3 text-emerald-600">
+        <div className="flex space-x-3 text-Klavika-600">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
         </div>
       </div>
@@ -156,14 +156,14 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
           <div className="relative z-10">
             <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-4  leading-none">VÌ {currentMission.location} THÂN YÊU</h2>
             <div className="w-full h-5 bg-white/10 rounded-full overflow-hidden p-0.5 mt-8 shadow-inner">
-              <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-200 rounded-full transition-all duration-1000 shadow-emerald-500/50" style={{ width: `${missionProgress}%` }}></div>
+              <div className="h-full bg-gradient-to-r from-Klavika-400 to-teal-200 rounded-full transition-all duration-1000 shadow-Klavika-500/50" style={{ width: `${missionProgress}%` }}></div>
             </div>
             <div className="flex justify-between items-center mt-4">
-              <p className="text-[10px] font-black uppercase text-emerald-300 tracking-[0.2em]">Tiến độ quyên góp: {missionProgress}%</p>
-              <button className="bg-white/20 hover:bg-white text-white hover:text-emerald-900 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md">Chi tiết &rarr;</button>
+              <p className="text-[10px] font-black uppercase text-Klavika-300 tracking-[0.2em]">Tiến độ quyên góp: {missionProgress}%</p>
+              <button className="bg-white/20 hover:bg-white text-white hover:text-Klavika-900 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md">Chi tiết &rarr;</button>
             </div>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-Klavika-400/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
         </div>
       )}
 
@@ -177,12 +177,12 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                 <div className="flex items-center space-x-5 cursor-pointer" onClick={() => onViewProfile(post.authorId)}>
                   <img src={post.authorAvatar} className="w-16 h-16 rounded-[2rem] border-4 border-gray-50 dark:border-slate-800 object-cover shadow-md" alt="" />
                   <div>
-                    <h4 className="font-black text-base uppercase text-emerald-950 dark:text-emerald-400 tracking-tighter leading-none">{post.authorName}</h4>
+                    <h4 className="font-black text-base uppercase text-Klavika-950 dark:text-Klavika-400 tracking-tighter leading-none">{post.authorName}</h4>
                     <p className="text-[9px] text-gray-300 font-bold uppercase tracking-[0.2em] mt-1.5">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
                 </div>
               </div>
-              <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium  leading-relaxed">"{post.content}"</p></div>
+              <div className="px-12 pb-8"><p className="text-lg text-Klavika-950 dark:text-slate-200 font-medium  leading-relaxed">"{post.content}"</p></div>
               {post.media?.[0] && (
                 <div className="px-8 pb-10">
                   {post.media[0].type === 'video' ? 
@@ -206,7 +206,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                      </svg>
                      <span className="text-sm font-black">{post.hearts?.length || 0}</span>
                    </button>
-                   <button onClick={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)} className="flex items-center space-x-3 text-gray-300 hover:text-emerald-500 transition-colors">
+                   <button onClick={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)} className="flex items-center space-x-3 text-gray-300 hover:text-Klavika-500 transition-colors">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                      <span className="text-sm font-black">{post.comments?.length || 0}</span>
                    </button>
@@ -221,7 +221,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                       <div key={comment.id} className="flex space-x-3">
                         <img src={comment.authorAvatar} className="w-8 h-8 rounded-xl object-cover" alt="" />
                         <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl flex-1 border border-gray-100 dark:border-slate-700">
-                          <p className="text-[10px] font-black text-emerald-700 uppercase mb-1">{comment.authorName}</p>
+                          <p className="text-[10px] font-black text-Klavika-700 uppercase mb-1">{comment.authorName}</p>
                           <p className="text-sm dark:text-gray-200">{comment.text}</p>
                           {comment.media?.[0] && (
                             <img src={comment.media[0].url} className="mt-3 max-w-[200px] rounded-xl shadow-md border-2 border-white" alt="Comment Media" />
@@ -235,22 +235,22 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                   <div className="relative">
                     {commentMedia && (
                       <div className="mb-3 relative inline-block">
-                        <img src={commentMedia.url} className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-100 shadow-md" alt="" />
+                        <img src={commentMedia.url} className="w-20 h-20 rounded-xl object-cover border-2 border-Klavika-100 shadow-md" alt="" />
                         <button onClick={() => setCommentMedia(null)} className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                       </div>
                     )}
                     
                     {showCommentStickers === post.id && (
-                      <div className="absolute bottom-full mb-4 left-0 right-0 bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-2xl border border-emerald-50 dark:border-slate-700 grid grid-cols-6 gap-2 z-20">
+                      <div className="absolute bottom-full mb-4 left-0 right-0 bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-2xl border border-Klavika-50 dark:border-slate-700 grid grid-cols-6 gap-2 z-20">
                         {STICKERS.map((s, i) => (
-                          <button key={i} onClick={() => { setCommentText(prev => prev + s); setShowCommentStickers(null); }} className="text-xl p-2 hover:bg-emerald-50 dark:hover:bg-emerald-800 rounded-xl transition-all">{s}</button>
+                          <button key={i} onClick={() => { setCommentText(prev => prev + s); setShowCommentStickers(null); }} className="text-xl p-2 hover:bg-Klavika-50 dark:hover:bg-Klavika-800 rounded-xl transition-all">{s}</button>
                         ))}
                       </div>
                     )}
 
                     <div className="flex items-center space-x-3">
                       <input type="file" ref={commentFileRef} className="hidden" accept="image/*" onChange={handleCommentFileChange} />
-                      <button onClick={() => commentFileRef.current?.click()} className="text-gray-400 hover:text-emerald-500 transition-colors">
+                      <button onClick={() => commentFileRef.current?.click()} className="text-gray-400 hover:text-Klavika-500 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
                       </button>
                       <div className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl flex items-center px-4 border border-gray-100 dark:border-slate-700">
@@ -262,11 +262,11 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                           onChange={(e) => setCommentText(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
                         />
-                        <button onClick={() => setShowCommentStickers(showCommentStickers === post.id ? null : post.id)} className="text-emerald-500">
+                        <button onClick={() => setShowCommentStickers(showCommentStickers === post.id ? null : post.id)} className="text-Klavika-500">
                           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg>
                         </button>
                       </div>
-                      <button onClick={() => handleAddComment(post.id)} className="bg-emerald-600 text-white p-3 rounded-xl hover:bg-emerald-700 transition-all">
+                      <button onClick={() => handleAddComment(post.id)} className="bg-Klavika-600 text-white p-3 rounded-xl hover:bg-Klavika-700 transition-all">
                         <svg className="w-5 h-5 rotate-45" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                       </button>
                     </div>
@@ -281,10 +281,10 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
       {/* Post Modal - Giữ nguyên logic cũ nhưng nén ảnh chuẩn hơn */}
       {isPostModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
+          <div className="absolute inset-0 bg-Klavika-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
              <div className="flex justify-between items-center mb-10">
-               <h3 className="text-3xl font-black uppercase  text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
+               <h3 className="text-3xl font-black uppercase  text-Klavika-950 dark:text-Klavika-400 tracking-tighter">Tạo bài viết</h3>
                <button onClick={() => setIsPostModalOpen(false)} className="text-gray-300 hover:text-red-500 transition-colors">
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
@@ -293,14 +293,14 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                 <textarea 
                   required 
                   rows={4} 
-                  className="w-full bg-gray-50 dark:bg-slate-800 p-10 rounded-[3rem] font-bold text-xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all placeholder:text-gray-300  dark:text-white" 
+                  className="w-full bg-gray-50 dark:bg-slate-800 p-10 rounded-[3rem] font-bold text-xl outline-none border-2 border-transparent focus:border-Klavika-500 transition-all placeholder:text-gray-300  dark:text-white" 
                   placeholder={`${user.name} ơi, bạn đang nghĩ gì thế?`} 
                   value={postContent} 
                   onChange={(e) => setPostContent(e.target.value)} 
                 />
 
                 {postMedia && (
-                  <div className="relative rounded-[3rem] overflow-hidden border-4 border-emerald-100 shadow-xl bg-gray-50">
+                  <div className="relative rounded-[3rem] overflow-hidden border-4 border-Klavika-100 shadow-xl bg-gray-50">
                     {postMedia.type === 'video' ? 
                       <video src={postMedia.url} className="w-full h-56 object-contain bg-black" controls /> : 
                       <img src={postMedia.url} className="w-full h-56 object-cover" alt="Preview" />
@@ -313,7 +313,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                   <button 
                     type="button" 
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center space-x-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-800"
+                    className="flex-1 flex items-center justify-center space-x-3 bg-Klavika-50 dark:bg-Klavika-900/30 text-Klavika-600 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-Klavika-100 transition-all border border-Klavika-100 dark:border-Klavika-800"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
                     <span>Ảnh / Video</span>
@@ -333,7 +333,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
                   }} />
                 </div>
 
-                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">
+                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-Klavika-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-Klavika-700 active:scale-95 transition-all disabled:opacity-50 text-sm">
                   {isSubmitting ? 'ĐANG LƯU...' : 'Đăng ngay'}
                 </button>
              </form>

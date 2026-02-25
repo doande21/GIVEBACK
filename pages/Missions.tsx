@@ -40,12 +40,12 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
   return (
     <div className="pt-24 pb-20 px-4 max-w-6xl mx-auto min-h-screen font-['Plus_Jakarta_Sans']">
       <div className="text-center mb-16">
-        <h1 className="text-6xl font-black text-emerald-950 dark:text-emerald-400 uppercase tracking-tighter  leading-none">Hành trình Sứ mệnh</h1>
-        <p className="text-emerald-600 font-black text-[10px] uppercase tracking-[0.5em] mt-3">Mỗi chuyến đi, một linh hồn nhân ái</p>
+        <h1 className="text-6xl font-black text-Klavika-950 dark:text-Klavika-400 uppercase tracking-tighter  leading-none">Hành trình Sứ mệnh</h1>
+        <p className="text-Klavika-600 font-black text-[10px] uppercase tracking-[0.5em] mt-3">Mỗi chuyến đi, một linh hồn nhân ái</p>
       </div>
 
       {loading ? (
-        <div className="py-20 text-center"><div className="animate-spin h-12 w-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full mx-auto"></div></div>
+        <div className="py-20 text-center"><div className="animate-spin h-12 w-12 border-4 border-Klavika-100 border-t-Klavika-600 rounded-full mx-auto"></div></div>
       ) : missions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {missions.map(m => {
@@ -65,17 +65,17 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                   
                   <div className="space-y-4 mb-10">
                     <div className="flex justify-between items-end">
-                      <span className="text-[11px] font-black uppercase text-emerald-600 tracking-widest">Tiến độ quyên góp</span>
-                      <span className="text-2xl font-black text-emerald-950 dark:text-white ">{progress}%</span>
+                      <span className="text-[11px] font-black uppercase text-Klavika-600 tracking-widest">Tiến độ quyên góp</span>
+                      <span className="text-2xl font-black text-Klavika-950 dark:text-white ">{progress}%</span>
                     </div>
                     <div className="w-full h-4 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
-                      <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50" style={{ width: `${progress}%` }}></div>
+                      <div className="h-full bg-Klavika-600 rounded-full transition-all duration-1000 shadow-lg shadow-Klavika-500/50" style={{ width: `${progress}%` }}></div>
                     </div>
                   </div>
 
                   <div className="flex gap-4">
-                    <button onClick={() => setSelectedMission(m)} className="flex-1 bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-700 transition-all">Góp quỹ ngay</button>
-                    <button onClick={() => setSelectedMission(m)} className="px-8 py-5 rounded-2xl border-4 border-emerald-50 dark:border-slate-800 text-emerald-600 text-[11px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all">Chi tiết</button>
+                    <button onClick={() => setSelectedMission(m)} className="flex-1 bg-Klavika-600 text-white py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-Klavika-100 dark:shadow-none hover:bg-Klavika-700 transition-all">Góp quỹ ngay</button>
+                    <button onClick={() => setSelectedMission(m)} className="px-8 py-5 rounded-2xl border-4 border-Klavika-50 dark:border-slate-800 text-Klavika-600 text-[11px] font-black uppercase tracking-widest hover:bg-Klavika-50 transition-all">Chi tiết</button>
                   </div>
                 </div>
               </div>
@@ -89,12 +89,12 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
       {/* Soul of Mission Detail Modal */}
       {selectedMission && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-xl" onClick={() => setSelectedMission(null)}></div>
+          <div className="absolute inset-0 bg-Klavika-950/90 backdrop-blur-xl" onClick={() => setSelectedMission(null)}></div>
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[4rem] p-10 md:p-14 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto custom-scrollbar">
              <div className="flex justify-between items-center mb-12">
                 <div className="flex items-center space-x-5">
-                   <div className="w-3 h-12 bg-emerald-600 rounded-full"></div>
-                   <h2 className="text-4xl font-black uppercase  text-emerald-950 dark:text-emerald-400 tracking-tighter">Chi tiết Sứ mệnh</h2>
+                   <div className="w-3 h-12 bg-Klavika-600 rounded-full"></div>
+                   <h2 className="text-4xl font-black uppercase  text-Klavika-950 dark:text-Klavika-400 tracking-tighter">Chi tiết Sứ mệnh</h2>
                 </div>
                 <button onClick={() => setSelectedMission(null)} className="text-gray-300 hover:text-red-500 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
              </div>
@@ -102,15 +102,15 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
              <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
                 {/* Column 1: Info & Donation */}
                 <div className="lg:col-span-2 space-y-8">
-                   <div className="rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-emerald-50">
+                   <div className="rounded-[3.5rem] overflow-hidden shadow-2xl border-4 border-Klavika-50">
                       <img src={selectedMission.image} className="w-full h-64 object-cover" alt="" />
                    </div>
-                   <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-10 rounded-[3.5rem] border border-emerald-100 dark:border-emerald-800">
-                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 text-center">Mục tiêu tài chính</p>
-                      <p className="text-3xl font-black text-emerald-950 dark:text-white tracking-tighter text-center">{selectedMission.currentBudget.toLocaleString()} / {selectedMission.targetBudget.toLocaleString()} VNĐ</p>
+                   <div className="bg-Klavika-50/50 dark:bg-Klavika-900/10 p-10 rounded-[3.5rem] border border-Klavika-100 dark:border-Klavika-800">
+                      <p className="text-[10px] font-black text-Klavika-600 uppercase tracking-widest mb-3 text-center">Mục tiêu tài chính</p>
+                      <p className="text-3xl font-black text-Klavika-950 dark:text-white tracking-tighter text-center">{selectedMission.currentBudget.toLocaleString()} / {selectedMission.targetBudget.toLocaleString()} VNĐ</p>
                       <div className="mt-8 text-center">
-                         <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-6">Quét mã để quyên góp</p>
-                         <div className="bg-white p-6 rounded-[2.5rem] inline-block shadow-xl border-4 border-emerald-50">
+                         <p className="text-[9px] font-black text-Klavika-400 uppercase tracking-widest mb-6">Quét mã để quyên góp</p>
+                         <div className="bg-white p-6 rounded-[2.5rem] inline-block shadow-xl border-4 border-Klavika-50">
                             <img src={selectedMission.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=DonationFor${selectedMission.location}`} className="w-44 h-44" alt="QR Code" />
                          </div>
                       </div>
@@ -120,7 +120,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                 {/* Column 2: Items & Gallery */}
                 <div className="lg:col-span-3 space-y-12">
                    <div>
-                      <h4 className="text-xs font-black uppercase text-emerald-900 dark:text-emerald-400 tracking-[0.3em] mb-8 flex items-center gap-3">
+                      <h4 className="text-xs font-black uppercase text-Klavika-900 dark:text-Klavika-400 tracking-[0.3em] mb-8 flex items-center gap-3">
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                          Nhu yếu phẩm cần thiết
                       </h4>
@@ -128,13 +128,13 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                          {selectedMission.itemsNeeded && selectedMission.itemsNeeded.length > 0 ? selectedMission.itemsNeeded.map((item, idx) => {
                             const itemProgress = Math.min(100, Math.round((item.current / item.target) * 100));
                             return (
-                               <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-700 group hover:border-emerald-500 transition-all">
+                               <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-700 group hover:border-Klavika-500 transition-all">
                                   <div className="flex justify-between items-center mb-3">
-                                     <span className="text-sm font-black text-emerald-950 dark:text-white uppercase tracking-tighter">{item.name}</span>
-                                     <span className="text-[10px] font-black text-emerald-600">{item.current} / {item.target} {item.unit}</span>
+                                     <span className="text-sm font-black text-Klavika-950 dark:text-white uppercase tracking-tighter">{item.name}</span>
+                                     <span className="text-[10px] font-black text-Klavika-600">{item.current} / {item.target} {item.unit}</span>
                                   </div>
                                   <div className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                     <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${itemProgress}%` }}></div>
+                                     <div className="h-full bg-Klavika-500 transition-all duration-1000" style={{ width: `${itemProgress}%` }}></div>
                                   </div>
                                </div>
                             )
@@ -146,7 +146,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
 
                    {/* REAL JOURNEY GALLERY SECTION */}
                    <div>
-                      <h4 className="text-xs font-black uppercase text-emerald-900 dark:text-emerald-400 tracking-[0.3em] mb-8 flex items-center gap-3">
+                      <h4 className="text-xs font-black uppercase text-Klavika-900 dark:text-Klavika-400 tracking-[0.3em] mb-8 flex items-center gap-3">
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                          Hình ảnh hành trình thực tế
                       </h4>
@@ -158,7 +158,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                               onClick={() => setViewingImageIndex(idx)}
                             >
                                <img src={img} className="w-full h-full object-cover" alt="" />
-                               <div className="absolute inset-0 bg-emerald-600/0 group-hover:bg-emerald-600/20 transition-colors"></div>
+                               <div className="absolute inset-0 bg-Klavika-600/0 group-hover:bg-Klavika-600/20 transition-colors"></div>
                             </div>
                          )) : (
                             <div className="col-span-full p-10 bg-gray-50 dark:bg-slate-800 rounded-[3rem] border-4 border-dashed border-gray-200 dark:border-slate-700 text-center">

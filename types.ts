@@ -30,7 +30,6 @@ export interface PostComment {
 }
 
 export interface DonationItem {
-  updatedAt: string | number | Date;
   id: string;
   title: string;
   description: string;
@@ -45,6 +44,7 @@ export interface DonationItem {
   authorIsGuest?: boolean;
   status: 'available' | 'claimed' | 'hidden';
   createdAt: string;
+  updatedAt: string;
   minAge?: number;
   maxAge?: number;
   minWeight?: number;
