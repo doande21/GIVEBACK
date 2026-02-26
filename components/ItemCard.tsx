@@ -72,13 +72,13 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
         <h3 className="text-lg font-black uppercase tracking-tighter mb-2 truncate text-emerald-950 dark:text-emerald-50 group-hover:text-emerald-500 transition-colors">
           {item.title}
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-6 h-9 font-medium leading-relaxed ">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-6 h-9 font-medium leading-relaxed">
           "{item.description || 'Không có mô tả.'}"
         </p>
         
         <div className="mt-auto pt-5 border-t border-emerald-50 dark:border-emerald-900/30 flex items-center justify-between">
           <div className="flex items-center space-x-3 cursor-pointer group/author" onClick={handleAuthorClick}>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800 flex items-center justify-center font-black text-[10px] group-hover/author:bg-emerald-500 group-hover/author:text-white transition-all shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center font-black text-[10px] group-hover/author:bg-emerald-500 group-hover/author:text-white transition-all shadow-sm">
               {item.author.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -88,7 +88,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onV
           </div>
           <button 
             onClick={(e) => { e.stopPropagation(); onSelect?.(item); }}
-            className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-600 transition-all active:scale-95"
+            className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/10 dark:shadow-none hover:bg-emerald-700 transition-all active:scale-95"
           >
             LIÊN HỆ
           </button>

@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIVEBACK - Nền tảng chia sẻ yêu thương 100% tự nguyện</title>
     
-    <!-- Import Google Fonts: Inter & Plus Jakarta Sans -->
+    <!-- Import Google Fonts: Inter cho nội dung và Plus Jakarta Sans cho Branding -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,400;1,700;1,800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -23,9 +23,47 @@
             },
             colors: {
               emerald: {
-                950: '#022c22',
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                200: '#a7f3d0',
+                300: '#6ee7b7',
+                400: '#34d399',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
                 900: '#064e3b',
+                950: '#022c22',
+              },
+              amber: {
+                50: '#fffbeb',
+                100: '#fef3c7',
+                200: '#fde68a',
+                300: '#fcd34d',
+                400: '#fbbf24',
+                500: '#f59e0b',
+                600: '#d97706',
+                700: '#b45309',
+                800: '#92400e',
+                900: '#78350f',
+                950: '#451a03',
+              },
+              indigo: {
+                50: '#eef2ff',
+                100: '#e0e7ff',
+                200: '#c7d2fe',
+                300: '#a5b4fc',
+                400: '#818cf8',
+                500: '#6366f1',
+                600: '#4f46e5',
+                700: '#4338ca',
+                800: '#3730a3',
+                900: '#1e1b4b',
+                950: '#0f172a',
               }
+            },
+            letterSpacing: {
+              'tighter-brand': '-0.05em',
             }
           }
         }
@@ -36,7 +74,6 @@
             --primary-color: #10b981; 
             --bg-main: #f8fafc;
             --text-main: #064e3b;
-            /* Thiết lập font chính */
             font-family: 'Inter', sans-serif;
         }
 
@@ -53,30 +90,42 @@
             background-color: var(--bg-main);
             color: var(--text-main);
             transition: background-color 0.3s ease, color 0.3s ease;
-            /* Đảm bảo toàn hệ thống dùng font Inter */
-            font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ĐỊNH NGHĨA STYLE BRANDING CHO TOÀN BỘ TIÊU ĐỀ */
-        h1, h2, h3, .brand-heading {
-            font-family: 'Klavika', sans-serif !important;
-            font-weight: 900 !important;
-            text-transform: uppercase !important;
-          
-            letter-spacing: -0.05em !important;
+        /* 🚀 THIẾT LẬP FONT CHỮ "VÌ VÂN CANH THÂN YÊU" TOÀN CỤC */
+        
+        /* 1. Các tiêu đề */
+        h1, h2, h3, h4, h5, h6, .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800; 
+            text-transform: uppercase;
+            font-style: normal;
+            letter-spacing: -0.05em;
         }
 
-        /* CON TRỎ NHẤP NHÁY MÀU EMERALD */
-        input, textarea, select {
-            caret-color: #10b981 !important;
-            color: inherit;
-            font-family: inherit;
+        /* 2. Các nút bấm và hành động UI */
+        button, 
+        .nav-item-label, 
+        .status-badge, 
+        .tab-button,
+        label[for],
+        .profile-name {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-style: normal;
+            letter-spacing: -0.02em;
         }
-        
-        .dark input, .dark textarea, .dark select {
-            caret-color: #34d399 !important;
-            color: #f0fdf4 !important;
+
+        /* 3. Văn bản nội dung (Body) giữ font Inter cho dễ đọc, nhưng đậm hơn 1 chút */
+        p, span, div, input, textarea {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Tinh chỉnh con trỏ và hiệu ứng */
+        input, textarea, select {
+            caret-color: var(--primary-color) !important;
         }
 
         /* Scrollbar style */
@@ -102,7 +151,6 @@
         
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         
-        /* Hiệu ứng quét cho AI */
         @keyframes scan {
           0% { top: 0; }
           100% { top: 100%; }
@@ -115,6 +163,7 @@
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
+
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.35.0",

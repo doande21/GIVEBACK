@@ -29,7 +29,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-    {role: 'bot', content: 'Chào bạn! Mình là GIVEBACK AI. Bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
+    {role: 'bot', content: 'Chào Bạn! Mình là GIVEBACK AI. Bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -148,7 +148,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
       <div className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white dark:bg-slate-900 z-[210] shadow-2xl transition-transform transform ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         <div className="p-8 bg-emerald-600 text-white flex justify-between items-center">
           <div>
-            <h3 className="font-black text-lg uppercase italic">GIVEBACK AI</h3>
+            <h3 className="font-black text-lg uppercase ">GIVEBACK AI</h3>
             <p className="text-[10px] font-bold opacity-70">Cùng nhau lan tỏa yêu thương</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -168,13 +168,17 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
 
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-emerald-50 dark:border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi Mình bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
+            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi mình bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
             <button onClick={handleSend} className="bg-emerald-600 text-white p-4 rounded-2xl shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.894 2.553a 1 1 0 0 0 -1.788 0l-7 14a 1 1 0 0 0 1.169 1.409l5-1.429A 1 1 0 0 0 9 15.571V11a 1 1 0 1 1 2 0v4.571a 1 1 0 0 0 .725.962l5 1.428a 1 1 0 0 0 1.17-1.408l-7-14z" />
+              </svg>
             </button>
           </div>
           <button onClick={isVoiceMode ? stopVoice : startVoice} className={`w-full flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isVoiceMode ? 'bg-red-500 text-white animate-pulse' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v1a7 7 0 0 1-14 0v-1 M12 19v4 M8 23h8" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1a 3 3 0 0 0 -3 3v8a 3 3 0 0 0 6 0V4a 3 3 0 0 0 -3 -3z M19 10v1a 7 7 0 0 1 -14 0v-1 M12 19v4 M8 23h8" />
+            </svg>
             <span>{isVoiceMode ? 'DỪNG TRÒ CHUYỆN' : 'TÂM SỰ GIỌNG NÓI'}</span>
           </button>
         </div>

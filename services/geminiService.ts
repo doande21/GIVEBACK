@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
@@ -35,8 +35,7 @@ export const getAIAssistanceStream = async (prompt: string, onChunk: (text: stri
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { 
-        systemInstruction: SYSTEM_INSTRUCTION,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } // Giảm độ trễ tối đa
+        systemInstruction: SYSTEM_INSTRUCTION
       }
     });
     
@@ -64,8 +63,7 @@ export const getAIAssistance = async (prompt: string) => {
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { 
-        systemInstruction: SYSTEM_INSTRUCTION,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        systemInstruction: SYSTEM_INSTRUCTION
       }
     });
     
