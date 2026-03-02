@@ -70,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const translateError = (errorCode: string, rawMessage?: string): React.ReactNode => {
     const msg = (rawMessage || "").toLowerCase();
     
-    // LỖI MIỀN CHƯA CẤP PHÉP (Lỗi Đệ đang gặp)
+    // LỖI MIỀN CHƯA CẤP PHÉP (Lỗi bạn đang gặp)
     if (errorCode === 'auth/unauthorized-domain' || msg.includes('unauthorized domain') || msg.includes('domain not authorized') || msg.includes('uri_not_whitelisted')) {
       return (
         <div className="space-y-4 text-left p-2 animate-in fade-in slide-in-from-top-2">
@@ -80,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 p-5 rounded-[2rem] border-2 border-red-100 dark:border-red-900/50 shadow-sm space-y-3">
             <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300 leading-relaxed">
-              Đệ ơi, Facebook/Google đang chặn vì chưa khai báo tên miền. Đệ làm bước này trên Facebook Developer nhé:
+              bạn ơi, Facebook/Google đang chặn vì chưa khai báo tên miền. bạn làm bước này trên Facebook Developer nhé:
             </p>
             <div className="space-y-2 bg-white/50 dark:bg-slate-800 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
                <p className="text-[9px] font-black text-red-800 dark:text-red-400 uppercase">1. Thêm <b>giveback-one.vercel.app</b> vào "App Domains".</p>
@@ -93,11 +93,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     switch (errorCode) {
-      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi Đệ ơi.';
+      case 'auth/invalid-credential': return 'Mật khẩu hoặc Email không đúng rồi bạn ơi.';
       case 'auth/email-already-in-use': return 'Email này đã có người đăng ký rồi.';
-      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi Đệ.';
+      case 'auth/weak-password': return 'Mật khẩu yếu quá, thêm ký tự đi bạn.';
       case 'auth/user-not-found': return 'Tài khoản này chưa tồn tại.';
-      case 'auth/popup-closed-by-user': return 'Đệ đã đóng cửa sổ đăng nhập sớm quá.';
+      case 'auth/popup-closed-by-user': return 'bạn đã đóng cửa sổ đăng nhập sớm quá.';
       case 'auth/cancelled-by-user': return 'Thao tác đã bị hủy.';
       default: return `Gặp lỗi hệ thống: ${errorCode.split('/')[1] || 'Vui lòng thử lại sau.'}`;
     }
@@ -296,7 +296,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="absolute -top-10 left-4 animate-pulse text-2xl">✨</div>
             </div>
           </div>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng Đệ</div>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-[0.5em] opacity-60">Hành trình nhân ái cùng bạn</div>
         </div>
       </div>
     </div>

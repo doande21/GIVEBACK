@@ -61,7 +61,7 @@ const MapSearch: React.FC = () => {
               </svg>
               <input 
                 type="text" 
-                placeholder="Đệ muốn tìm gì? (Vd: Quán cơm 2k gần đây...)" 
+                placeholder="bạn muốn tìm gì? (Vd: Quán cơm 2k gần đây...)" 
                 className="w-full pl-16 pr-8 py-5 bg-gray-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-500 rounded-[2rem] outline-none font-bold text-gray-700 dark:text-white text-lg transition-all shadow-inner"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -109,7 +109,7 @@ const MapSearch: React.FC = () => {
               </div>
               <div className="mt-10 p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-800">
                 <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">💡 Lời khuyên của Huynh:</p>
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-2 font-medium">Đệ nên gọi điện trước cho các địa điểm này để xác nhận thông tin nhé, vì các hoạt động thiện nguyện đôi khi có thay đổi theo ngày.</p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-2 font-medium">bạn nên gọi điện trước cho các địa điểm này để xác nhận thông tin nhé, vì các hoạt động thiện nguyện đôi khi có thay đổi theo ngày.</p>
               </div>
             </div>
           </div>
@@ -156,7 +156,7 @@ const MapSearch: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
           </div>
-          <p className="font-black uppercase tracking-[0.6em] text-xs text-emerald-900">GIVEBACK MAPS ĐANG SẴN SÀNG HỖ TRỢ ĐỆ</p>
+          <p className="font-black uppercase tracking-[0.6em] text-xs text-emerald-900">GIVEBACK MAPS ĐANG SẴN SÀNG HỖ TRỢ bạn</p>
         </div>
       )}
     </div>

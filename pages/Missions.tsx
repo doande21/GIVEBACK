@@ -147,6 +147,28 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                    {/* REAL JOURNEY GALLERY SECTION */}
                    <div>
                       <h4 className="text-xs font-black uppercase text-emerald-900 dark:text-emerald-400 tracking-[0.3em] mb-8 flex items-center gap-3">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                         Mạnh thường quân đã đóng góp
+                      </h4>
+                      <div className="grid grid-cols-1 gap-4">
+                         {selectedMission.donors && selectedMission.donors.length > 0 ? selectedMission.donors.map((donor, idx) => (
+                            <div key={idx} className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-800 flex justify-between items-center group hover:scale-[1.02] transition-all">
+                               <div>
+                                  <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase mb-1">Nhà hảo tâm</p>
+                                  <span className="text-sm font-black text-emerald-950 dark:text-white uppercase tracking-tighter">{donor.name}</span>
+                               </div>
+                               <div className="text-right">
+                                  <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase mb-1">Đóng góp</p>
+                                  <span className="text-xs font-black text-emerald-900 dark:text-emerald-300">{donor.contribution}</span>
+                               </div>
+                            </div>
+                         )) : (
+                            <p className="text-gray-400 font-bold text-sm text-center py-6 bg-gray-50 dark:bg-slate-800 rounded-[2rem] border-2 border-dashed border-gray-100 dark:border-slate-700">Đang cập nhật danh sách mạnh thường quân...</p>
+                         )}
+                      </div>
+                   </div>
+                   <div>
+                      <h4 className="text-xs font-black uppercase text-emerald-900 dark:text-emerald-400 tracking-[0.3em] mb-8 flex items-center gap-3">
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                          Hình ảnh hành trình thực tế
                       </h4>

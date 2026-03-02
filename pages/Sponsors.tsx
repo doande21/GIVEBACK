@@ -239,7 +239,7 @@ const Sponsors: React.FC = () => {
 
              <div className="p-10 bg-gray-50/50 border-t border-gray-50 text-center">
                 <p className="text-[11px] font-bold text-emerald-900/60 leading-relaxed">
-                   "Yêu thương cho đi là yêu thương còn mãi.<br/>Cảm ơn đệ đã đồng hành cùng GIVEBACK."
+                   "Yêu thương cho đi là yêu thương còn mãi.<br/>Cảm ơn bạn đã đồng hành cùng GIVEBACK."
                 </p>
              </div>
           </div>

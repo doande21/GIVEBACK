@@ -127,6 +127,12 @@ export interface NeededItem {
   current: number;
 }
 
+export interface MissionDonor {
+  name: string;
+  contribution: string;
+  userId?: string;
+}
+
 export interface CharityMission {
   id: string;
   location: string;
@@ -137,6 +143,7 @@ export interface CharityMission {
   image: string;
   qrCode?: string;
   itemsNeeded: NeededItem[];
+  donors?: MissionDonor[];
   gallery?: string[]; 
   status: 'upcoming' | 'ongoing' | 'completed';
   createdAt: string;

@@ -24,6 +24,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [bidAmount, setBidAmount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [bidHistory, setBidHistory] = useState<any[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "auctions"), orderBy("createdAt", "desc"));
@@ -32,6 +33,18 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (selectedAuction) {
+      const q = query(collection(db, "auctions", selectedAuction.id, "bids"), orderBy("timestamp", "desc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setBidHistory(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      return unsubscribe;
+    } else {
+      setBidHistory([]);
+    }
+  }, [selectedAuction?.id]);
 
   const handleBid = async (auction: AuctionItem) => {
     if (bidAmount <= auction.currentBid) {
@@ -99,7 +112,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
   return (
     <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto">
       <div className="mb-12 text-center max-w-2xl mx-auto">
-        <h1 className="text-5xl font-black text-amber-900 dark:text-amber-500  uppercase tracking-tighter">Sàn Đấu giá Nhân văn</h1>
+        <h1 className="text-5xl font-black text-amber-900 dark:text-amber-500 uppercase tracking-tighter">Sàn Đấu giá Nhân văn</h1>
         <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.4em] mt-4 leading-relaxed">
           Nơi hội tụ những món đồ quý giá được các nhà tài trợ gửi gắm thông qua Admin GIVEBACK. 
           Số tiền thu được sẽ dành trọn cho hoạt động cứu trợ.
@@ -113,7 +126,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
             </svg>
          </div>
          <h2 className="text-2xl font-black uppercase text-amber-900 dark:text-amber-500 mb-4 tracking-tight">Bạn muốn đóng góp vật phẩm đấu giá?</h2>
-         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-8 max-w-md mx-auto  leading-relaxed">Nếu bạn sở hữu món đồ có giá trị và muốn đấu giá để gây quỹ, hãy liên hệ trực tiếp với Admin để được thẩm định và lên sàn nhé!</p>
+         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm mb-8 max-w-md mx-auto leading-relaxed">Nếu bạn sở hữu món đồ có giá trị và muốn đấu giá để gây quỹ, hãy liên hệ trực tiếp với Admin để được thẩm định và lên sàn nhé!</p>
          <button 
           onClick={() => setActiveTab?.('contact')}
           className="bg-amber-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-amber-100 dark:shadow-none hover:bg-amber-700 active:scale-95 transition-all"
@@ -130,7 +143,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
               
               <div className="absolute top-6 left-6 flex flex-col space-y-2">
-                <span className="bg-amber-500 text-amber-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg  w-fit">Đã xác thực</span>
+                <span className="bg-amber-500 text-amber-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg w-fit">Đã xác thực</span>
                 <span className="bg-white/90 text-gray-900 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm w-fit">
                    ⏳ {calculateTimeLeft(item.endTime)}
                 </span>
@@ -144,13 +157,13 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
 
               <div className="absolute bottom-6 left-6 right-6">
                 <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Dành cho chuyến cứu trợ</p>
-                <p className="text-lg font-black text-white  truncate uppercase tracking-tighter">{item.missionLocation}</p>
+                <p className="text-lg font-black text-white truncate uppercase tracking-tighter">{item.missionLocation}</p>
               </div>
             </div>
 
             <div className="p-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-black  uppercase text-gray-900 dark:text-white truncate pr-2">{item.title}</h3>
+                <h3 className="text-xl font-black uppercase text-gray-900 dark:text-white truncate pr-2">{item.title}</h3>
               </div>
               
               <div className="bg-amber-50/50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900 mb-8">
@@ -228,7 +241,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                 )}
 
                 <div className="absolute top-8 left-8">
-                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl ">Góc nhìn {currentImgIndex + 1}</span>
+                   <span className="bg-amber-500 text-amber-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">Góc nhìn {currentImgIndex + 1}</span>
                 </div>
              </div>
 
@@ -237,7 +250,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Phiên đang diễn ra</span>
                 </div>
-                <h3 className="text-3xl font-black  uppercase text-amber-950 dark:text-amber-500 mb-4 tracking-tight">{selectedAuction.title}</h3>
+                <h3 className="text-3xl font-black uppercase text-amber-950 dark:text-amber-500 mb-4 tracking-tight">{selectedAuction.title}</h3>
                 
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-8 rounded-[2.5rem] border border-amber-100 dark:border-amber-900 mb-8 text-center">
                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2">Giá cao nhất hiện tại</p>
@@ -246,7 +259,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                       <div className="w-6 h-6 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center text-[10px] font-black text-amber-700 dark:text-amber-300">
                         {(selectedAuction.highestBidderName || "?").charAt(0)}
                       </div>
-                      <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold ">{selectedAuction.highestBidderName || "Hãy là người đặt giá đầu tiên"}</p>
+                      <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold">{selectedAuction.highestBidderName || "Hãy là người đặt giá đầu tiên"}</p>
                    </div>
                 </div>
 
@@ -283,9 +296,36 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
                   </button>
                 </div>
 
+                <div className="mt-10 pt-8 border-t border-gray-100 dark:border-slate-800">
+                   <h4 className="text-[10px] font-black text-amber-900 dark:text-amber-500 uppercase tracking-widest mb-6 text-center">Lịch sử đấu giá</h4>
+                   <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                      {bidHistory.length > 0 ? bidHistory.map((bid, idx) => (
+                        <div key={bid.id} className={`flex items-center justify-between p-4 rounded-2xl border ${idx === 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-slate-800 border-transparent'}`}>
+                           <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-500'}`}>
+                                 {bid.bidderName.charAt(0)}
+                              </div>
+                              <div>
+                                 <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{bid.bidderName}</p>
+                                 <p className="text-[8px] text-gray-400 font-bold uppercase">{new Date(bid.timestamp).toLocaleTimeString('vi-VN')}</p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className={`text-sm font-black ${idx === 0 ? 'text-amber-600' : 'text-gray-500'}`}>{bid.amount.toLocaleString()}đ</p>
+                              {idx === 0 && <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Dẫn đầu</span>}
+                           </div>
+                        </div>
+                      )) : (
+                        <div className="text-center py-10">
+                           <p className="text-[10px] text-gray-300 font-black uppercase tracking-widest">Chưa có lượt đấu giá nào</p>
+                        </div>
+                      )}
+                   </div>
+                </div>
+
                 <div className="mt-10 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Góp sức cho:</p>
-                   <p className="text-xs font-black text-amber-900 dark:text-amber-500  uppercase">{selectedAuction.missionLocation}</p>
+                   <p className="text-xs font-black text-amber-900 dark:text-amber-500 uppercase">{selectedAuction.missionLocation}</p>
                 </div>
              </div>
           </div>

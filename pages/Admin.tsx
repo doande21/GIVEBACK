@@ -43,6 +43,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   
   const [activeSubTab, setActiveSubTab] = useState<'missions' | 'sponsors' | 'auctions' | 'posts'>('missions');
   const [loading, setLoading] = useState(false);
@@ -53,10 +54,11 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
   const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
   const [missionForm, setMissionForm] = useState({
-    location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [] as NeededItem[], gallery: [] as string[]
+    location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [] as NeededItem[], donors: [] as { name: string, contribution: string, userId?: string }[], gallery: [] as string[]
   });
 
   const [newItem, setNewItem] = useState({ name: '', target: 0, unit: 'cái' });
+  const [newDonor, setNewDonor] = useState({ name: '', contribution: '', userId: '' });
 
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [sponsorForm, setSponsorForm] = useState({
@@ -68,6 +70,10 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   const [auctionForm, setAuctionForm] = useState({
     title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] as string[]
   });
+
+  const [isBidsModalOpen, setIsBidsModalOpen] = useState(false);
+  const [selectedAuctionForBids, setSelectedAuctionForBids] = useState<AuctionItem | null>(null);
+  const [auctionBids, setAuctionBids] = useState<any[]>([]);
 
   useEffect(() => {
     const unsubMissions = onSnapshot(query(collection(db, "missions"), orderBy("createdAt", "desc")), (snap) => {
@@ -84,8 +90,23 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
     const unsubPosts = onSnapshot(query(collection(db, "social_posts"), orderBy("createdAt", "desc")), (snap) => {
       setSocialPosts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialPost)));
     });
-    return () => { unsubMissions(); unsubSponsors(); unsubAuctions(); unsubPosts(); };
+    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+      setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+    });
+    return () => { unsubMissions(); unsubSponsors(); unsubAuctions(); unsubPosts(); unsubUsers(); };
   }, []);
+
+  useEffect(() => {
+    if (selectedAuctionForBids) {
+      const q = query(collection(db, "auctions", selectedAuctionForBids.id, "bids"), orderBy("timestamp", "desc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setAuctionBids(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      return unsubscribe;
+    } else {
+      setAuctionBids([]);
+    }
+  }, [selectedAuctionForBids?.id]);
 
   const handleFileUpload = async (e: any, callback: (url: string) => void, maxWidth = 800) => {
     const target = e.target as HTMLInputElement;
@@ -118,7 +139,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
   const handleSaveAuction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (auctionForm.gallery.length === 0) {
-      onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+      onNotify('warning', 'bạn hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
       return;
     }
     setLoading(true);
@@ -160,6 +181,20 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
     }
   };
 
+  const handleDeleteAuctionBid = async (auctionId: string, bidId: string, bidAmount: number) => {
+    if (!window.confirm("Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.")) return;
+    try {
+      await deleteDoc(doc(db, "auctions", auctionId, "bids", bidId));
+      onNotify('success', "Đã xóa lượt đấu giá.");
+      
+      if (bidAmount === selectedAuctionForBids?.currentBid) {
+        onNotify('warning', "Bạn vừa xóa lượt đấu giá cao nhất. Hãy cập nhật lại giá hiện tại của vật phẩm nếu cần!");
+      }
+    } catch (err) {
+      onNotify('error', "Lỗi xóa lượt đấu giá.");
+    }
+  };
+
   const handleEditAuctionClick = (a: AuctionItem) => {
     setEditingAuctionId(a.id);
     setAuctionForm({
@@ -186,9 +221,21 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
     setMissionForm({ ...missionForm, itemsNeeded: updated });
   };
 
+  const addDonor = () => {
+    if (!newDonor.name || !newDonor.contribution) return;
+    setMissionForm({ ...missionForm, donors: [...(missionForm.donors || []), { ...newDonor, userId: newDonor.userId || undefined }] });
+    setNewDonor({ name: '', contribution: '', userId: '' });
+  };
+
+  const removeDonor = (idx: number) => {
+    const updated = [...(missionForm.donors || [])];
+    updated.splice(idx, 1);
+    setMissionForm({ ...missionForm, donors: updated });
+  };
+
   const handleGenAIVision = async () => {
     if (!missionForm.location || !missionForm.description) {
-      onNotify('warning', "Đệ hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
+      onNotify('warning', "bạn hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
       return;
     }
     setIsGeneratingAIVision(true);
@@ -224,7 +271,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                 <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Chiến dịch cứu trợ</h2>
                 <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest">Quản lý ngân sách & nhu yếu phẩm vùng cao.</p>
              </div>
-             <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [], gallery: [] }); setIsMissionModalOpen(true); }} className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
+             <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [], donors: [], gallery: [] }); setIsMissionModalOpen(true); }} className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
            </div>
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {missions.map(m => (
@@ -232,7 +279,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <img src={m.image || "https://placehold.co/150x150?text=Mission"} className="w-20 h-20 rounded-[2rem] object-cover" alt="" />
                    <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 dark:text-emerald-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
                    <div className="flex gap-2">
-                      <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                      <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], donors: m.donors || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                       <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                    </div>
                 </div>
@@ -287,6 +334,10 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white text-center truncate w-full">{a.title}</h4>
                    <p className="text-[10px] text-indigo-600 font-black uppercase mt-1">Giá hiện tại: {a.currentBid.toLocaleString()}đ</p>
                    <div className="flex gap-2 mt-4">
+                      <button onClick={() => { setSelectedAuctionForBids(a); setIsBidsModalOpen(true); }} className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span className="text-[9px] font-black uppercase">Lịch sử</span>
+                      </button>
                       <button onClick={() => handleEditAuctionClick(a)} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
@@ -398,6 +449,57 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                         <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Đơn vị" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} />
                       </div>
                       <button type="button" onClick={addNeededItem} className="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Thêm món +</button>
+                   </div>
+
+                   <div className="space-y-4 pt-4 border-t border-gray-100">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600">Các mạnh thường quân đã đóng góp</h4>
+                      
+                      <div className="space-y-3">
+                         {missionForm.donors?.map((donor, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-amber-50/50 dark:bg-slate-800 p-4 rounded-2xl border border-amber-100 dark:border-slate-700">
+                               <div className="flex-1">
+                                  <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase mb-1">Tên mạnh thường quân</p>
+                                  <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-amber-100 dark:border-slate-600 outline-none dark:text-white" value={donor.name} onChange={e => {
+                                     const updated = [...(missionForm.donors || [])];
+                                     updated[idx].name = e.target.value;
+                                     setMissionForm({...missionForm, donors: updated});
+                                  }} />
+                               </div>
+                               <div className="flex-1">
+                                  <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase mb-1">Đóng góp (Tiền/Đồ vật)</p>
+                                  <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-amber-100 dark:border-slate-600 outline-none dark:text-white" value={donor.contribution} onChange={e => {
+                                     const updated = [...(missionForm.donors || [])];
+                                     updated[idx].contribution = e.target.value;
+                                     setMissionForm({...missionForm, donors: updated});
+                                  }} />
+                               </div>
+                               <button type="button" onClick={() => removeDonor(idx)} className="mt-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                               </button>
+                            </div>
+                         ))}
+                      </div>
+
+                      <div className="bg-amber-50/30 dark:bg-slate-800 p-6 rounded-[2rem] border border-amber-100 dark:border-slate-700 space-y-4">
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                           <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Tên mạnh thường quân" value={newDonor.name} onChange={e => setNewDonor({...newDonor, name: e.target.value})} />
+                           <select className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" value={newDonor.userId} onChange={e => {
+                              const selectedUser = allUsers.find(u => u.id === e.target.value);
+                              setNewDonor({
+                                ...newDonor, 
+                                userId: e.target.value,
+                                name: selectedUser ? selectedUser.name : newDonor.name
+                              });
+                           }}>
+                              <option value="">-- Liên kết tài khoản (Tùy chọn) --</option>
+                              {allUsers.map(u => (
+                                 <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                              ))}
+                           </select>
+                           <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Vd: 5.000.000đ hoặc 20 thùng mì" value={newDonor.contribution} onChange={e => setNewDonor({...newDonor, contribution: e.target.value})} />
+                         </div>
+                         <button type="button" onClick={addDonor} className="w-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-amber-600 hover:text-white transition-all">Thêm mạnh thường quân +</button>
+                      </div>
                    </div>
                 </div>
 
@@ -515,6 +617,55 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                   {loading ? "ĐANG LƯU..." : editingAuctionId ? "LƯU THAY ĐỔI 🔨" : "XÁC NHẬN LÊN SÀN 🔨"}
                 </button>
              </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: QUẢN LÝ LƯỢT ĐẤU GIÁ */}
+      {isBidsModalOpen && selectedAuctionForBids && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => { setIsBidsModalOpen(false); setSelectedAuctionForBids(null); }}></div>
+          <div className="relative bg-white w-full max-w-2xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-amber-50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black uppercase text-amber-900 tracking-tight">LỊCH SỬ ĐẤU GIÁ: {selectedAuctionForBids.title}</h3>
+                <button onClick={() => { setIsBidsModalOpen(false); setSelectedAuctionForBids(null); }} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+             </div>
+
+             <div className="space-y-4">
+                {auctionBids.length > 0 ? auctionBids.map((bid, idx) => (
+                  <div key={bid.id} className={`flex items-center justify-between p-5 rounded-3xl border-2 ${idx === 0 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-transparent'}`}>
+                     <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                           {bid.bidderName.charAt(0)}
+                        </div>
+                        <div>
+                           <h4 className="text-sm font-black uppercase text-gray-900">{bid.bidderName}</h4>
+                           <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(bid.timestamp).toLocaleString('vi-VN')}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-6">
+                        <div className="text-right">
+                           <p className={`text-lg font-black ${idx === 0 ? 'text-amber-600' : 'text-gray-500'}`}>{bid.amount.toLocaleString()}đ</p>
+                           {idx === 0 && <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Dẫn đầu hiện tại</span>}
+                        </div>
+                        <button onClick={() => handleDeleteAuctionBid(selectedAuctionForBids.id, bid.id, bid.amount)} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                     </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-20 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
+                     <p className="text-xs font-black text-gray-300 uppercase tracking-widest">Chưa có lượt đấu giá nào cho vật phẩm này.</p>
+                  </div>
+                )}
+             </div>
+
+             <div className="mt-10 p-6 bg-amber-50 rounded-[2rem] border border-amber-100">
+                <p className="text-[10px] font-black text-amber-700 uppercase mb-2">Lưu ý cho Admin:</p>
+                <p className="text-[10px] text-amber-600 leading-relaxed font-medium italic">Nếu phát hiện người dùng phá giá hoặc đấu giá ảo, Admin có quyền xóa lượt đấu giá đó. Nếu lượt bị xóa là lượt cao nhất, Admin cần vào phần chỉnh sửa vật phẩm để cập nhật lại "Giá hiện tại" về mức giá của người dẫn đầu mới.</p>
+             </div>
           </div>
         </div>
       )}

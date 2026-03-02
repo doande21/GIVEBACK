@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, SocialPost, PostMedia, DonationItem, ClaimRecord, FriendRequest } from '../types';
+import { User, SocialPost, PostMedia, DonationItem, ClaimRecord, FriendRequest, CharityMission } from '../types';
 import { 
   doc, 
   updateDoc, 
@@ -111,11 +111,12 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
   const [targetUser, setTargetUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'info' | 'given' | 'received' | 'friends'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'info' | 'given' | 'received' | 'friends' | 'missions'>('posts'); 
   
   const [userPosts, setUserPosts] = useState<SocialPost[]>([]);
   const [givenItems, setGivenItems] = useState<DonationItem[]>([]);
   const [receivedClaims, setReceivedClaims] = useState<ClaimRecord[]>([]);
+  const [contributedMissions, setContributedMissions] = useState<CharityMission[]>([]);
   const [friendsList, setFriendsList] = useState<User[]>([]);
   const [requestSent, setRequestSent] = useState<FriendRequest | null>(null);
   
@@ -157,14 +158,21 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
       const unsubReceived = onSnapshot(qReceived, (snap) => {
         setReceivedClaims(snap.docs.map(d => ({ id: d.id, ...d.data() } as ClaimRecord)));
       });
+      const unsubMissions = onSnapshot(collection(db, "missions"), (snap) => {
+        const allMissions = snap.docs.map(d => ({ id: d.id, ...d.data() } as CharityMission));
+        const userMissions = allMissions.filter(m => 
+          m.donors?.some(donor => donor.userId === targetUser.id)
+        );
+        setContributedMissions(userMissions);
+      });
       if (!isViewingSelf) {
         const qSent = query(collection(db, "friend_requests"), where("fromId", "==", user.id), where("toId", "==", targetUser.id), where("status", "==", "pending"));
         const unsubSent = onSnapshot(qSent, (snap) => {
           setRequestSent(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() } as FriendRequest);
         });
-        return () => { unsubPosts(); unsubGiven(); unsubReceived(); unsubSent(); };
+        return () => { unsubPosts(); unsubGiven(); unsubReceived(); unsubMissions(); unsubSent(); };
       }
-      return () => { unsubPosts(); unsubGiven(); unsubReceived(); };
+      return () => { unsubPosts(); unsubGiven(); unsubReceived(); unsubMissions(); };
     }
   }, [targetUser?.id, isViewingSelf, user.id]);
 
@@ -241,7 +249,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
     } catch (err) { onNotify('error', "Thất bại."); }
   };
 
-  if (loading) return <div className="pt-32 text-center animate-pulse text-Klavika-600 font-black tracking-widest uppercase">Đang tải hồ sơ...</div>;
+  if (loading) return <div className="pt-32 text-center animate-pulse text-emerald-600 font-black tracking-widest uppercase">Đang tải hồ sơ...</div>;
   if (!targetUser) return <div className="pt-32 text-center text-gray-400 uppercase font-black">Không tìm thấy người dùng.</div>;
 
   const isOrg = targetUser.userType === 'organization';
@@ -250,13 +258,13 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
 
   return (
     <div className="pt-24 pb-12 px-4 max-w-4xl mx-auto">
-      <div className="bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-Klavika-50 relative">
-        <div className={`h-48 bg-gradient-to-r ${isOrg ? 'from-sky-700 to-blue-900' : isTargetGuest ? 'from-amber-600 to-orange-700' : 'from-Klavika-600 to-teal-700'} relative`}>
+      <div className="bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-emerald-50 relative">
+        <div className={`h-48 bg-gradient-to-r ${isOrg ? 'from-sky-700 to-blue-900' : isTargetGuest ? 'from-amber-600 to-orange-700' : 'from-emerald-600 to-teal-700'} relative`}>
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           {isViewingSelf && (
             <button 
               onClick={() => {
-                if(window.confirm("Đệ chắc chắn muốn đăng xuất?")) onLogout?.();
+                if(window.confirm("bạn chắc chắn muốn đăng xuất?")) onLogout?.();
               }}
               className="absolute top-6 right-6 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-2xl text-white transition-all z-10"
               title="Đăng xuất nhanh"
@@ -281,11 +289,11 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
               </div>
               <div className="text-center md:text-left pb-4">
                 <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
-                   <h1 className="text-4xl font-black text-Klavika-950 uppercase tracking-tighter">{targetUser.name}</h1>
+                   <h1 className="text-4xl font-black text-emerald-950 uppercase tracking-tighter">{targetUser.name}</h1>
                    {isTargetGuest && <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">GUEST</span>}
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                   <span className={`${isOrg ? 'bg-blue-50 text-blue-700 border-blue-100' : isTargetGuest ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-Klavika-50 text-Klavika-700 border-Klavika-100'} px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm`}>{isOrg ? 'Tổ chức Đồng hành' : isTargetGuest ? 'Tài khoản dùng thử' : 'Thành viên'}</span>
+                   <span className={`${isOrg ? 'bg-blue-50 text-blue-700 border-blue-100' : isTargetGuest ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'} px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm`}>{isOrg ? 'Tổ chức Đồng hành' : isTargetGuest ? 'Tài khoản dùng thử' : 'Thành viên'}</span>
                    <span className="bg-gray-50 text-gray-500 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-gray-100 shadow-sm">{(targetUser.friends || []).length} Đồng đội</span>
                 </div>
               </div>
@@ -303,24 +311,24 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Họ và tên</label>
-                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-Klavika-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Khu vực</label>
-                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-Klavika-500" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                  <input className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Tiểu sử (Slogan yêu thương)</label>
-                <textarea className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-Klavika-500" rows={3} value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
+                <textarea className="w-full bg-gray-50 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" rows={3} value={formData.bio} onChange={e => setFormData({...formData, bio: e.target.value})} />
               </div>
-              <button type="submit" className="w-full bg-Klavika-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.2em] shadow-xl hover:bg-Klavika-700 active:scale-95 transition-all">LƯU THAY ĐỔI</button>
+              <button type="submit" className="w-full bg-emerald-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.2em] shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">LƯU THAY ĐỔI</button>
             </form>
           ) : (
             <>
               {targetUser.bio && (
                 <div className="mb-10 p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100">
-                  <p className="text-gray-600 font-bold  text-sm leading-relaxed">"{targetUser.bio}"</p>
+                  <p className="text-gray-600 font-bold text-sm leading-relaxed">"{targetUser.bio}"</p>
                 </div>
               )}
 
@@ -333,7 +341,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
 
               {!isViewingSelf && (
                 <div className="flex flex-col sm:flex-row gap-5 mb-12">
-                   <button onClick={handleSendFriendRequest} disabled={!!requestSent || isFriend || isTargetGuest} className={`flex-1 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all ${isFriend ? 'bg-Klavika-50 text-Klavika-600 border border-Klavika-100' : requestSent ? 'bg-gray-100 text-gray-400' : isTargetGuest ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-Klavika-600 text-white hover:bg-Klavika-700 active:scale-95'}`}>{isFriend ? 'ĐẠI SỨ NHÂN ÁI' : requestSent ? 'ĐANG CHỜ PHẢN HỒI' : isTargetGuest ? 'GUEST KHÔNG KẾT BẠN' : 'GỬI LỜI MỜI ĐỒNG ĐỘI'}</button>
+                   <button onClick={handleSendFriendRequest} disabled={!!requestSent || isFriend || isTargetGuest} className={`flex-1 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl transition-all ${isFriend ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : requestSent ? 'bg-gray-100 text-gray-400' : isTargetGuest ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'}`}>{isFriend ? 'ĐẠI SỨ NHÂN ÁI' : requestSent ? 'ĐANG CHỜ PHẢN HỒI' : isTargetGuest ? 'GUEST KHÔNG KẾT BẠN' : 'GỬI LỜI MỜI ĐỒNG ĐỘI'}</button>
                    <button onClick={handleOpenChat} className="flex-1 py-5 rounded-[2rem] bg-gray-950 text-white font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-black active:scale-95 transition-all">GỬI LỜI NHẮN</button>
                 </div>
               )}
@@ -341,6 +349,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
               <div className="flex border-b border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
                  {[
                    { id: 'posts', label: 'Bài viết' },
+                   { id: 'missions', label: 'Sứ mệnh đã góp' },
                    { id: 'given', label: 'Món quà đã tặng' },
                    { id: 'received', label: 'Quà đã nhận' },
                    { id: 'friends', label: 'Đồng đội' }
@@ -348,7 +357,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                    <button 
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-all border-b-4 ${activeTab === tab.id ? 'border-Klavika-600 text-Klavika-700' : 'border-transparent text-gray-400'}`}
+                    className={`px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-all border-b-4 ${activeTab === tab.id ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-gray-400'}`}
                    >
                      {tab.label}
                    </button>
@@ -366,7 +375,32 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                          <span>{post.hearts?.length || 0} ❤️ • {post.comments?.length || 0} 💬</span>
                       </div>
                     </div>
-                  )) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa có bài viết nào...</div>
+                  )) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa có bài viết nào...</div>
+                )}
+
+                {activeTab === 'missions' && (
+                  contributedMissions.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4">
+                      {contributedMissions.map(m => {
+                        const myContribution = m.donors?.find(d => d.userId === targetUser.id)?.contribution;
+                        return (
+                          <div key={m.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center gap-6 shadow-sm hover:shadow-md transition-all">
+                             <img src={m.image} className="w-24 h-24 rounded-[2rem] object-cover shadow-md" alt="" />
+                             <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-2">
+                                   <h4 className="text-lg font-black uppercase text-emerald-950 truncate tracking-tighter">{m.location}</h4>
+                                   <span className="text-[9px] font-black text-gray-400 uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</span>
+                                </div>
+                                <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-800">
+                                   <p className="text-[9px] font-black text-amber-600 uppercase mb-1">Đóng góp của bạn</p>
+                                   <p className="text-sm font-black text-emerald-900 dark:text-emerald-300">{myContribution}</p>
+                                </div>
+                             </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa tham gia sứ mệnh nào...</div>
                 )}
                 
                 {activeTab === 'given' && (
@@ -377,12 +411,12 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                            <img src={item.image} className="w-16 h-16 rounded-2xl object-cover" alt="" />
                            <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-black uppercase text-gray-900 truncate">{item.title}</h4>
-                              <p className={`text-[8px] font-black uppercase tracking-widest ${item.quantity > 0 ? 'text-Klavika-600' : 'text-gray-400'}`}>{item.quantity > 0 ? 'Còn sẵn' : 'Đã hết'}</p>
+                              <p className={`text-[8px] font-black uppercase tracking-widest ${item.quantity > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>{item.quantity > 0 ? 'Còn sẵn' : 'Đã hết'}</p>
                            </div>
                         </div>
                       ))}
                     </div>
-                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa đăng món quà nào...</div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa đăng món quà nào...</div>
                 )}
 
                 {activeTab === 'friends' && (
@@ -392,14 +426,14 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                          <div 
                           key={f.id} 
                           onClick={() => onViewProfile?.(f.id)}
-                          className="bg-white p-5 rounded-[2.5rem] border border-gray-100 flex flex-col items-center text-center cursor-pointer hover:bg-Klavika-50/30 transition-all"
+                          className="bg-white p-5 rounded-[2.5rem] border border-gray-100 flex flex-col items-center text-center cursor-pointer hover:bg-emerald-50/30 transition-all"
                          >
                             <img src={getAvatar(f.avatar, f.name, f.userType)} className="w-16 h-16 rounded-2xl object-cover mb-3 shadow-sm" alt="" />
                             <p className="text-[10px] font-black uppercase text-gray-900 line-clamp-1">{f.name}</p>
                          </div>
                        ))}
                     </div>
-                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest ">Chưa có đồng đội nào...</div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa có đồng đội nào...</div>
                 )}
               </div>
             </>
