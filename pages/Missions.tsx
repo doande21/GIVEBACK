@@ -131,7 +131,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                                <div key={idx} className="bg-gray-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-700 group hover:border-emerald-500 transition-all">
                                   <div className="flex justify-between items-center mb-3">
                                      <span className="text-sm font-black text-emerald-950 dark:text-white uppercase tracking-tighter">{item.name}</span>
-                                     <span className="text-[10px] font-black text-emerald-600">{item.current} / {item.target} {item.unit}</span>
+                                     <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{item.current} / {item.target} {item.unit}</span>
                                   </div>
                                   <div className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                      <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${itemProgress}%` }}></div>

@@ -312,7 +312,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                    <img src={post.authorAvatar} className="w-14 h-14 rounded-2xl object-cover border-2 border-gray-50 shadow-sm" alt="" />
                    <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 ">"{post.content}"</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">"{post.content}"</p>
                    </div>
                    <button onClick={() => { if(window.confirm("Xóa bài này?")) deleteDoc(doc(db, "social_posts", post.id)) }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -348,13 +348,56 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                 
                 <div className="space-y-4 pt-4 border-t border-gray-100">
                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Danh sách nhu yếu phẩm</h4>
-                   <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-4">
+                    
+                    {/* List of existing items */}
+                    <div className="space-y-3">
+                       {missionForm.itemsNeeded.map((item, idx) => (
+                          <div key={idx} className="flex flex-col md:flex-row items-center gap-3 bg-emerald-50/50 dark:bg-slate-800 p-4 rounded-2xl border border-emerald-100 dark:border-slate-700">
+                             <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Tên món</p>
+                                <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.name} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].name = e.target.value;
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-24">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Hiện có</p>
+                                <input type="number" className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.current} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].current = Number(e.target.value);
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-24">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Mục tiêu</p>
+                                <input type="number" className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.target} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].target = Number(e.target.value);
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-20">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Đơn vị</p>
+                                <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.unit} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].unit = e.target.value;
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <button type="button" onClick={() => removeNeededItem(idx)} className="mt-5 md:mt-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                             </button>
+                          </div>
+                       ))}
+                    </div>
+                   <div className="bg-gray-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-700 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Tên món" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
-                        <input type="number" className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Số lượng" value={newItem.target || ''} onChange={e => setNewItem({...newItem, target: Number(e.target.value)})} />
-                        <input className="bg-white p-4 rounded-xl text-sm font-bold border border-gray-100 outline-none" placeholder="Đơn vị" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} />
+                        <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Tên món" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                        <input type="number" className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Số lượng" value={newItem.target || ''} onChange={e => setNewItem({...newItem, target: Number(e.target.value)})} />
+                        <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Đơn vị" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} />
                       </div>
-                      <button type="button" onClick={addNeededItem} className="w-full bg-emerald-100 text-emerald-700 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Thêm món +</button>
+                      <button type="button" onClick={addNeededItem} className="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Thêm món +</button>
                    </div>
                 </div>
 
@@ -446,7 +489,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
                 </div>
                 
                 <div className="space-y-4 pt-4">
-                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4 ">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
+                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
                    <div className="grid grid-cols-3 gap-3">
                       {auctionForm.gallery.map((img, idx) => (
                         <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border-2 border-indigo-50">
@@ -480,4 +523,3 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
 };
 
 export default Admin;
-

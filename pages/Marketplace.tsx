@@ -101,6 +101,10 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
         setNewPost((prev: any) => ({
           ...prev,
           title: aiData.suggestedTitle || prev.title,
+          category: aiData.category || prev.category,
+          description: aiData.detailedDescription || prev.description,
+          condition: aiData.condition || prev.condition,
+          quantity: aiData.quantity || prev.quantity || 1,
           minAge: aiData.minAge || 0,
           maxAge: aiData.maxAge || 0,
           minWeight: aiData.minWeight || 0,
@@ -350,19 +354,31 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
                       <select className="w-full bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl font-bold outline-none dark:text-white border-2 border-transparent focus:border-emerald-500" value={newPost.category} onChange={e => setNewPost({...newPost, category: e.target.value})}>
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-1">
+                          <input type="number" min="1" className="w-full bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl font-bold outline-none dark:text-white border-2 border-transparent focus:border-emerald-500" placeholder="SL" value={newPost.quantity} onChange={e => setNewPost({...newPost, quantity: parseInt(e.target.value) || 1})} />
+                        </div>
+                        <div className="col-span-2">
+                          <input required className="w-full bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl font-bold outline-none dark:text-white border-2 border-transparent focus:border-emerald-500" placeholder="Địa chỉ nhận đồ..." value={newPost.location} onChange={e => setNewPost({...newPost, location: e.target.value})} />
+                        </div>
+                      </div>
                       <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-6 rounded-[2rem] space-y-4 border border-emerald-100 dark:border-emerald-800 text-[11px] font-bold">
                         <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase">Thông số AI quét được:</p>
+                        <div className="grid grid-cols-2 gap-4 border-b border-emerald-100 dark:border-emerald-800 pb-3 mb-3">
+                           <div>Tình trạng: <span className="text-emerald-600 dark:text-emerald-400">{newPost.condition === 'new' ? 'Mới' : 'Tốt'}</span></div>
+                           <div>Số lượng: <span className="text-emerald-600 dark:text-emerald-400">{newPost.quantity}</span></div>
+                        </div>
                         {newPost.category === 'Quần áo' ? (
                           <div className="grid grid-cols-2 gap-4">
-                            <div>Tuổi: <span className="text-emerald-600">{newPost.minAge}-{newPost.maxAge}</span></div>
-                            <div>Nặng: <span className="text-emerald-600">{newPost.minWeight}-{newPost.maxWeight}kg</span></div>
+                            <div>Tuổi: <span className="text-emerald-600 dark:text-emerald-400">{newPost.minAge}-{newPost.maxAge}</span></div>
+                            <div>Nặng: <span className="text-emerald-600 dark:text-emerald-400">{newPost.minWeight}-{newPost.maxWeight}kg</span></div>
                           </div>
                         ) : newPost.category === 'Sách vở' ? (
                           <div className="space-y-2">
-                            <div>Tác giả: <span className="text-emerald-600">{newPost.bookAuthor || '...'}</span></div>
-                            <div>Thể loại: <span className="text-emerald-600">{newPost.bookGenre || '...'}</span></div>
+                            <div>Tác giả: <span className="text-emerald-600 dark:text-emerald-400">{newPost.bookAuthor || '...'}</span></div>
+                            <div>Thể loại: <span className="text-emerald-600 dark:text-emerald-400">{newPost.bookGenre || '...'}</span></div>
                           </div>
-                        ) : <p className="text-gray-400">Đang chờ quét ảnh...</p>}
+                        ) : <p className="text-gray-400">AI đã tự động điền các thông tin chi tiết.</p>}
                       </div>
                    </div>
                 </div>

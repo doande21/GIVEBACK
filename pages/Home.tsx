@@ -136,7 +136,27 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab
   };
 
   const currentMission = missions[0];
-  const missionProgress = currentMission ? Math.min(100, Math.round((currentMission.currentBudget / currentMission.targetBudget) * 100)) : 0;
+  const calculateProgress = (mission: CharityMission) => {
+    if (!mission) return 0;
+    
+    // Nếu có danh sách nhu yếu phẩm, tính trung bình cộng tiến độ các món
+    if (mission.itemsNeeded && mission.itemsNeeded.length > 0) {
+      const totalProgress = mission.itemsNeeded.reduce((acc, item) => {
+        const itemProg = item.target > 0 ? (item.current / item.target) : 0;
+        return acc + Math.min(1, itemProg);
+      }, 0);
+      return Math.round((totalProgress / mission.itemsNeeded.length) * 100);
+    }
+    
+    // Nếu không có nhu yếu phẩm, tính theo ngân sách (budget)
+    if (mission.targetBudget > 0) {
+      return Math.min(100, Math.round((mission.currentBudget / mission.targetBudget) * 100));
+    }
+    
+    return 0;
+  };
+
+  const missionProgress = currentMission ? calculateProgress(currentMission) : 0;
 
   return (
     <div className="pt-20 pb-24 max-w-4xl mx-auto px-4 space-y-8">

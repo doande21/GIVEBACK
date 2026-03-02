@@ -12,6 +12,7 @@ import Contact from './pages/Contact';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import Missions from './pages/Missions';
+import Showcase from './pages/Showcase';
 import Login from './pages/Login';
 import AIHelper from './components/AIHelper';
 import { User, ChatSession } from './types';
@@ -112,6 +113,7 @@ const App: React.FC = () => {
         <Notifications user={user} onNotify={handleNotify} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
       );
       case 'missions': return <Missions setActiveTab={setActiveTab} />;
+      case 'showcase': return <Showcase />;
       default: return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
     }
   };
@@ -150,7 +152,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden">
       <Navbar 
         user={user} 
         activeTab={activeTab} 

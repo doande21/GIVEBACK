@@ -75,14 +75,28 @@ export const getAIAssistance = async (prompt: string) => {
 };
 
 /**
- * analyzeDonationItem: Sử dụng AI Vision để phân tích hình ảnh quà tặng
+ * analyzeDonationItem: Sử dụng AI Vision để phân tích hình ảnh quà tặng siêu cấp
  */
-export const analyzeDonationItem = async (imageData: string, description: string) => {
+export const analyzeDonationItem = async (imageData: string, userDescription: string) => {
   const ai = getAIInstance();
   if (!ai) return null;
 
   try {
-    const prompt = `Phân tích hình ảnh này và mô tả: "${description}". Trích xuất thông tin quà tặng thật chính xác.`;
+    const prompt = `Bạn là chuyên gia thẩm định đồ cũ của GIVEBACK. 
+    Hãy phân tích hình ảnh này thật chi tiết. 
+    Mô tả ban đầu của người dùng (nếu có): "${userDescription}".
+    
+    Nhiệm vụ của bạn:
+    1. Nhận diện chính xác món đồ là gì.
+    2. Chọn 1 phân loại phù hợp nhất từ danh sách: ["Quần áo", "Đồ gia dụng", "Sách vở", "Điện tử", "Đồ chơi", "Khác"].
+    3. Đề xuất một tiêu đề (suggestedTitle) thu hút và rõ ràng.
+    4. Viết một mô tả chi tiết (detailedDescription) khoảng 2-3 câu về tình trạng, đặc điểm nổi bật của món đồ để giúp người nhận dễ hình dung.
+    5. Đánh giá tình trạng (condition): "new" (nếu trông như mới) hoặc "good" (nếu đã qua sử dụng nhưng còn tốt).
+    6. Ước lượng số lượng (quantity) nếu thấy nhiều món.
+    7. Nếu là "Quần áo" hoặc "Đồ chơi": Hãy ước lượng độ tuổi (minAge, maxAge) và cân nặng (minWeight, maxWeight) phù hợp.
+    8. Nếu là "Sách vở": Hãy tìm tên tác giả (bookAuthor) và thể loại (bookGenre) nếu có thể nhìn thấy trên bìa.
+
+    Hãy trả về kết quả dưới dạng JSON chính xác 100%.`;
 
     const imagePart = { 
       inlineData: { 
@@ -99,7 +113,11 @@ export const analyzeDonationItem = async (imageData: string, description: string
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            suggestedTitle: { type: Type.STRING, description: "Tên ngắn gọn của món đồ" },
+            suggestedTitle: { type: Type.STRING },
+            category: { type: Type.STRING, description: "Phải thuộc danh sách CATEGORIES" },
+            detailedDescription: { type: Type.STRING },
+            condition: { type: Type.STRING, description: "'new' hoặc 'good'" },
+            quantity: { type: Type.NUMBER },
             minAge: { type: Type.NUMBER },
             maxAge: { type: Type.NUMBER },
             minWeight: { type: Type.NUMBER },
@@ -107,7 +125,7 @@ export const analyzeDonationItem = async (imageData: string, description: string
             bookAuthor: { type: Type.STRING },
             bookGenre: { type: Type.STRING }
           },
-          required: ["suggestedTitle"]
+          required: ["suggestedTitle", "category", "detailedDescription", "condition"]
         }
       }
     });
