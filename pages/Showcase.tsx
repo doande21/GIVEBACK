@@ -176,10 +176,10 @@ const Showcase: React.FC = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
             {[
-              { label: "Người dùng", value: "10K+" },
-              { label: "Món quà trao đi", value: "25K+" },
-              { label: "Sứ mệnh hoàn thành", value: "150+" },
-              { label: "Quỹ quyên góp", value: "2B+" }
+              { label: "Người dùng", value: "...+" },
+              { label: "Món quà trao đi", value: "..." },
+              { label: "Sứ mệnh hoàn thành", value: "..." },
+              { label: "Quỹ quyên góp", value: "..." }
             ].map((stat, i) => (
               <div key={i}>
                 <div className="text-5xl md:text-7xl font-black tracking-tighter mb-2">{stat.value}</div>
