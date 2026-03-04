@@ -1,0 +1,700 @@
+
+import React, { useState, useEffect } from 'react';
+import { CharityMission, User, AuctionItem, NeededItem, SocialPost, Sponsor } from '../types';
+import { 
+  collection, 
+  onSnapshot, 
+  query, 
+  addDoc, 
+  doc, 
+  orderBy,
+  updateDoc,
+  deleteDoc
+} from "firebase/firestore";
+import { db } from '../services/firebase';
+import { generateMissionImage } from '../services/geminiService';
+
+const compressImage = (base64Str: string, maxWidth = 800, quality = 0.6): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > height) { if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; } } 
+      else { if (height > maxWidth) { width *= maxWidth / height; height = maxWidth; } }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+  });
+};
+
+interface AdminProps {
+  user: User;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+}
+
+const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
+  const [missions, setMissions] = useState<CharityMission[]>([]);
+  const [auctions, setAuctions] = useState<AuctionItem[]>([]);
+  const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  
+  const [activeSubTab, setActiveSubTab] = useState<'missions' | 'sponsors' | 'auctions' | 'posts'>('missions');
+  const [loading, setLoading] = useState(false);
+  const [isProcessingImg, setIsProcessingImg] = useState(false);
+  const [isGeneratingAIVision, setIsGeneratingAIVision] = useState(false);
+
+  // --- FORM STATES ---
+  const [isMissionModalOpen, setIsMissionModalOpen] = useState(false);
+  const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
+  const [missionForm, setMissionForm] = useState({
+    location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [] as NeededItem[], donors: [] as { name: string, contribution: string, userId?: string }[], gallery: [] as string[]
+  });
+
+  const [newItem, setNewItem] = useState({ name: '', target: 0, unit: 'cái' });
+  const [newDonor, setNewDonor] = useState({ name: '', contribution: '', userId: '' });
+
+  const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
+  const [sponsorForm, setSponsorForm] = useState({
+    name: '', avatar: '', type: 'individual' as 'individual' | 'organization', message: '', totalMoney: 0, totalItemsCount: 0, rank: 'bronze' as 'gold' | 'silver' | 'bronze'
+  });
+
+  const [isAuctionModalOpen, setIsAuctionModalOpen] = useState(false);
+  const [editingAuctionId, setEditingAuctionId] = useState<string | null>(null);
+  const [auctionForm, setAuctionForm] = useState({
+    title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] as string[]
+  });
+
+  const [isBidsModalOpen, setIsBidsModalOpen] = useState(false);
+  const [selectedAuctionForBids, setSelectedAuctionForBids] = useState<AuctionItem | null>(null);
+  const [auctionBids, setAuctionBids] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubMissions = onSnapshot(query(collection(db, "missions"), orderBy("createdAt", "desc")), (snap) => {
+      setMissions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CharityMission)));
+    });
+    const unsubSponsors = onSnapshot(collection(db, "sponsors"), (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsor));
+      data.sort((a, b) => (Number(b.totalMoney) || 0) - (Number(a.totalMoney) || 0));
+      setSponsors(data);
+    });
+    const unsubAuctions = onSnapshot(query(collection(db, "auctions"), orderBy("createdAt", "desc")), (snap) => {
+      setAuctions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuctionItem)));
+    });
+    const unsubPosts = onSnapshot(query(collection(db, "social_posts"), orderBy("createdAt", "desc")), (snap) => {
+      setSocialPosts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialPost)));
+    });
+    const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+      setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+    });
+    return () => { unsubMissions(); unsubSponsors(); unsubAuctions(); unsubPosts(); unsubUsers(); };
+  }, []);
+
+  useEffect(() => {
+    if (selectedAuctionForBids) {
+      const q = query(collection(db, "auctions", selectedAuctionForBids.id, "bids"), orderBy("timestamp", "desc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setAuctionBids(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+      return unsubscribe;
+    } else {
+      setAuctionBids([]);
+    }
+  }, [selectedAuctionForBids?.id]);
+
+  const handleFileUpload = async (e: any, callback: (url: string) => void, maxWidth = 800) => {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file) {
+      setIsProcessingImg(true);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        let base64 = reader.result as string;
+        if (file.type.startsWith('image/')) base64 = await compressImage(base64, maxWidth, 0.5);
+        callback(base64);
+        setIsProcessingImg(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveMission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const data = { ...missionForm, targetBudget: Number(missionForm.targetBudget), updatedAt: new Date().toISOString() };
+      if (editingMissionId) await updateDoc(doc(db, "missions", editingMissionId), data);
+      else await addDoc(collection(db, "missions"), { ...data, currentBudget: 0, status: 'ongoing', createdAt: new Date().toISOString() });
+      setIsMissionModalOpen(false);
+      onNotify('success', "Sứ mệnh đã được lưu thành công!");
+    } catch (err: any) { onNotify('error', "Lỗi lưu sứ mệnh."); } finally { setLoading(false); }
+  };
+
+  const handleSaveAuction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (auctionForm.gallery.length === 0) {
+      onNotify('warning', 'bạn hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+      return;
+    }
+    setLoading(true);
+    try {
+      const dataToSave = { 
+        ...auctionForm, 
+        image: auctionForm.gallery[0],
+        currentBid: Number(auctionForm.startingPrice), // Lưu ý: Trong thực tế nếu đang có thầu, startingPrice có thể không nên reset currentBid
+        status: 'active', 
+        updatedAt: new Date().toISOString() 
+      };
+
+      if (editingAuctionId) {
+        // Chỉ cập nhật các trường thông tin, không reset currentBid nếu startingPrice không đổi
+        // Ở đây Huynh cho cập nhật thông thường
+        await updateDoc(doc(db, "auctions", editingAuctionId), {
+          ...auctionForm,
+          image: auctionForm.gallery[0],
+          updatedAt: new Date().toISOString()
+        });
+        onNotify('success', "Đã cập nhật thông tin vật phẩm!");
+      } else {
+        await addDoc(collection(db, "auctions"), { 
+          ...dataToSave,
+          authorId: user.id, 
+          authorName: user.name, 
+          createdAt: new Date().toISOString() 
+        });
+        onNotify('success', "Vật phẩm đã lên sàn đấu giá!");
+      }
+      
+      setIsAuctionModalOpen(false);
+      setEditingAuctionId(null);
+      setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] });
+    } catch (err) { 
+      onNotify('error', "Lỗi lưu đấu giá."); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
+
+  const handleDeleteAuctionBid = async (auctionId: string, bidId: string, bidAmount: number) => {
+    const performDelete = async () => {
+      try {
+        await deleteDoc(doc(db, "auctions", auctionId, "bids", bidId));
+        onNotify('success', "Đã xóa lượt đấu giá.");
+        
+        if (bidAmount === selectedAuctionForBids?.currentBid) {
+          onNotify('warning', "Bạn vừa xóa lượt đấu giá cao nhất. Hãy cập nhật lại giá hiện tại của vật phẩm nếu cần!");
+        }
+      } catch (err) {
+        onNotify('error', "Lỗi xóa lượt đấu giá.");
+      }
+    };
+
+    if (onConfirm) {
+      onConfirm("Xóa lượt đấu giá", "Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.", performDelete, 'danger');
+    } else if (window.confirm("Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.")) {
+      performDelete();
+    }
+  };
+
+  const handleEditAuctionClick = (a: AuctionItem) => {
+    setEditingAuctionId(a.id);
+    setAuctionForm({
+      title: a.title,
+      description: a.description,
+      startingPrice: a.startingPrice,
+      endTime: a.endTime,
+      missionLocation: a.missionLocation,
+      donorName: a.donorName || '',
+      gallery: a.gallery || [a.image]
+    });
+    setIsAuctionModalOpen(true);
+  };
+
+  const addNeededItem = () => {
+    if (!newItem.name || newItem.target <= 0) return;
+    setMissionForm({ ...missionForm, itemsNeeded: [...missionForm.itemsNeeded, { ...newItem, current: 0 }] });
+    setNewItem({ name: '', target: 0, unit: 'cái' });
+  };
+
+  const removeNeededItem = (idx: number) => {
+    const updated = [...missionForm.itemsNeeded];
+    updated.splice(idx, 1);
+    setMissionForm({ ...missionForm, itemsNeeded: updated });
+  };
+
+  const addDonor = () => {
+    if (!newDonor.name || !newDonor.contribution) return;
+    setMissionForm({ ...missionForm, donors: [...(missionForm.donors || []), { ...newDonor, userId: newDonor.userId || undefined }] });
+    setNewDonor({ name: '', contribution: '', userId: '' });
+  };
+
+  const removeDonor = (idx: number) => {
+    const updated = [...(missionForm.donors || [])];
+    updated.splice(idx, 1);
+    setMissionForm({ ...missionForm, donors: updated });
+  };
+
+  const handleGenAIVision = async () => {
+    if (!missionForm.location || !missionForm.description) {
+      onNotify('warning', "bạn hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
+      return;
+    }
+    setIsGeneratingAIVision(true);
+    onNotify('info', "AI đang phác họa tầm nhìn...", "GIVEBACK AI");
+    try {
+      const imageUrl = await generateMissionImage(missionForm.location, missionForm.description);
+      if (imageUrl) {
+        setMissionForm({ ...missionForm, image: imageUrl });
+        onNotify('success', "Tầm nhìn AI đã sẵn sàng!", "GIVEBACK AI");
+      }
+    } catch (err) { onNotify('error', "Lỗi kết nối AI."); } finally { setIsGeneratingAIVision(false); }
+  };
+
+  return (
+    <div className="pt-24 pb-12 px-4 max-w-7xl mx-auto min-h-screen">
+      <div className="flex flex-col lg:flex-row justify-between items-start mb-10 gap-6">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter uppercase leading-none">Admin Dashboard</h1>
+          <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest mt-4">Quản lý minh bạch, lan tỏa yêu thương</p>
+        </div>
+        <div className="flex bg-gray-900 p-1.5 rounded-[2.5rem] shadow-2xl overflow-x-auto scrollbar-hide max-w-full border border-gray-800">
+          <button onClick={() => setActiveSubTab('missions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'missions' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vùng cứu trợ</button>
+          <button onClick={() => setActiveSubTab('sponsors')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'sponsors' ? 'bg-amber-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vinh danh</button>
+          <button onClick={() => setActiveSubTab('auctions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'auctions' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Đấu giá</button>
+          <button onClick={() => setActiveSubTab('posts')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'posts' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Kiểm duyệt</button>
+        </div>
+      </div>
+
+      {activeSubTab === 'missions' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+           <div className="bg-emerald-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
+             <div className="text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Chiến dịch cứu trợ</h2>
+                <p className="text-emerald-300 font-bold text-xs uppercase tracking-widest">Quản lý ngân sách & nhu yếu phẩm vùng cao.</p>
+             </div>
+             <button onClick={() => { setEditingMissionId(null); setMissionForm({ location: '', description: '', date: '', targetBudget: 0, image: '', qrCode: '', itemsNeeded: [], donors: [], gallery: [] }); setIsMissionModalOpen(true); }} className="bg-white text-emerald-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Tạo mới chiến dịch</button>
+           </div>
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {missions.map(m => (
+                <div key={m.id} className="bg-white dark:bg-slate-900 p-5 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 flex gap-5 items-center">
+                   <img src={m.image || "https://placehold.co/150x150?text=Mission"} className="w-20 h-20 rounded-[2rem] object-cover" alt="" />
+                   <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 dark:text-emerald-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
+                   <div className="flex gap-2">
+                      <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], donors: m.donors || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                      <button onClick={() => { 
+                        const performDelete = () => deleteDoc(doc(db, "missions", m.id));
+                        if (onConfirm) onConfirm("Xóa sứ mệnh", "bạn chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
+                        else if(window.confirm("Xóa sứ mệnh này?")) performDelete();
+                      }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {activeSubTab === 'sponsors' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+           <div className="bg-amber-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
+             <div className="text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Bảng Vàng Tri Ân</h2>
+                <p className="text-amber-300 font-bold text-xs uppercase tracking-widest">Vinh danh những tấm lòng vàng đồng hành.</p>
+             </div>
+             <button onClick={() => setIsSponsorModalOpen(true)} className="bg-white text-amber-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Vinh danh mới</button>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sponsors.map(s => (
+                <div key={s.id} className="bg-white dark:bg-slate-900 p-6 rounded-[3rem] shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center text-center">
+                   <img src={s.avatar || `https://ui-avatars.com/api/?name=${s.name}&background=amber&color=fff`} className="w-20 h-20 rounded-[2rem] object-cover mb-4 border-2 border-amber-50" alt="" />
+                   <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{s.name}</h4>
+                   <p className="text-[9px] text-amber-600 font-black uppercase mt-1 tracking-widest">Hạng {s.rank}</p>
+                   <p className="text-xs font-black text-gray-950 dark:text-white mt-4">{s.totalMoney.toLocaleString()}đ</p>
+                   <div className="flex gap-2 mt-4">
+                      <button onClick={() => { 
+                        const performDelete = () => deleteDoc(doc(db, "sponsors", s.id));
+                        if (onConfirm) onConfirm("Gỡ vinh danh", "Gỡ vinh danh nhà hảo tâm này?", performDelete, 'danger');
+                        else if(window.confirm("Gỡ vinh danh?")) performDelete();
+                      }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {activeSubTab === 'auctions' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+           <div className="bg-indigo-900 p-8 md:p-10 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between shadow-2xl">
+             <div className="text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Quản lý Đấu giá</h2>
+                <p className="text-indigo-300 font-bold text-xs uppercase tracking-widest">Vật phẩm nhân văn gây quỹ cứu trợ.</p>
+             </div>
+             <button onClick={() => { setEditingAuctionId(null); setAuctionForm({ title: '', description: '', startingPrice: 0, endTime: '', missionLocation: '', donorName: '', gallery: [] }); setIsAuctionModalOpen(true); }} className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl mt-4 md:mt-0">Đưa vật phẩm lên sàn</button>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {auctions.map(a => (
+                <div key={a.id} className="bg-white dark:bg-slate-900 p-6 rounded-[3rem] shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col items-center">
+                   <div className="w-full h-40 rounded-[2.5rem] overflow-hidden mb-4 relative">
+                      <img src={a.image} className="w-full h-full object-cover" alt="" />
+                      <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase">
+                        {a.status === 'active' ? 'Đang đấu giá' : 'Đã kết thúc'}
+                      </div>
+                   </div>
+                   <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white text-center truncate w-full">{a.title}</h4>
+                   <p className="text-[10px] text-indigo-600 font-black uppercase mt-1">Giá hiện tại: {a.currentBid.toLocaleString()}đ</p>
+                   <div className="flex gap-2 mt-4">
+                      <button onClick={() => { setSelectedAuctionForBids(a); setIsBidsModalOpen(true); }} className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span className="text-[9px] font-black uppercase">Lịch sử</span>
+                      </button>
+                      <button onClick={() => handleEditAuctionClick(a)} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button onClick={() => { 
+                        const performDelete = () => deleteDoc(doc(db, "auctions", a.id));
+                        if (onConfirm) onConfirm("Gỡ vật phẩm", "Gỡ vật phẩm đấu giá này khỏi sàn?", performDelete, 'danger');
+                        else if(window.confirm("Gỡ vật phẩm đấu giá?")) performDelete();
+                      }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {activeSubTab === 'posts' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+           <div className="bg-red-950 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl">
+             <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Kiểm duyệt bài viết</h2>
+             <p className="text-red-300 font-bold text-xs uppercase tracking-widest">Giám sát nội dung cộng đồng.</p>
+           </div>
+           <div className="grid grid-cols-1 gap-4">
+              {socialPosts.map(post => (
+                <div key={post.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-6 group hover:border-red-200 transition-all">
+                   <img src={post.authorAvatar} className="w-14 h-14 rounded-2xl object-cover border-2 border-gray-50 shadow-sm" alt="" />
+                   <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">"{post.content}"</p>
+                   </div>
+                   <button onClick={() => { 
+                     const performDelete = () => deleteDoc(doc(db, "social_posts", post.id));
+                     if (onConfirm) onConfirm("Xóa bài viết", "Xóa bài viết này khỏi bản tin?", performDelete, 'danger');
+                     else if(window.confirm("Xóa bài này?")) performDelete();
+                   }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                   </button>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {/* MODAL: SỨ MỆNH */}
+      {isMissionModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-md" onClick={() => setIsMissionModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-4xl p-8 md:p-12 rounded-[3rem] shadow-2xl h-fit max-h-[90vh] overflow-y-auto custom-scrollbar border-4 border-emerald-50">
+             <h3 className="text-2xl font-black uppercase text-emerald-900 mb-10 text-center tracking-tighter">CẬP NHẬT CHI TIẾT SỨ MỆNH</h3>
+             <form onSubmit={handleSaveMission} className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Vùng cứu trợ</label>
+                      <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Vd: Vân Canh, Hà Giang..." value={missionForm.location} onChange={e => setMissionForm({...missionForm, location: e.target.value})} />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Ngày đi</label>
+                      <input type="date" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" value={missionForm.date} onChange={e => setMissionForm({...missionForm, date: e.target.value})} />
+                   </div>
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[9px] font-black text-gray-400 uppercase ml-4">Ngân sách dự kiến (VNĐ)</label>
+                   <input type="number" required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Nhập số tiền..." value={missionForm.targetBudget || ''} onChange={e => setMissionForm({...missionForm, targetBudget: Number(e.target.value)})} />
+                </div>
+                <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-emerald-950 focus:border-emerald-500" placeholder="Mô tả kế hoạch..." value={missionForm.description} onChange={e => setMissionForm({...missionForm, description: e.target.value})} />
+                
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Danh sách nhu yếu phẩm</h4>
+                    
+                    {/* List of existing items */}
+                    <div className="space-y-3">
+                       {missionForm.itemsNeeded.map((item, idx) => (
+                          <div key={idx} className="flex flex-col md:flex-row items-center gap-3 bg-emerald-50/50 dark:bg-slate-800 p-4 rounded-2xl border border-emerald-100 dark:border-slate-700">
+                             <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Tên món</p>
+                                <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.name} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].name = e.target.value;
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-24">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Hiện có</p>
+                                <input type="number" className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.current} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].current = Number(e.target.value);
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-24">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Mục tiêu</p>
+                                <input type="number" className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.target} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].target = Number(e.target.value);
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <div className="w-full md:w-20">
+                                <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase mb-1">Đơn vị</p>
+                                <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-emerald-100 dark:border-slate-600 outline-none dark:text-white" value={item.unit} onChange={e => {
+                                   const updated = [...missionForm.itemsNeeded];
+                                   updated[idx].unit = e.target.value;
+                                   setMissionForm({...missionForm, itemsNeeded: updated});
+                                }} />
+                             </div>
+                             <button type="button" onClick={() => removeNeededItem(idx)} className="mt-5 md:mt-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                             </button>
+                          </div>
+                       ))}
+                    </div>
+                   <div className="bg-gray-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-700 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Tên món" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                        <input type="number" className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Số lượng" value={newItem.target || ''} onChange={e => setNewItem({...newItem, target: Number(e.target.value)})} />
+                        <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Đơn vị" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} />
+                      </div>
+                      <button type="button" onClick={addNeededItem} className="w-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Thêm món +</button>
+                   </div>
+
+                   <div className="space-y-4 pt-4 border-t border-gray-100">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600">Các mạnh thường quân đã đóng góp</h4>
+                      
+                      <div className="space-y-3">
+                         {missionForm.donors?.map((donor, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-amber-50/50 dark:bg-slate-800 p-4 rounded-2xl border border-amber-100 dark:border-slate-700">
+                               <div className="flex-1">
+                                  <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase mb-1">Tên mạnh thường quân</p>
+                                  <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-amber-100 dark:border-slate-600 outline-none dark:text-white" value={donor.name} onChange={e => {
+                                     const updated = [...(missionForm.donors || [])];
+                                     updated[idx].name = e.target.value;
+                                     setMissionForm({...missionForm, donors: updated});
+                                  }} />
+                               </div>
+                               <div className="flex-1">
+                                  <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase mb-1">Đóng góp (Tiền/Đồ vật)</p>
+                                  <input className="w-full bg-white dark:bg-slate-700 p-2 rounded-lg text-xs font-bold border border-amber-100 dark:border-slate-600 outline-none dark:text-white" value={donor.contribution} onChange={e => {
+                                     const updated = [...(missionForm.donors || [])];
+                                     updated[idx].contribution = e.target.value;
+                                     setMissionForm({...missionForm, donors: updated});
+                                  }} />
+                               </div>
+                               <button type="button" onClick={() => removeDonor(idx)} className="mt-4 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                               </button>
+                            </div>
+                         ))}
+                      </div>
+
+                      <div className="bg-amber-50/30 dark:bg-slate-800 p-6 rounded-[2rem] border border-amber-100 dark:border-slate-700 space-y-4">
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                           <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Tên mạnh thường quân" value={newDonor.name} onChange={e => setNewDonor({...newDonor, name: e.target.value})} />
+                           <select className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" value={newDonor.userId} onChange={e => {
+                              const selectedUser = allUsers.find(u => u.id === e.target.value);
+                              setNewDonor({
+                                ...newDonor, 
+                                userId: e.target.value,
+                                name: selectedUser ? selectedUser.name : newDonor.name
+                              });
+                           }}>
+                              <option value="">-- Liên kết tài khoản (Tùy chọn) --</option>
+                              {allUsers.map(u => (
+                                 <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                              ))}
+                           </select>
+                           <input className="bg-white dark:bg-slate-700 p-4 rounded-xl text-sm font-bold border border-gray-100 dark:border-slate-600 outline-none dark:text-white" placeholder="Vd: 5.000.000đ hoặc 20 thùng mì" value={newDonor.contribution} onChange={e => setNewDonor({...newDonor, contribution: e.target.value})} />
+                         </div>
+                         <button type="button" onClick={addDonor} className="w-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 py-3 rounded-xl text-[9px] font-black uppercase hover:bg-amber-600 hover:text-white transition-all">Thêm mạnh thường quân +</button>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                   <div className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden bg-gray-50 group hover:border-emerald-300">
+                      {missionForm.image ? <img src={missionForm.image} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-emerald-300">Ảnh bìa sứ mệnh</span>}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-3">
+                        <button type="button" onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, image:url}), 800); i.click(); }} className="bg-white text-emerald-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Tải ảnh 📤</button>
+                        <button type="button" onClick={handleGenAIVision} disabled={isGeneratingAIVision} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">AI ✨</button>
+                      </div>
+                   </div>
+                   <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, qrCode:url}), 600); i.click(); }} className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 relative overflow-hidden bg-gray-50 group hover:border-amber-300 transition-all">
+                      {missionForm.qrCode ? <img src={missionForm.qrCode} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-amber-300 text-center px-4">Tải ảnh mã QR Ngân hàng</span>}
+                   </div>
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-emerald-950 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-black transition-all">
+                  {loading ? "ĐANG LƯU..." : "XÁC NHẬN LƯU CHIẾN DỊCH 🚀"}
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VINH DANH */}
+      {isSponsorModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-amber-950/80 backdrop-blur-md" onClick={() => setIsSponsorModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-xl p-10 rounded-[3rem] shadow-2xl border-4 border-amber-50">
+             <h3 className="text-xl font-black uppercase text-amber-900 mb-8 text-center">VINH DANH NHÀ HẢO TÂM</h3>
+             <form onSubmit={async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                try {
+                  await addDoc(collection(db, "sponsors"), { ...sponsorForm, totalMoney: Number(sponsorForm.totalMoney), totalItemsCount: Number(sponsorForm.totalItemsCount), createdAt: new Date().toISOString(), history: [] });
+                  setIsSponsorModalOpen(false);
+                  onNotify('success', "Đã vinh danh tấm lòng vàng!");
+                  setSponsorForm({ name: '', avatar: '', type: 'individual', message: '', totalMoney: 0, totalItemsCount: 0, rank: 'bronze' });
+                } catch (err) { onNotify('error', "Lỗi lưu vinh danh."); } finally { setLoading(false); }
+             }} className="space-y-4">
+                <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold outline-none text-amber-950" placeholder="Tên nhà hảo tâm" value={sponsorForm.name} onChange={e => setSponsorForm({...sponsorForm, name: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
+                   <select className="bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold text-amber-900" value={sponsorForm.type} onChange={e => setSponsorForm({...sponsorForm, type: e.target.value as any})}><option value="individual">Cá nhân</option><option value="organization">Tổ chức</option></select>
+                   <select className="bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold text-amber-900" value={sponsorForm.rank} onChange={e => setSponsorForm({...sponsorForm, rank: e.target.value as any})}><option value="gold">Hạng Vàng</option><option value="silver">Hạng Bạc</option><option value="bronze">Hạng Đồng</option></select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="number" className="bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold text-amber-900" placeholder="Tổng tiền (đ)" value={sponsorForm.totalMoney || ''} onChange={e => setSponsorForm({...sponsorForm, totalMoney: Number(e.target.value)})} />
+                  <input type="number" className="bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold text-amber-900" placeholder="Tổng món đồ" value={sponsorForm.totalItemsCount || ''} onChange={e => setSponsorForm({...sponsorForm, totalItemsCount: Number(e.target.value)})} />
+                </div>
+                <textarea className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold outline-none text-amber-950" placeholder="Lời nhắn gửi..." value={sponsorForm.message} onChange={e => setSponsorForm({...sponsorForm, message: e.target.value})} />
+                <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setSponsorForm({...sponsorForm, avatar:url}), 400); i.click(); }} className="h-32 border-2 border-dashed border-amber-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 relative overflow-hidden bg-gray-50 group">
+                   {sponsorForm.avatar ? <img src={sponsorForm.avatar} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[9px] font-black uppercase text-amber-300">Tải ảnh đại diện</span>}
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-amber-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-black transition-all">{loading ? "ĐANG VINH DANH..." : "LƯU VINH DANH ✨"}</button>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ĐẤU GIÁ (SUPPORT CREATE & EDIT) */}
+      {isAuctionModalOpen && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-indigo-950/80 backdrop-blur-md" onClick={() => { setIsAuctionModalOpen(false); setEditingAuctionId(null); }}></div>
+          <div className="relative bg-white w-full max-w-xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-indigo-50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+             <h3 className="text-xl font-black uppercase text-indigo-900 mb-8 text-center tracking-tight">
+               {editingAuctionId ? "CẬP NHẬT VẬT PHẨM ĐẤU GIÁ" : "ĐƯA VẬT PHẨM LÊN SÀN ĐẤU GIÁ"}
+             </h3>
+             <form onSubmit={handleSaveAuction} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Tên vật phẩm</label>
+                  <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Vd: Mô hình Gundam giới hạn..." value={auctionForm.title} onChange={e => setAuctionForm({...auctionForm, title: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Mô tả chi tiết</label>
+                  <textarea rows={2} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Tình trạng, nguồn gốc..." value={auctionForm.description} onChange={e => setAuctionForm({...auctionForm, description: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Giá khởi điểm</label>
+                      <input type="number" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-indigo-950 w-full" placeholder="Giá VNĐ" value={auctionForm.startingPrice || ''} onChange={e => setAuctionForm({...auctionForm, startingPrice: Number(e.target.value)})} />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Thời gian kết thúc</label>
+                      <input type="datetime-local" required className="bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold text-xs text-indigo-950 w-full" value={auctionForm.endTime} onChange={e => setAuctionForm({...auctionForm, endTime: e.target.value})} />
+                   </div>
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Vùng cứu trợ hỗ trợ</label>
+                   <input required className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-bold outline-none text-indigo-950" placeholder="Vd: Hà Giang, Lào Cai..." value={auctionForm.missionLocation} onChange={e => setAuctionForm({...auctionForm, missionLocation: e.target.value})} />
+                </div>
+                
+                <div className="space-y-4 pt-4">
+                   <label className="text-[10px] font-black uppercase text-indigo-600 tracking-widest ml-4">Bộ sưu tập hình ảnh ({auctionForm.gallery.length}/5)</label>
+                   <div className="grid grid-cols-3 gap-3">
+                      {auctionForm.gallery.map((img, idx) => (
+                        <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border-2 border-indigo-50">
+                           <img src={img} className="w-full h-full object-cover" alt="" />
+                           <button type="button" onClick={() => setAuctionForm({...auctionForm, gallery: auctionForm.gallery.filter((_, i) => i !== idx)})} className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                           </button>
+                        </div>
+                      ))}
+                      {auctionForm.gallery.length < 5 && (
+                         <div 
+                          onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, gallery: [...auctionForm.gallery, url]}), 800); i.click(); }}
+                          className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-300 transition-all"
+                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            <span className="text-[8px] font-black mt-2">THÊM ẢNH</span>
+                         </div>
+                      )}
+                   </div>
+                </div>
+
+                <button type="submit" disabled={loading || auctionForm.gallery.length === 0} className="w-full bg-indigo-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all active:scale-95 disabled:opacity-50">
+                  {loading ? "ĐANG LƯU..." : editingAuctionId ? "LƯU THAY ĐỔI 🔨" : "XÁC NHẬN LÊN SÀN 🔨"}
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: QUẢN LÝ LƯỢT ĐẤU GIÁ */}
+      {isBidsModalOpen && selectedAuctionForBids && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => { setIsBidsModalOpen(false); setSelectedAuctionForBids(null); }}></div>
+          <div className="relative bg-white w-full max-w-2xl p-8 md:p-10 rounded-[3rem] shadow-2xl border-4 border-amber-50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+             <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black uppercase text-amber-900 tracking-tight">LỊCH SỬ ĐẤU GIÁ: {selectedAuctionForBids.title}</h3>
+                <button onClick={() => { setIsBidsModalOpen(false); setSelectedAuctionForBids(null); }} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+             </div>
+
+             <div className="space-y-4">
+                {auctionBids.length > 0 ? auctionBids.map((bid, idx) => (
+                  <div key={bid.id} className={`flex items-center justify-between p-5 rounded-3xl border-2 ${idx === 0 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-transparent'}`}>
+                     <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${idx === 0 ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                           {bid.bidderName.charAt(0)}
+                        </div>
+                        <div>
+                           <h4 className="text-sm font-black uppercase text-gray-900">{bid.bidderName}</h4>
+                           <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(bid.timestamp).toLocaleString('vi-VN')}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-6">
+                        <div className="text-right">
+                           <p className={`text-lg font-black ${idx === 0 ? 'text-amber-600' : 'text-gray-500'}`}>{bid.amount.toLocaleString()}đ</p>
+                           {idx === 0 && <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Dẫn đầu hiện tại</span>}
+                        </div>
+                        <button onClick={() => handleDeleteAuctionBid(selectedAuctionForBids.id, bid.id, bid.amount)} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                     </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-20 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-100">
+                     <p className="text-xs font-black text-gray-300 uppercase tracking-widest">Chưa có lượt đấu giá nào cho vật phẩm này.</p>
+                  </div>
+                )}
+             </div>
+
+             <div className="mt-10 p-6 bg-amber-50 rounded-[2rem] border border-amber-100">
+                <p className="text-[10px] font-black text-amber-700 uppercase mb-2">Lưu ý cho Admin:</p>
+                <p className="text-[10px] text-amber-600 leading-relaxed font-medium italic">Nếu phát hiện người dùng phá giá hoặc đấu giá ảo, Admin có quyền xóa lượt đấu giá đó. Nếu lượt bị xóa là lượt cao nhất, Admin cần vào phần chỉnh sửa vật phẩm để cập nhật lại "Giá hiện tại" về mức giá của người dẫn đầu mới.</p>
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Admin;
