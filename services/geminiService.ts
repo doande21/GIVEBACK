@@ -54,7 +54,7 @@ export const getAIAssistanceStream = async (prompt: string, onChunk: (text: stri
     }
   } catch (error: any) {
     console.error("Gemini Stream Error:", error);
-    onChunk("Đệ ơi, bộ não AI đang hơi 'lag' một chút. Đệ kiểm tra lại Key nhé!");
+    onChunk("bạn ơi, bộ não AI đang hơi 'lag' một chút. bạn kiểm tra lại Key nhé!");
   }
 };
 
@@ -74,10 +74,10 @@ export const getAIAssistance = async (prompt: string) => {
       }
     });
     
-    return response.text || "Xin lỗi Đệ, Huynh không nhận được phản hồi.";
+    return response.text || "Xin lỗi bạn, Huynh không nhận được phản hồi.";
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    return "Đệ ơi, bộ não AI đang hơi 'lag' một chút. Đệ kiểm tra lại Key nhé!";
+    return "bạn ơi, bộ não AI đang hơi 'lag' một chút. bạn kiểm tra lại Key nhé!";
   }
 };
 

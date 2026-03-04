@@ -29,7 +29,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-    {role: 'bot', content: 'Chào Đệ! Huynh là GIVEBACK AI. Đệ muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
+    {role: 'bot', content: 'Chào bạn! Huynh là GIVEBACK AI. bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -149,7 +149,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
         <div className="p-8 bg-emerald-600 text-white flex justify-between items-center">
           <div>
             <h3 className="font-black text-lg uppercase">GIVEBACK AI</h3>
-            <p className="text-[10px] font-bold opacity-70">Cùng Đệ lan tỏa yêu thương</p>
+            <p className="text-[10px] font-bold opacity-70">Cùng bạn lan tỏa yêu thương</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
