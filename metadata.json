@@ -1,11 +1,5 @@
-<<<<<<< HEAD
 {
   "name": "GIVEBACK - Chính",
-=======
-
-{
-  "name": "GIVEBACK - Nền tảng chia sẻ yêu thương",
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   "description": "Diễn đàn kết nối cộng đồng để tặng lại đồ dùng cũ và quyên góp từ thiện với tinh thần tự nguyện 100%.",
   "requestFramePermissions": [
     "camera",

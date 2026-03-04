@@ -37,19 +37,12 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
 interface MarketplaceProps {
   user: User;
   onNotify: (type: string, message: string, sender?: string) => void;
-<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
-=======
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   setActiveTab?: (tab: string) => void;
   onViewProfile: (userId: string) => void;
 }
 
-<<<<<<< HEAD
 const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, setActiveTab, onViewProfile }) => {
-=======
-const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab, onViewProfile }) => {
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [items, setItems] = useState<DonationItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
@@ -129,7 +122,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
 
   const handleStartChat = async (item: DonationItem) => {
     if (item.authorId === user.id) {
-      onNotify('warning', "bạn không thể tự nhắn tin cho chính mình nhé!");
+      onNotify('warning', "Đệ không thể tự nhắn tin cho chính mình nhé!");
       return;
     }
 
@@ -151,7 +144,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
           receiverId: user.id,
           receiverName: user.name,
           participants: [item.authorId, user.id],
-          lastMessage: `Chào bạn, mình muốn hỏi về món đồ "${item.title}"...`,
+          lastMessage: `Chào đệ, mình muốn hỏi về món đồ "${item.title}"...`,
           lastSenderId: user.id,
           updatedAt: new Date().toISOString(),
           giftStatus: 'negotiating'
@@ -160,7 +153,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
           senderName: user.name,
-          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn bạn!`,
+          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn đệ!`,
           createdAt: new Date().toISOString()
         });
       }
@@ -277,11 +270,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab,
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {filteredItems.map(item => (
-<<<<<<< HEAD
           <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} onConfirm={onConfirm} onViewProfile={onViewProfile} />
-=======
-          <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} onViewProfile={onViewProfile} />
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
         ))}
       </div>
 

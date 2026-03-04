@@ -29,11 +29,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-<<<<<<< HEAD
-    {role: 'bot', content: 'Chào bạn! Huynh là GIVEBACK AI. bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
-=======
-    {role: 'bot', content: 'Chào Bạn! Mình là GIVEBACK AI. Bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
+    {role: 'bot', content: 'Chào Đệ! Huynh là GIVEBACK AI. Đệ muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -139,11 +135,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-<<<<<<< HEAD
           systemInstruction: 'Bạn là Huynh - trợ lý GIVEBACK. Hãy trò chuyện ấm áp và vui vẻ bằng tiếng Việt.'
-=======
-          systemInstruction: 'Mình là - trợ lý GIVEBACK. Hãy trò chuyện ấm áp và vui vẻ bằng tiếng Việt.'
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
         }
       });
       sessionRef.current = await sessionPromise;
@@ -156,13 +148,8 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
       <div className={`fixed top-0 right-0 h-full w-full sm:w-[450px] bg-white dark:bg-slate-900 z-[210] shadow-2xl transition-transform transform ${isOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}>
         <div className="p-8 bg-emerald-600 text-white flex justify-between items-center">
           <div>
-<<<<<<< HEAD
             <h3 className="font-black text-lg uppercase">GIVEBACK AI</h3>
-            <p className="text-[10px] font-bold opacity-70">Cùng bạn lan tỏa yêu thương</p>
-=======
-            <h3 className="font-black text-lg uppercase ">GIVEBACK AI</h3>
-            <p className="text-[10px] font-bold opacity-70">Cùng nhau lan tỏa yêu thương</p>
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
+            <p className="text-[10px] font-bold opacity-70">Cùng Đệ lan tỏa yêu thương</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
         </div>
@@ -181,11 +168,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
 
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-emerald-50 dark:border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
-<<<<<<< HEAD
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi Huynh bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
-=======
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi mình bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
             <button onClick={handleSend} className="bg-emerald-600 text-white p-4 rounded-2xl shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M10.894 2.553a 1 1 0 0 0 -1.788 0l-7 14a 1 1 0 0 0 1.169 1.409l5-1.429A 1 1 0 0 0 9 15.571V11a 1 1 0 1 1 2 0v4.571a 1 1 0 0 0 .725.962l5 1.428a 1 1 0 0 0 1.17-1.408l-7-14z" />

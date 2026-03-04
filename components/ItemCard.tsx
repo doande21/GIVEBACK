@@ -9,43 +9,29 @@ interface ItemCardProps {
   user?: User | null;
   onSelect?: (item: DonationItem) => void;
   onNotify?: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
-<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   onViewProfile?: (userId: string) => void;
 }
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onConfirm, onViewProfile }) => {
-=======
-  onViewProfile?: (userId: string) => void;
-}
-
-const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onViewProfile }) => {
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const isOutOfStock = item.quantity <= 0;
   const isAdmin = user?.role === 'admin';
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-<<<<<<< HEAD
     const performDelete = async () => {
-=======
-    if (window.confirm(`Bạn có chắc muốn gỡ bài "${item.title}" không?`)) {
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       try {
         await deleteDoc(doc(db, "items", item.id));
         if (onNotify) onNotify('success', `Đã gỡ bài thành công.`, 'Quản trị');
       } catch (err) {
         if (onNotify) onNotify('error', "Có lỗi xảy ra.", 'Hệ thống');
       }
-<<<<<<< HEAD
     };
 
     if (onConfirm) {
       onConfirm("Gỡ bài viết", `Bạn có chắc muốn gỡ bài "${item.title}" không?`, performDelete, 'danger');
     } else if (window.confirm(`Bạn có chắc muốn gỡ bài "${item.title}" không?`)) {
       performDelete();
-=======
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     }
   };
 
