@@ -36,10 +36,16 @@ const compressImage = (base64Str: string, maxWidth = 800, quality = 0.6): Promis
 interface AdminProps {
   user: User;
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
 const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
+=======
+}
+
+const Admin: React.FC<AdminProps> = ({ user, onNotify }) => {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [missions, setMissions] = useState<CharityMission[]>([]);
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
@@ -183,6 +189,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
   };
 
   const handleDeleteAuctionBid = async (auctionId: string, bidId: string, bidAmount: number) => {
+<<<<<<< HEAD
     const performDelete = async () => {
       try {
         await deleteDoc(doc(db, "auctions", auctionId, "bids", bidId));
@@ -200,6 +207,18 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
       onConfirm("Xóa lượt đấu giá", "Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.", performDelete, 'danger');
     } else if (window.confirm("Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.")) {
       performDelete();
+=======
+    if (!window.confirm("Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.")) return;
+    try {
+      await deleteDoc(doc(db, "auctions", auctionId, "bids", bidId));
+      onNotify('success', "Đã xóa lượt đấu giá.");
+      
+      if (bidAmount === selectedAuctionForBids?.currentBid) {
+        onNotify('warning', "Bạn vừa xóa lượt đấu giá cao nhất. Hãy cập nhật lại giá hiện tại của vật phẩm nếu cần!");
+      }
+    } catch (err) {
+      onNotify('error', "Lỗi xóa lượt đấu giá.");
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     }
   };
 
@@ -288,11 +307,15 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                    <div className="flex-1 min-w-0"><h4 className="text-lg font-black uppercase text-emerald-950 dark:text-emerald-400 truncate">{m.location}</h4><p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</p></div>
                    <div className="flex gap-2">
                       <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], donors: m.donors || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+<<<<<<< HEAD
                       <button onClick={() => { 
                         const performDelete = () => deleteDoc(doc(db, "missions", m.id));
                         if (onConfirm) onConfirm("Xóa sứ mệnh", "bạn chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
                         else if(window.confirm("Xóa sứ mệnh này?")) performDelete();
                       }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+=======
+                      <button onClick={() => { if(window.confirm("Xóa sứ mệnh này?")) deleteDoc(doc(db, "missions", m.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
                    </div>
                 </div>
               ))}
@@ -317,11 +340,15 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                    <p className="text-[9px] text-amber-600 font-black uppercase mt-1 tracking-widest">Hạng {s.rank}</p>
                    <p className="text-xs font-black text-gray-950 dark:text-white mt-4">{s.totalMoney.toLocaleString()}đ</p>
                    <div className="flex gap-2 mt-4">
+<<<<<<< HEAD
                       <button onClick={() => { 
                         const performDelete = () => deleteDoc(doc(db, "sponsors", s.id));
                         if (onConfirm) onConfirm("Gỡ vinh danh", "Gỡ vinh danh nhà hảo tâm này?", performDelete, 'danger');
                         else if(window.confirm("Gỡ vinh danh?")) performDelete();
                       }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+=======
+                      <button onClick={() => { if(window.confirm("Gỡ vinh danh?")) deleteDoc(doc(db, "sponsors", s.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
                    </div>
                 </div>
               ))}
@@ -357,11 +384,15 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                       <button onClick={() => handleEditAuctionClick(a)} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
+<<<<<<< HEAD
                       <button onClick={() => { 
                         const performDelete = () => deleteDoc(doc(db, "auctions", a.id));
                         if (onConfirm) onConfirm("Gỡ vật phẩm", "Gỡ vật phẩm đấu giá này khỏi sàn?", performDelete, 'danger');
                         else if(window.confirm("Gỡ vật phẩm đấu giá?")) performDelete();
                       }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+=======
+                      <button onClick={() => { if(window.confirm("Gỡ vật phẩm đấu giá?")) deleteDoc(doc(db, "auctions", a.id)) }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
                       </button>
                    </div>
@@ -385,11 +416,15 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                       <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
                       <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">"{post.content}"</p>
                    </div>
+<<<<<<< HEAD
                    <button onClick={() => { 
                      const performDelete = () => deleteDoc(doc(db, "social_posts", post.id));
                      if (onConfirm) onConfirm("Xóa bài viết", "Xóa bài viết này khỏi bản tin?", performDelete, 'danger');
                      else if(window.confirm("Xóa bài này?")) performDelete();
                    }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+=======
+                   <button onClick={() => { if(window.confirm("Xóa bài này?")) deleteDoc(doc(db, "social_posts", post.id)) }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
                    </button>
                 </div>

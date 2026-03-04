@@ -37,12 +37,19 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
 interface MarketplaceProps {
   user: User;
   onNotify: (type: string, message: string, sender?: string) => void;
+<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   setActiveTab?: (tab: string) => void;
   onViewProfile: (userId: string) => void;
 }
 
+<<<<<<< HEAD
 const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, setActiveTab, onViewProfile }) => {
+=======
+const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, setActiveTab, onViewProfile }) => {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [items, setItems] = useState<DonationItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
@@ -270,7 +277,11 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {filteredItems.map(item => (
+<<<<<<< HEAD
           <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} onConfirm={onConfirm} onViewProfile={onViewProfile} />
+=======
+          <ItemCard key={item.id} item={item} user={user} onSelect={(item) => setSelectedItem(item)} onNotify={onNotify} onViewProfile={onViewProfile} />
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
         ))}
       </div>
 

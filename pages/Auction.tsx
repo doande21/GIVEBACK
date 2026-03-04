@@ -16,10 +16,16 @@ interface AuctionProps {
   user: User;
   setActiveTab?: (tab: any) => void;
   onNotify: (type: any, message: string, sender?: string) => void;
+<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
 const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify, onConfirm }) => {
+=======
+}
+
+const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify }) => {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [selectedAuction, setSelectedAuction] = useState<AuctionItem | null>(null);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
@@ -53,6 +59,7 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify, onConfi
       return;
     }
 
+<<<<<<< HEAD
     const performBid = async () => {
       setLoading(true);
       try {
@@ -94,6 +101,41 @@ const Auction: React.FC<AuctionProps> = ({ user, setActiveTab, onNotify, onConfi
       onConfirm("Xác nhận trả giá", `bạn chắc chắn muốn trả giá ${bidAmount.toLocaleString()}đ cho vật phẩm này? Hành động này thể hiện uy tín của bạn.`, performBid, 'info');
     } else if (window.confirm(`Xác nhận trả giá ${bidAmount.toLocaleString()}đ?`)) {
       performBid();
+=======
+    setLoading(true);
+    try {
+      const auctionRef = doc(db, "auctions", auction.id);
+      
+      await runTransaction(db, async (transaction) => {
+        const auctionDoc = await transaction.get(auctionRef);
+        if (!auctionDoc.exists()) throw "Đấu giá không tồn tại!";
+        
+        const currentData = auctionDoc.data() as AuctionItem;
+        if (bidAmount <= currentData.currentBid) throw "Có người vừa trả giá cao hơn rồi!";
+
+        transaction.update(auctionRef, {
+          currentBid: bidAmount,
+          highestBidderId: user.id,
+          highestBidderName: user.name
+        });
+
+        const bidRef = collection(db, "auctions", auction.id, "bids");
+        await addDoc(bidRef, {
+          bidderId: user.id,
+          bidderName: user.name,
+          amount: bidAmount,
+          timestamp: new Date().toISOString()
+        });
+      });
+
+      onNotify('success', `Chúc mừng! Bạn đang dẫn đầu phiên đấu giá "${auction.title}" với mức giá ${bidAmount.toLocaleString()}đ.`, 'Đấu giá');
+      setBidAmount(0);
+      setSelectedAuction(null);
+    } catch (err: any) {
+      onNotify('error', "Lỗi đấu giá: " + String(err), 'Hệ thống');
+    } finally {
+      setLoading(false);
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     }
   };
 

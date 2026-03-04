@@ -102,17 +102,28 @@ interface ProfileProps {
   viewingUserId: string | null;
   onUpdateUser: (updatedUser: User) => void;
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   onGoToMessages: (partnerId?: string) => void;
   onViewProfile?: (userId: string) => void;
   onLogout?: () => void;
 }
 
+<<<<<<< HEAD
 const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, onNotify, onConfirm, onGoToMessages, onViewProfile, onLogout }) => {
   const [targetUser, setTargetUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'info' | 'given' | 'received' | 'friends' | 'missions'>('posts');
+=======
+const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, onNotify, onGoToMessages, onViewProfile, onLogout }) => {
+  const [targetUser, setTargetUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'info' | 'given' | 'received' | 'friends' | 'missions'>('posts'); 
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   
   const [userPosts, setUserPosts] = useState<SocialPost[]>([]);
   const [givenItems, setGivenItems] = useState<DonationItem[]>([]);
@@ -265,11 +276,15 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
           {isViewingSelf && (
             <button 
               onClick={() => {
+<<<<<<< HEAD
                 if (onConfirm) {
                   onConfirm("Đăng xuất", "bạn chắc chắn muốn đăng xuất khỏi GIVEBACK?", () => onLogout?.(), 'danger');
                 } else if(window.confirm("bạn chắc chắn muốn đăng xuất?")) {
                   onLogout?.();
                 }
+=======
+                if(window.confirm("bạn chắc chắn muốn đăng xuất?")) onLogout?.();
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
               }}
               className="absolute top-6 right-6 bg-white/20 hover:bg-white/40 backdrop-blur-md p-3 rounded-2xl text-white transition-all z-10"
               title="Đăng xuất nhanh"
@@ -306,6 +321,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
             {isViewingSelf && (
                <div className="flex gap-3 justify-center">
                   <button onClick={() => setIsEditing(!isEditing)} className="bg-gray-100 text-gray-700 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">{isEditing ? 'HỦY BỎ' : 'CHỈNH SỬA'}</button>
+<<<<<<< HEAD
                   <button onClick={() => {
                     if (onConfirm) {
                       onConfirm("Đăng xuất", "Đăng xuất khỏi GIVEBACK?", () => onLogout?.(), 'danger');
@@ -313,6 +329,9 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                       onLogout?.();
                     }
                   }} className="bg-red-50 text-red-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">ĐĂNG XUẤT</button>
+=======
+                  <button onClick={() => {if(window.confirm("Đăng xuất khỏi GIVEBACK?")) onLogout?.();}} className="bg-red-50 text-red-500 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">ĐĂNG XUẤT</button>
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
                </div>
             )}
           </div>

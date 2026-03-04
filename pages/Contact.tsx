@@ -50,7 +50,11 @@ const Contact: React.FC = () => {
       <div className="text-center mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 w-40 h-40 bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-3xl opacity-50"></div>
         <h1 className="text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4 relative">Liên hệ chúng tôi</h1>
+<<<<<<< HEAD
         <p className="text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-[0.4em]">Huynh bạn GIVEBACK luôn sẵn sàng lắng nghe</p>
+=======
+        <p className="text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-[0.4em]"> GIVEBACK luôn sẵn sàng lắng nghe</p>
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -84,7 +88,11 @@ const Contact: React.FC = () => {
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left">
             <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Văn phòng GIVEBACK</h2>
+<<<<<<< HEAD
             <p className="text-emerald-400 font-bold text-sm">Quận 1, Thành phố Hồ Chí Minh, Việt Nam</p>
+=======
+            <p className="text-emerald-400 font-bold text-sm">41 Nguyễn Quảng, Tỉnh Gia Lai, Việt Nam</p>
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
             <p className="text-gray-400 text-xs mt-4 uppercase font-black tracking-widest">Thời gian hỗ trợ: 08:00 - 20:00 hàng ngày</p>
           </div>
           <div className="flex -space-x-4">

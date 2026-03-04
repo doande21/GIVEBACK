@@ -15,8 +15,11 @@ import Missions from './pages/Missions';
 import Showcase from './pages/Showcase';
 import Login from './pages/Login';
 import AIHelper from './components/AIHelper';
+<<<<<<< HEAD
 import Toast, { ToastMessage } from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
 import { User, ChatSession } from './types';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from './services/firebase';
@@ -28,6 +31,7 @@ const App: React.FC = () => {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [isAiOpen, setIsAiOpen] = useState(false);
+<<<<<<< HEAD
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -41,6 +45,8 @@ const App: React.FC = () => {
     message: '',
     onConfirm: () => {},
   });
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -97,6 +103,7 @@ const App: React.FC = () => {
     setActiveTab('profile');
   };
 
+<<<<<<< HEAD
   const handleNotify = (type: any, message: string, sender?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newToast: ToastMessage = { id, type, message, sender };
@@ -120,12 +127,17 @@ const App: React.FC = () => {
       onConfirm,
       type
     });
+=======
+  const handleNotify = (type: string, message: string, sender?: string) => {
+    console.log(`[${type.toUpperCase()}] from ${sender || 'System'}: ${message}`);
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   };
 
   if (!user) return <Login onLogin={handleLogin} />;
 
   const renderContent = () => {
     switch (activeTab) {
+<<<<<<< HEAD
       case 'market': return <Marketplace user={user} onNotify={handleNotify} onConfirm={handleConfirm} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
       case 'home': return <Home user={user} onNotify={handleNotify} onConfirm={handleConfirm} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
       case 'sponsors': return <Sponsors />;
@@ -133,19 +145,35 @@ const App: React.FC = () => {
       case 'map': return <MapSearch />;
       case 'contact': return <Contact />;
       case 'admin': return <Admin user={user} onNotify={handleNotify} onConfirm={handleConfirm} />;
+=======
+      case 'market': return <Marketplace user={user} onNotify={handleNotify} setActiveTab={setActiveTab} onViewProfile={handleViewProfile} />;
+      case 'home': return <Home user={user} onNotify={handleNotify} onViewProfile={handleViewProfile} setActiveTab={setActiveTab} />;
+      case 'sponsors': return <Sponsors />;
+      case 'auction': return <Auction user={user} onNotify={handleNotify} setActiveTab={setActiveTab} />;
+      case 'map': return <MapSearch />;
+      case 'contact': return <Contact />;
+      case 'admin': return <Admin user={user} onNotify={handleNotify} />;
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       case 'profile': return (
         <Profile 
           user={user} 
           viewingUserId={viewingUserId} 
           onUpdateUser={(u) => setUser(u)} 
           onNotify={handleNotify} 
+<<<<<<< HEAD
           onConfirm={handleConfirm}
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
           onGoToMessages={() => setActiveTab('messages')}
           onViewProfile={handleViewProfile}
           onLogout={handleLogout}
         />
       );
+<<<<<<< HEAD
       case 'messages': return <Messages user={user} onViewProfile={handleViewProfile} onNotify={handleNotify} onConfirm={handleConfirm} />;
+=======
+      case 'messages': return <Messages user={user} onViewProfile={handleViewProfile} />;
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       case 'notifications': return (
         <Notifications user={user} onNotify={handleNotify} onUpdateUser={(u) => setUser(u)} onViewProfile={handleViewProfile} />
       );
@@ -195,7 +223,10 @@ const App: React.FC = () => {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         onLogout={handleLogout} 
+<<<<<<< HEAD
         onConfirm={handleConfirm}
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
         pendingRequestsCount={pendingRequestsCount}
         unreadMessagesCount={unreadMessagesCount}
         isDarkMode={isDarkMode}
@@ -208,6 +239,7 @@ const App: React.FC = () => {
       {/* AI SIDEBAR COMPONENT */}
       <AIHelper isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
 
+<<<<<<< HEAD
       {/* TOAST NOTIFICATIONS */}
       <Toast toasts={toasts} onClose={removeToast} />
 
@@ -221,6 +253,8 @@ const App: React.FC = () => {
         type={confirmModal.type}
       />
 
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 flex items-center justify-around h-20 px-2 pb-1 overflow-x-auto scrollbar-hide shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
          {navItems.map(item => (
            <button 

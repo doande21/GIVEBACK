@@ -20,8 +20,11 @@ import { db } from '../services/firebase';
 interface MessagesProps {
   user: User;
   onViewProfile: (userId: string) => void;
+<<<<<<< HEAD
   onNotify?: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
 }
 
 // Hàm nén ảnh tiết kiệm dung lượng
@@ -46,7 +49,11 @@ const compressImage = (base64Str: string, maxWidth = 500, quality = 0.5): Promis
 
 const STICKERS = ["❤️", "🎁", "🙏", "🚚", "✨", "😊", "💪", "🌈", "🔥", "🤝", "👍", "🌸"];
 
+<<<<<<< HEAD
 const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onConfirm }) => {
+=======
+const Messages: React.FC<MessagesProps> = ({ user, onViewProfile }) => {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -175,6 +182,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
 
   const handleConfirmGift = async () => {
     if (!selectedSession || !selectedSession.itemId || isConfirming) return;
+<<<<<<< HEAD
     
     const performConfirm = async () => {
       setIsConfirming(true);
@@ -229,13 +237,62 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
       onConfirm("Xác nhận tặng quà", `Xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}?`, performConfirm, 'info');
     } else if (window.confirm(`Xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}?`)) {
       performConfirm();
+=======
+    if (!window.confirm(`Xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}?`)) return;
+
+    setIsConfirming(true);
+    try {
+      // 1. Cập nhật trạng thái chat
+      await updateDoc(doc(db, "chats", selectedSession.id), {
+        giftStatus: 'completed',
+        lastMessage: '✅ Đã xác nhận tặng món đồ',
+        lastSenderId: user.id,
+        updatedAt: new Date().toISOString()
+      });
+
+      // 2. Cập nhật trạng thái món đồ
+      await updateDoc(doc(db, "items", selectedSession.itemId), {
+        status: 'donated',
+        updatedAt: new Date().toISOString()
+      });
+
+      // 3. Tạo bản ghi nhận quà (ClaimRecord)
+      await addDoc(collection(db, "claims"), {
+        itemId: selectedSession.itemId,
+        itemTitle: selectedSession.itemTitle,
+        itemImage: selectedSession.itemImage,
+        donorId: selectedSession.donorId,
+        donorName: selectedSession.donorName,
+        receiverId: selectedSession.receiverId,
+        receiverName: selectedSession.receiverName,
+        createdAt: new Date().toISOString()
+      });
+
+      // 4. Gửi tin nhắn hệ thống
+      await addDoc(collection(db, "chats", selectedSession.id, "messages"), {
+        senderId: 'system',
+        senderName: 'Hệ thống',
+        text: `✅ ${user.name} đã xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}. Chúc mừng hai bạn! 🎉`,
+        createdAt: new Date().toISOString()
+      });
+
+    } catch (err) {
+      console.error("Lỗi xác nhận tặng quà:", err);
+      alert("Có lỗi xảy ra khi xác nhận tặng quà.");
+    } finally {
+      setIsConfirming(false);
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     }
   };
 
   const handleDeleteChat = async (sessionId: string) => {
     if (!sessionId) return;
+<<<<<<< HEAD
     
     const performDelete = async () => {
+=======
+    if (window.confirm("Huynh đệ có chắc chắn muốn xóa toàn bộ đoạn chat này không?")) {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
       try {
         const msgsQuery = query(collection(db, "chats", sessionId, "messages"));
         const msgsSnap = await getDocs(msgsQuery);
@@ -245,6 +302,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
         await deleteDoc(doc(db, "chats", sessionId));
         if (selectedSession?.id === sessionId) setSelectedSession(null);
         setActiveMenuId(null);
+<<<<<<< HEAD
         onNotify?.('success', "Đã xóa đoạn hội thoại.");
       } catch (err) {
         console.error("Lỗi xóa hội thoại:", err);
@@ -256,6 +314,11 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
       onConfirm("Xóa hội thoại", "Huynh bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?", performDelete, 'danger');
     } else if (window.confirm("Huynh bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?")) {
       performDelete();
+=======
+      } catch (err) {
+        console.error("Lỗi xóa hội thoại:", err);
+      }
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     }
   };
 

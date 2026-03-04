@@ -39,12 +39,19 @@ const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promis
 interface HomeProps {
   user: User;
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+<<<<<<< HEAD
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+=======
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   onViewProfile: (userId: string) => void;
   setActiveTab: (tab: string) => void;
 }
 
+<<<<<<< HEAD
 const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, setActiveTab }) => {
+=======
+const Home: React.FC<HomeProps> = ({ user, onNotify, onViewProfile, setActiveTab }) => {
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [missions, setMissions] = useState<CharityMission[]>([]);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);

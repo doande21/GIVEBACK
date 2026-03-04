@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "name": "giveback-project",
     "private": true,
     "version": "1.0.0",
@@ -29,4 +30,33 @@
         "typescript": "^5.3.0",
         "vite": "^6.0.0"
     }
+=======
+  "name": "giveback-project",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "lint": "tsc --noEmit",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.35.0",
+    "firebase": "^10.8.0",
+    "framer-motion": "^12.34.3",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "recharts": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.0",
+    "vite": "^6.0.0"
+  }
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
 }

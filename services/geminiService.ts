@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 const SYSTEM_INSTRUCTION = "Bạn là trợ lý AI thông minh của dự án GIVEBACK. Dự án này giúp mọi người tặng đồ cũ và quyên góp từ thiện. Hãy trả lời thân thiện, nhiệt tình và bằng tiếng Việt.";
 
 const getAIInstance = () => {
+<<<<<<< HEAD
   // Kiểm tra cả process.env (Platform) và import.meta.env (Local Vite)
   const apiKey = process.env.GEMINI_API_KEY || 
                  process.env.API_KEY || 
@@ -13,6 +14,10 @@ const getAIInstance = () => {
     console.warn("GIVEBACK AI: Thiếu API Key. Hãy thiết lập GEMINI_API_KEY hoặc VITE_GEMINI_API_KEY.");
     return null;
   }
+=======
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!apiKey) return null;
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
 
   const gatewayUrl = process.env.VERCEL_AI_GATEWAY_URL;
   const gatewayToken = process.env.VERCEL_AI_GATEWAY_TOKEN;
@@ -54,7 +59,11 @@ export const getAIAssistanceStream = async (prompt: string, onChunk: (text: stri
     }
   } catch (error: any) {
     console.error("Gemini Stream Error:", error);
+<<<<<<< HEAD
     onChunk("bạn ơi, bộ não AI đang hơi 'lag' một chút. bạn kiểm tra lại Key nhé!");
+=======
+    onChunk("Đệ ơi, bộ não AI đang hơi 'lag' một chút. Đệ kiểm tra lại Key nhé!");
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   }
 };
 
@@ -74,10 +83,17 @@ export const getAIAssistance = async (prompt: string) => {
       }
     });
     
+<<<<<<< HEAD
     return response.text || "Xin lỗi bạn, Huynh không nhận được phản hồi.";
   } catch (error: any) {
     console.error("Gemini Error:", error);
     return "bạn ơi, bộ não AI đang hơi 'lag' một chút. bạn kiểm tra lại Key nhé!";
+=======
+    return response.text || "Xin lỗi Đệ, Huynh không nhận được phản hồi.";
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
+    return "Đệ ơi, bộ não AI đang hơi 'lag' một chút. Đệ kiểm tra lại Key nhé!";
+>>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
   }
 };
 
