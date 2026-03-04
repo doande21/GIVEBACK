@@ -155,7 +155,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
 
       if (editingAuctionId) {
         // Chỉ cập nhật các trường thông tin, không reset currentBid nếu startingPrice không đổi
-        // Ở đây Huynh cho cập nhật thông thường
+        // Ở đây mình cho cập nhật thông thường
         await updateDoc(doc(db, "auctions", editingAuctionId), {
           ...auctionForm,
           image: auctionForm.gallery[0],

@@ -73,7 +73,7 @@ const Showcase: React.FC = () => {
                 {[
                   "Minh bạch 100% dòng tiền và hiện vật",
                   "Ứng dụng AI Vision nhận diện đồ cũ",
-                  "Kết nối cộng đồng Huynh bạn nhân ái",
+                  "Kết nối cộng đồng mình bạn nhân ái",
                   "Hệ thống vinh danh nhà hảo tâm"
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 font-bold text-slate-700 dark:text-slate-300">

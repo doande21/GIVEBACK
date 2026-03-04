@@ -74,7 +74,7 @@ export const getAIAssistance = async (prompt: string) => {
       }
     });
     
-    return response.text || "Xin lỗi bạn, Huynh không nhận được phản hồi.";
+    return response.text || "Xin lỗi bạn, mình không nhận được phản hồi.";
   } catch (error: any) {
     console.error("Gemini Error:", error);
     return "bạn ơi, bộ não AI đang hơi 'lag' một chút. bạn kiểm tra lại Key nhé!";

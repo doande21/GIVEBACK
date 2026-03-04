@@ -29,7 +29,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-    {role: 'bot', content: 'Chào bạn! Huynh là GIVEBACK AI. bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
+    {role: 'bot', content: 'Chào bạn! mình là GIVEBACK AI. bạn muốn tặng đồ hay tìm địa điểm từ thiện nào không?'}
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -135,7 +135,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: 'Bạn là Huynh - trợ lý GIVEBACK. Hãy trò chuyện ấm áp và vui vẻ bằng tiếng Việt.'
+          systemInstruction: 'Bạn là mình - trợ lý GIVEBACK. Hãy trò chuyện ấm áp và vui vẻ bằng tiếng Việt.'
         }
       });
       sessionRef.current = await sessionPromise;
@@ -168,7 +168,7 @@ const AIHelper: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, 
 
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-emerald-50 dark:border-slate-800 space-y-4">
           <div className="flex items-center space-x-2">
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi Huynh bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
+            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Hỏi mình bất cứ điều gì..." className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-2xl px-6 py-4 text-sm outline-none dark:text-white font-bold" />
             <button onClick={handleSend} className="bg-emerald-600 text-white p-4 rounded-2xl shadow-xl hover:bg-emerald-700 active:scale-95 transition-all">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M10.894 2.553a 1 1 0 0 0 -1.788 0l-7 14a 1 1 0 0 0 1.169 1.409l5-1.429A 1 1 0 0 0 9 15.571V11a 1 1 0 1 1 2 0v4.571a 1 1 0 0 0 .725.962l5 1.428a 1 1 0 0 0 1.17-1.408l-7-14z" />

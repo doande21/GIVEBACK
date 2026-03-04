@@ -253,8 +253,8 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
     };
 
     if (onConfirm) {
-      onConfirm("Xóa hội thoại", "Huynh bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?", performDelete, 'danger');
-    } else if (window.confirm("Huynh bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?")) {
+      onConfirm("Xóa hội thoại", "mình bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?", performDelete, 'danger');
+    } else if (window.confirm("mình bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?")) {
       performDelete();
     }
   };

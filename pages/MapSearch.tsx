@@ -108,7 +108,7 @@ const MapSearch: React.FC = () => {
                 "{results.text}"
               </div>
               <div className="mt-10 p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-800">
-                <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">💡 Lời khuyên của Huynh:</p>
+                <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">💡 Lời khuyên của mình:</p>
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-2 font-medium">bạn nên gọi điện trước cho các địa điểm này để xác nhận thông tin nhé, vì các hoạt động thiện nguyện đôi khi có thay đổi theo ngày.</p>
               </div>
             </div>
