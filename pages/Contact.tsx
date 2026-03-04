@@ -50,7 +50,7 @@ const Contact: React.FC = () => {
       <div className="text-center mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-10 w-40 h-40 bg-emerald-100 dark:bg-emerald-900/20 rounded-full blur-3xl opacity-50"></div>
         <h1 className="text-5xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4 relative">Liên hệ chúng tôi</h1>
-        <p className="text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-[0.4em]">Huynh Đệ GIVEBACK luôn sẵn sàng lắng nghe</p>
+        <p className="text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-[0.4em]"> GIVEBACK luôn sẵn sàng lắng nghe</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

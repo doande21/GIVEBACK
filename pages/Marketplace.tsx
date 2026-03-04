@@ -122,7 +122,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
 
   const handleStartChat = async (item: DonationItem) => {
     if (item.authorId === user.id) {
-      onNotify('warning', "Đệ không thể tự nhắn tin cho chính mình nhé!");
+      onNotify('warning', "bạn không thể tự nhắn tin cho chính mình nhé!");
       return;
     }
 
@@ -144,7 +144,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
           receiverId: user.id,
           receiverName: user.name,
           participants: [item.authorId, user.id],
-          lastMessage: `Chào đệ, mình muốn hỏi về món đồ "${item.title}"...`,
+          lastMessage: `Chào bạn, mình muốn hỏi về món đồ "${item.title}"...`,
           lastSenderId: user.id,
           updatedAt: new Date().toISOString(),
           giftStatus: 'negotiating'
@@ -153,7 +153,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
           senderName: user.name,
-          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn đệ!`,
+          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn bạn!`,
           createdAt: new Date().toISOString()
         });
       }
