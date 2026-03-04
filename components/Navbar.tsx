@@ -7,10 +7,7 @@
     activeTab: string;
     setActiveTab: (tab: any) => void;
     onLogout: () => void;
-<<<<<<< HEAD
     onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
-=======
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     pendingRequestsCount?: number;
     unreadMessagesCount?: number;
     isDarkMode?: boolean;
@@ -23,10 +20,7 @@
     activeTab, 
     setActiveTab, 
     onLogout, 
-<<<<<<< HEAD
     onConfirm,
-=======
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
     pendingRequestsCount = 0,
     unreadMessagesCount = 0,
     isDarkMode,
@@ -133,7 +127,6 @@
               <img src={getAvatar(user?.avatar, user?.name)} className="w-9 h-9 rounded-xl border-2 border-emerald-100 dark:border-emerald-800 object-cover bg-gray-100 shadow-sm group-hover:scale-105 transition-transform" alt="Profile" />
             </div>
 
-<<<<<<< HEAD
             <button onClick={() => { 
               if (onConfirm) {
                 onConfirm("Đăng xuất", "bạn muốn đăng xuất khỏi hệ thống?", onLogout, 'danger');
@@ -141,9 +134,6 @@
                 onLogout();
               }
             }} className="p-2 text-gray-400 hover:text-red-500 transition-colors ml-1 hidden md:block" title="Đăng xuất">
-=======
-            <button onClick={() => { if (window.confirm("bạn muốn đăng xuất?")) onLogout(); }} className="p-2 text-gray-400 hover:text-red-500 transition-colors ml-1 hidden md:block" title="Đăng xuất">
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
