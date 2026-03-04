@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-
 # Dependencies
 node_modules/
-*.exe
-*.node
-.tid/
+.pnp
+.pnp.js
 
 # Testing
 coverage/
@@ -32,27 +29,6 @@ yarn-error.log*
 # Editor folders
 .vscode/
 .idea/
-=======
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
->>>>>>> 80f8758a99c2b38f1b4a8af22ba14dc416cb3960
 *.suo
 *.ntvs*
 *.njsproj
