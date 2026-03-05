@@ -7,6 +7,7 @@ import {
   FacebookAuthProvider 
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   // Ưu tiên lấy Key từ biến môi trường, nếu không có mới dùng Key mặc định
@@ -26,6 +27,7 @@ const app = initializeApp(firebaseConfig);
 // Fix: Initialize auth using the getAuth modular function
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // Cấu hình các Provider đăng nhập mạng xã hội
 // Fix: Instantiate provider classes directly

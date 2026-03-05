@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ItemCard from '../components/ItemCard';
 import { CATEGORIES } from '../constants';
 import { DonationItem, User, PostMedia } from '../types';
+import { uploadFile } from '../services/storageService';
 import { 
   collection, 
   addDoc, 
@@ -81,23 +82,15 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
     if (!files || files.length === 0) return;
 
     setIsAiScanning(true);
-    // Use direct access to the File object to preserve type information
     const firstFile: File = files[0];
-    const reader = new FileReader();
     
-    reader.onloadend = async () => {
-      // FileReader result can be string or ArrayBuffer; analyzeDonationItem expects a base64 string
-      const base64 = typeof reader.result === 'string' ? reader.result : '';
-      if (!base64) {
-        setIsAiScanning(false);
-        return;
-      }
-
-      const compressed = await compressImage(base64);
-      setSelectedMedia([{ url: compressed, type: 'image' }]);
+    try {
+      onNotify('info', "Đang tải ảnh lên kho lưu trữ...", "Hệ thống");
+      const url = await uploadFile(firstFile, 'items');
+      setSelectedMedia([{ url, type: 'image' }]);
       
       onNotify('info', "AI đang quét dữ liệu hình ảnh...", "GIVEBACK AI");
-      const aiData = await analyzeDonationItem(compressed, newPost.description);
+      const aiData = await analyzeDonationItem(url, newPost.description);
       if (aiData) {
         setNewPost((prev: any) => ({
           ...prev,
@@ -115,14 +108,16 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         }));
         onNotify('success', "AI đã quét thông tin thành công!", "GIVEBACK AI");
       }
+    } catch (err) {
+      onNotify('error', "Lỗi tải ảnh hoặc quét AI.");
+    } finally {
       setIsAiScanning(false);
-    };
-    reader.readAsDataURL(firstFile);
+    }
   };
 
   const handleStartChat = async (item: DonationItem) => {
     if (item.authorId === user.id) {
-      onNotify('warning', "bạn không thể tự nhắn tin cho chính mình nhé!");
+      onNotify('warning', "Đệ không thể tự nhắn tin cho chính mình nhé!");
       return;
     }
 
@@ -144,7 +139,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
           receiverId: user.id,
           receiverName: user.name,
           participants: [item.authorId, user.id],
-          lastMessage: `Chào bạn, mình muốn hỏi về món đồ "${item.title}"...`,
+          lastMessage: `Chào đệ, mình muốn hỏi về món đồ "${item.title}"...`,
           lastSenderId: user.id,
           updatedAt: new Date().toISOString(),
           giftStatus: 'negotiating'
@@ -153,7 +148,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
           senderName: user.name,
-          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn bạn!`,
+          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn đệ!`,
           createdAt: new Date().toISOString()
         });
       }

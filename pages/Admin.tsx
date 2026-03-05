@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CharityMission, User, AuctionItem, NeededItem, SocialPost, Sponsor } from '../types';
+import { uploadFile } from '../services/storageService';
 import { 
   collection, 
   onSnapshot, 
@@ -109,19 +110,19 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
     }
   }, [selectedAuctionForBids?.id]);
 
-  const handleFileUpload = async (e: any, callback: (url: string) => void, maxWidth = 800) => {
+  const handleFileUpload = async (e: any, callback: (url: string) => void, path = 'general') => {
     const target = e.target as HTMLInputElement;
     const file = target.files?.[0];
     if (file) {
       setIsProcessingImg(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        let base64 = reader.result as string;
-        if (file.type.startsWith('image/')) base64 = await compressImage(base64, maxWidth, 0.5);
-        callback(base64);
+      try {
+        const url = await uploadFile(file, path);
+        callback(url);
+      } catch (err) {
+        onNotify('error', "Lỗi tải tệp lên.");
+      } finally {
         setIsProcessingImg(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -140,7 +141,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
   const handleSaveAuction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (auctionForm.gallery.length === 0) {
-      onNotify('warning', 'bạn hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+      onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
       return;
     }
     setLoading(true);
@@ -155,7 +156,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
 
       if (editingAuctionId) {
         // Chỉ cập nhật các trường thông tin, không reset currentBid nếu startingPrice không đổi
-        // Ở đây mình cho cập nhật thông thường
+        // Ở đây Huynh cho cập nhật thông thường
         await updateDoc(doc(db, "auctions", editingAuctionId), {
           ...auctionForm,
           image: auctionForm.gallery[0],
@@ -243,7 +244,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
 
   const handleGenAIVision = async () => {
     if (!missionForm.location || !missionForm.description) {
-      onNotify('warning', "bạn hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
+      onNotify('warning', "Đệ hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
       return;
     }
     setIsGeneratingAIVision(true);
@@ -290,7 +291,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                       <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], donors: m.donors || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                       <button onClick={() => { 
                         const performDelete = () => deleteDoc(doc(db, "missions", m.id));
-                        if (onConfirm) onConfirm("Xóa sứ mệnh", "bạn chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
+                        if (onConfirm) onConfirm("Xóa sứ mệnh", "Đệ chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
                         else if(window.confirm("Xóa sứ mệnh này?")) performDelete();
                       }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                    </div>
@@ -531,11 +532,11 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                    <div className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden bg-gray-50 group hover:border-emerald-300">
                       {missionForm.image ? <img src={missionForm.image} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-emerald-300">Ảnh bìa sứ mệnh</span>}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-3">
-                        <button type="button" onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, image:url}), 800); i.click(); }} className="bg-white text-emerald-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Tải ảnh 📤</button>
+                        <button type="button" onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, image:url}), 'missions'); i.click(); }} className="bg-white text-emerald-900 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Tải ảnh 📤</button>
                         <button type="button" onClick={handleGenAIVision} disabled={isGeneratingAIVision} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase">AI ✨</button>
                       </div>
                    </div>
-                   <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, qrCode:url}), 600); i.click(); }} className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 relative overflow-hidden bg-gray-50 group hover:border-amber-300 transition-all">
+                   <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setMissionForm({...missionForm, qrCode:url}), 'qrcodes'); i.click(); }} className="h-40 border-2 border-gray-200 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50 relative overflow-hidden bg-gray-50 group hover:border-amber-300 transition-all">
                       {missionForm.qrCode ? <img src={missionForm.qrCode} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[10px] font-black uppercase text-amber-300 text-center px-4">Tải ảnh mã QR Ngân hàng</span>}
                    </div>
                 </div>
@@ -573,7 +574,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                   <input type="number" className="bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold text-amber-900" placeholder="Tổng món đồ" value={sponsorForm.totalItemsCount || ''} onChange={e => setSponsorForm({...sponsorForm, totalItemsCount: Number(e.target.value)})} />
                 </div>
                 <textarea className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-xl font-bold outline-none text-amber-950" placeholder="Lời nhắn gửi..." value={sponsorForm.message} onChange={e => setSponsorForm({...sponsorForm, message: e.target.value})} />
-                <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setSponsorForm({...sponsorForm, avatar:url}), 400); i.click(); }} className="h-32 border-2 border-dashed border-amber-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 relative overflow-hidden bg-gray-50 group">
+                <div onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setSponsorForm({...sponsorForm, avatar:url}), 'sponsors'); i.click(); }} className="h-32 border-2 border-dashed border-amber-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 relative overflow-hidden bg-gray-50 group">
                    {sponsorForm.avatar ? <img src={sponsorForm.avatar} className="absolute inset-0 w-full h-full object-cover" alt="" /> : <span className="text-[9px] font-black uppercase text-amber-300">Tải ảnh đại diện</span>}
                 </div>
                 <button type="submit" disabled={loading} className="w-full bg-amber-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-black transition-all">{loading ? "ĐANG VINH DANH..." : "LƯU VINH DANH ✨"}</button>
@@ -627,7 +628,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                       ))}
                       {auctionForm.gallery.length < 5 && (
                          <div 
-                          onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, gallery: [...auctionForm.gallery, url]}), 800); i.click(); }}
+                          onClick={() => { const i = document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=(e:any)=>handleFileUpload(e, (url)=>setAuctionForm({...auctionForm, gallery: [...auctionForm.gallery, url]}), 'auctions'); i.click(); }}
                           className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-300 transition-all"
                          >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>

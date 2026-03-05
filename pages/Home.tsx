@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SocialPost, CharityMission, PostMedia, PostComment } from '../types';
 import { calculateMissionProgress } from '../utils/missionUtils';
+import { uploadFile, getFileType } from '../services/storageService';
 import { 
   collection, 
   onSnapshot, 
@@ -50,7 +51,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
   const [missions, setMissions] = useState<CharityMission[]>([]);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [postContent, setPostContent] = useState('');
-  const [postMedia, setPostMedia] = useState<{url: string, type: 'image' | 'video'} | null>(null);
+  const [postMediaList, setPostMediaList] = useState<PostMedia[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // States cho Bình luận
@@ -74,7 +75,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postContent.trim() && !postMedia) return;
+    if (!postContent.trim() && postMediaList.length === 0) return;
     setIsSubmitting(true);
     try {
       const newPostData = {
@@ -83,18 +84,18 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
         authorAvatar: user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=059669&color=fff`,
         authorIsGuest: user.isGuest || false,
         content: postContent,
-        media: postMedia ? [{ url: postMedia.url, type: postMedia.type }] : [],
+        media: postMediaList,
         createdAt: new Date().toISOString(),
         hearts: [],
         comments: []
       };
       await addDoc(collection(db, "social_posts"), newPostData);
       setPostContent('');
-      setPostMedia(null);
+      setPostMediaList([]);
       setIsPostModalOpen(false);
       onNotify('success', "Khoảnh khắc đã được sẻ chia!", "GIVEBACK");
     } catch (err: any) {
-      onNotify('error', "Gặp sự cố khi đăng bài. bạn thử lại nhé!", "Hệ thống");
+      onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
     } finally {
       setIsSubmitting(false);
     }
@@ -127,13 +128,15 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
   const handleCommentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        let finalData = reader.result as string;
-        finalData = await compressImage(finalData, 400); // Bình luận nén nhỏ hơn
-        setCommentMedia({ url: finalData, type: 'image' });
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsSubmitting(true);
+        const url = await uploadFile(file, 'comments');
+        setCommentMedia({ url, type: getFileType(file) });
+      } catch (err) {
+        onNotify('error', "Lỗi tải ảnh lên.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -185,12 +188,16 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
                 </div>
               </div>
               <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium leading-relaxed">"{post.content}"</p></div>
-              {post.media?.[0] && (
-                <div className="px-8 pb-10">
-                  {post.media[0].type === 'video' ? 
-                    <video src={post.media[0].url} className="w-full max-h-[500px] rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800 object-contain bg-black" controls /> : 
-                    <img src={post.media[0].url} className="w-full rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800" alt="" />
-                  }
+              {post.media && post.media.length > 0 && (
+                <div className="px-8 pb-10 space-y-4">
+                  {post.media.map((m, idx) => (
+                    <div key={idx}>
+                      {m.type === 'video' ? 
+                        <video src={m.url} className="w-full max-h-[500px] rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800 object-contain bg-black" controls /> : 
+                        <img src={m.url} className="w-full rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800" alt="" />
+                      }
+                    </div>
+                  ))}
                 </div>
               )}
               
@@ -301,42 +308,50 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
                   onChange={(e) => setPostContent(e.target.value)} 
                 />
 
-                {postMedia && (
-                  <div className="relative rounded-[3rem] overflow-hidden border-4 border-emerald-100 shadow-xl bg-gray-50">
-                    {postMedia.type === 'video' ? 
-                      <video src={postMedia.url} className="w-full h-56 object-contain bg-black" controls /> : 
-                      <img src={postMedia.url} className="w-full h-56 object-cover" alt="Preview" />
-                    }
-                    <button type="button" onClick={() => setPostMedia(null)} className="absolute top-4 right-4 bg-black/50 text-white p-3 rounded-full hover:bg-red-500 transition-all shadow-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                {postMediaList.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {postMediaList.map((m, idx) => (
+                      <div key={idx} className="relative rounded-[2rem] overflow-hidden border-4 border-emerald-100 shadow-xl bg-gray-50 aspect-square">
+                        {m.type === 'video' ? 
+                          <video src={m.url} className="w-full h-full object-cover bg-black" /> : 
+                          <img src={m.url} className="w-full h-full object-cover" alt="Preview" />
+                        }
+                        <button type="button" onClick={() => setPostMediaList(prev => prev.filter((_, i) => i !== idx))} className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-full hover:bg-red-500 transition-all shadow-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 <div className="flex items-center space-x-5">
                   <button 
                     type="button" 
+                    disabled={isSubmitting}
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center space-x-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-800"
+                    className="flex-1 flex items-center justify-center space-x-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-100 dark:border-emerald-800 disabled:opacity-50"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" /></svg>
-                    <span>Ảnh / Video</span>
+                    <span>{isSubmitting ? 'Đang tải...' : 'Thêm Ảnh / Video'}</span>
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = async () => {
-                        let finalData = reader.result as string;
-                        const isVideo = file.type.startsWith('video/');
-                        if (!isVideo) finalData = await compressImage(finalData);
-                        setPostMedia({ url: finalData, type: isVideo ? 'video' : 'image' });
-                      };
-                      reader.readAsDataURL(file);
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      setIsSubmitting(true);
+                      try {
+                        for (const file of files) {
+                          const url = await uploadFile(file, 'posts');
+                          setPostMediaList(prev => [...prev, { url, type: getFileType(file) }]);
+                        }
+                      } catch (err) {
+                        onNotify('error', "Lỗi tải tệp lên.");
+                      } finally {
+                        setIsSubmitting(false);
+                      }
                     }
                   }} />
                 </div>
 
-                <button type="submit" disabled={isSubmitting || (!postContent.trim() && !postMedia)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">
-                  {isSubmitting ? 'ĐANG LƯU...' : 'Đăng ngay'}
+                <button type="submit" disabled={isSubmitting || (!postContent.trim() && postMediaList.length === 0)} className="w-full bg-emerald-600 text-white py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 text-sm">
+                  {isSubmitting ? 'ĐANG XỬ LÝ...' : 'Đăng ngay'}
                 </button>
              </form>
           </div>
