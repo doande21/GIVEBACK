@@ -85,12 +85,24 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
     const firstFile: File = files[0];
     
     try {
+      // 1. Read as base64 for AI analysis
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(firstFile);
+      });
+      const base64 = await base64Promise;
+      const compressedBase64 = await compressImage(base64);
+
+      // 2. Upload to storage for permanent link
       onNotify('info', "Đang tải ảnh lên kho lưu trữ...", "Hệ thống");
       const url = await uploadFile(firstFile, 'items');
       setSelectedMedia([{ url, type: 'image' }]);
       
+      // 3. Analyze using compressed base64 (Gemini SDK expects base64 for inlineData)
       onNotify('info', "AI đang quét dữ liệu hình ảnh...", "GIVEBACK AI");
-      const aiData = await analyzeDonationItem(url, newPost.description);
+      const aiData = await analyzeDonationItem(compressedBase64, newPost.description);
+      
       if (aiData) {
         setNewPost((prev: any) => ({
           ...prev,
@@ -109,6 +121,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         onNotify('success', "AI đã quét thông tin thành công!", "GIVEBACK AI");
       }
     } catch (err) {
+      console.error("Upload/AI Error:", err);
       onNotify('error', "Lỗi tải ảnh hoặc quét AI.");
     } finally {
       setIsAiScanning(false);
@@ -117,7 +130,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
 
   const handleStartChat = async (item: DonationItem) => {
     if (item.authorId === user.id) {
-      onNotify('warning', "Đệ không thể tự nhắn tin cho chính mình nhé!");
+      onNotify('warning', "bạn không thể tự nhắn tin cho chính mình nhé!");
       return;
     }
 
@@ -139,7 +152,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
           receiverId: user.id,
           receiverName: user.name,
           participants: [item.authorId, user.id],
-          lastMessage: `Chào đệ, mình muốn hỏi về món đồ "${item.title}"...`,
+          lastMessage: `Chào bạn, mình muốn hỏi về món đồ "${item.title}"...`,
           lastSenderId: user.id,
           updatedAt: new Date().toISOString(),
           giftStatus: 'negotiating'
@@ -148,7 +161,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         await addDoc(collection(db, "chats", chatId, "messages"), {
           senderId: user.id,
           senderName: user.name,
-          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn đệ!`,
+          text: `Chào bạn, mình thấy bạn đang tặng "${item.title}", mình muốn được nhận món quà này. Cảm ơn bạn!`,
           createdAt: new Date().toISOString()
         });
       }

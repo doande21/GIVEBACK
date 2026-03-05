@@ -267,8 +267,8 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
             <button 
               onClick={() => {
                 if (onConfirm) {
-                  onConfirm("Đăng xuất", "Đệ chắc chắn muốn đăng xuất khỏi GIVEBACK?", () => onLogout?.(), 'danger');
-                } else if(window.confirm("Đệ chắc chắn muốn đăng xuất?")) {
+                  onConfirm("Đăng xuất", "bạn chắc chắn muốn đăng xuất khỏi GIVEBACK?", () => onLogout?.(), 'danger');
+                } else if(window.confirm("bạn chắc chắn muốn đăng xuất?")) {
                   onLogout?.();
                 }
               }}
@@ -404,7 +404,7 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                                    <span className="text-[9px] font-black text-gray-400 uppercase">{new Date(m.date).toLocaleDateString('vi-VN')}</span>
                                 </div>
                                 <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl border border-amber-100 dark:border-amber-800">
-                                   <p className="text-[9px] font-black text-amber-600 uppercase mb-1">Đóng góp của Đệ</p>
+                                   <p className="text-[9px] font-black text-amber-600 uppercase mb-1">Đóng góp của bạn</p>
                                    <p className="text-sm font-black text-emerald-900 dark:text-emerald-300">{myContribution}</p>
                                 </div>
                              </div>
