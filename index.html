@@ -1,180 +1,305 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GIVEBACK - Nền tảng chia sẻ yêu thương 100% tự nguyện</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
-    
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>"
+    />
+
     <!-- Import Google Fonts: Inter cho nội dung và Plus Jakarta Sans cho Branding -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,400;1,700;1,800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,700;0,800;1,400;1,700;1,800&display=swap"
+      rel="stylesheet"
+    />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        darkMode: 'class',
+        darkMode: "class",
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              brand: ['Plus Jakarta Sans', 'sans-serif'],
+              sans: ["Inter", "sans-serif"],
+              brand: ["Plus Jakarta Sans", "sans-serif"],
             },
             colors: {
+              dark: {
+                50: "#e8eaf0",
+                100: "#c5c9d6",
+                200: "#9ea4b8",
+                300: "#767e9a",
+                400: "#586184",
+                500: "#3a456e",
+                600: "#343e66",
+                700: "#2c345b",
+                800: "#252b51",
+                900: "#181c3a",
+                950: "#0d1117",
+              },
               emerald: {
-                50: '#ecfdf5',
-                100: '#d1fae5',
-                200: '#a7f3d0',
-                300: '#6ee7b7',
-                400: '#34d399',
-                500: '#10b981',
-                600: '#059669',
-                700: '#047857',
-                800: '#065f46',
-                900: '#064e3b',
-                950: '#022c22',
+                50: "#ecfdf5",
+                100: "#d1fae5",
+                200: "#a7f3d0",
+                300: "#6ee7b7",
+                400: "#34d399",
+                500: "#10b981",
+                600: "#059669",
+                700: "#047857",
+                800: "#065f46",
+                900: "#064e3b",
+                950: "#022c22",
               },
               amber: {
-                50: '#fffbeb',
-                100: '#fef3c7',
-                200: '#fde68a',
-                300: '#fcd34d',
-                400: '#fbbf24',
-                500: '#f59e0b',
-                600: '#d97706',
-                700: '#b45309',
-                800: '#92400e',
-                900: '#78350f',
-                950: '#451a03',
+                50: "#fffbeb",
+                100: "#fef3c7",
+                200: "#fde68a",
+                300: "#fcd34d",
+                400: "#fbbf24",
+                500: "#f59e0b",
+                600: "#d97706",
+                700: "#b45309",
+                800: "#92400e",
+                900: "#78350f",
+                950: "#451a03",
               },
-              indigo: {
-                50: '#eef2ff',
-                100: '#e0e7ff',
-                200: '#c7d2fe',
-                300: '#a5b4fc',
-                400: '#818cf8',
-                500: '#6366f1',
-                600: '#4f46e5',
-                700: '#4338ca',
-                800: '#3730a3',
-                900: '#1e1b4b',
-                950: '#0f172a',
-              }
             },
             letterSpacing: {
-              'tighter-brand': '-0.05em',
-            }
-          }
+              "tighter-brand": "-0.05em",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --primary-color: #10b981;
+        --bg-main: #0d1117;
+        --bg-card: #151b23;
+        --bg-elevated: "#1c2333";
+        --text-main: #e6edf3;
+        --text-muted: "#8b949e";
+        font-family: "Inter", sans-serif;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Font System */
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .brand-font {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+
+      button,
+      .nav-item-label,
+      .status-badge,
+      .tab-button,
+      label[for],
+      .profile-name {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      p,
+      span,
+      div,
+      input,
+      textarea {
+        font-family: "Inter", sans-serif;
+      }
+
+      input,
+      textarea,
+      select {
+        caret-color: var(--primary-color) !important;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1f6b50;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #10b981;
+      }
+
+      /* Animations */
+      @keyframes send-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+      .send-active {
+        animation: send-pulse 1s infinite;
+      }
+
+      @keyframes heart-rise {
+        0% {
+          transform: translateY(0) scale(0);
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.8;
+        }
+        100% {
+          transform: translateY(-100px) scale(1.5);
+          opacity: 0;
+        }
+      }
+      .animate-heart {
+        animation: heart-rise 2s ease-out infinite;
+      }
+
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+
+      @keyframes scan {
+        0% {
+          top: 0;
+        }
+        100% {
+          top: 100%;
+        }
+      }
+      .animate-scan {
+        animation: scan 2s linear infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+      }
+
+      @keyframes countUp {
+        from {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animate-count-up {
+        animation: countUp 0.6s ease-out forwards;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+      .animate-shimmer {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(16, 185, 129, 0.1),
+          transparent
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+
+      /* Hero gradient */
+      .hero-gradient {
+        background: linear-gradient(
+          135deg,
+          #0d1117 0%,
+          #0f2419 30%,
+          #0d3320 50%,
+          #0a2818 70%,
+          #0d1117 100%
+        );
+      }
+
+      /* Card glass effect */
+      .glass-card {
+        background: rgba(21, 27, 35, 0.8);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(48, 54, 61, 0.6);
+      }
+
+      /* Green glow */
+      .glow-green {
+        box-shadow:
+          0 0 30px rgba(16, 185, 129, 0.15),
+          0 0 60px rgba(16, 185, 129, 0.05);
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@^19.2.3",
+          "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+          "react/": "https://esm.sh/react@^19.2.3/",
+          "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+          "firebase/": "https://esm.sh/firebase@^12.7.0/",
+          "vite": "https://esm.sh/vite@^7.3.1",
+          "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+          "recharts": "https://esm.sh/recharts@^3.6.0"
         }
       }
     </script>
-    <style>
-        :root {
-            --primary-color: #10b981; 
-            --bg-main: #f8fafc;
-            --text-main: #064e3b;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .dark {
-            --bg-main: #020617;
-            --text-main: #f0fdf4;
-            --primary-color: #34d399;
-        }
-
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            transition: background-color 0.3s ease, color 0.3s ease;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* 🚀 THIẾT LẬP FONT CHỮ "VÌ VÂN CANH THÂN YÊU" TOÀN CỤC */
-        
-        /* 1. Các tiêu đề */
-        h1, h2, h3, h4, h5, h6, .brand-font {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: -0.05em;
-        }
-
-        /* 2. Các nút bấm và hành động UI */
-        button, 
-        .nav-item-label, 
-        .status-badge, 
-        .tab-button,
-        label[for],
-        .profile-name {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
-        }
-
-        /* 3. Văn bản nội dung (Body) giữ font Inter cho dễ đọc, nhưng đậm hơn 1 chút */
-        p, span, div, input, textarea {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Tinh chỉnh con trỏ và hiệu ứng */
-        input, textarea, select {
-            caret-color: var(--primary-color) !important;
-        }
-
-        /* Scrollbar style */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { 
-            background: #10b981; 
-            border-radius: 10px; 
-        }
-
-        @keyframes send-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        .send-active { animation: send-pulse 1s infinite; }
-
-        @keyframes heart-rise {
-            0% { transform: translateY(0) scale(0); opacity: 0; }
-            50% { opacity: 0.8; }
-            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
-        }
-        .animate-heart { animation: heart-rise 2s ease-out infinite; }
-        
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        
-        @keyframes scan {
-          0% { top: 0; }
-          100% { top: 100%; }
-        }
-        .animate-scan {
-          animation: scan 2s linear infinite;
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "firebase/": "https://esm.sh/firebase@^12.7.0/",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "recharts": "https://esm.sh/recharts@^3.6.0"
-  }
-}
-</script>
-</head>
-<body class="dark:bg-slate-950 dark:text-emerald-50">
+  </head>
+  <body class="bg-[#0d1117] text-gray-100">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
-</body>
+  </body>
 </html>

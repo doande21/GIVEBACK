@@ -11,7 +11,7 @@ import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   // Ưu tiên lấy Key từ biến môi trường, nếu không có mới dùng Key mặc định
-  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyCb2WBnZ_md_3isEGuO6kfLbo-RO5tRN-k",
+  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyCps-abURYQD2mRvfoj26VJcmM0EKiPM9k",
   authDomain: "giveback-336a1.firebaseapp.com",
   projectId: "giveback-336a1",
   storageBucket: "giveback-336a1.firebasestorage.app",
