@@ -3,7 +3,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import ItemCard from '../components/ItemCard';
 import { CATEGORIES } from '../constants';
 import { DonationItem, User, PostMedia } from '../types';
-import { collection, addDoc, onSnapshot, query, doc, setDoc, getDoc } from "firebase/firestore";
+
+import { uploadFile } from '../services/storageService';
+import { 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  query, 
+  doc,
+  setDoc,
+  getDoc
+} from "firebase/firestore";
+
 import { db } from '../services/firebase';
 import { analyzeDonationItem } from '../services/geminiService';
 // Tự động load file ảnh có sẵn trong thư mục gốc
@@ -70,14 +81,28 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
     if (!files || files.length === 0) return;
     setIsAiScanning(true);
     const firstFile: File = files[0];
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = typeof reader.result === 'string' ? reader.result : '';
-      if (!base64) { setIsAiScanning(false); return; }
-      const compressed = await compressImage(base64);
-      setSelectedMedia([{ url: compressed, type: 'image' }]);
+
+    
+    try {
+      // 1. Read as base64 for AI analysis
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(firstFile);
+      });
+      const base64 = await base64Promise;
+      const compressedBase64 = await compressImage(base64);
+
+      // 2. Upload to storage for permanent link
+      onNotify('info', "Đang tải ảnh lên kho lưu trữ...", "Hệ thống");
+      const url = await uploadFile(firstFile, 'items');
+      setSelectedMedia([{ url, type: 'image' }]);
+      
+      // 3. Analyze using compressed base64 (Gemini SDK expects base64 for inlineData)
+
       onNotify('info', "AI đang quét dữ liệu hình ảnh...", "GIVEBACK AI");
-      const aiData = await analyzeDonationItem(compressed, newPost.description);
+      const aiData = await analyzeDonationItem(compressedBase64, newPost.description);
+      
       if (aiData) {
         setNewPost((prev: any) => ({
           ...prev, title: aiData.suggestedTitle || prev.title, category: aiData.category || prev.category,
@@ -88,9 +113,12 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
         }));
         onNotify('success', "AI đã quét thông tin thành công!", "GIVEBACK AI");
       }
+    } catch (err) {
+      console.error("Upload/AI Error:", err);
+      onNotify('error', "Lỗi tải ảnh hoặc quét AI.");
+    } finally {
       setIsAiScanning(false);
-    };
-    reader.readAsDataURL(firstFile);
+    }
   };
 
   const handleStartChat = async (item: DonationItem) => {

@@ -176,10 +176,10 @@ const Showcase: React.FC = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
             {[
-              { label: "Người dùng", value: "10K+" },
-              { label: "Món quà trao đi", value: "25K+" },
-              { label: "Sứ mệnh hoàn thành", value: "150+" },
-              { label: "Quỹ quyên góp", value: "2B+" }
+              { label: "Người dùng", value: "..." },
+              { label: "Món quà trao đi", value: "..." },
+              { label: "Sứ mệnh hoàn thành", value: "..." },
+              { label: "Quỹ quyên góp", value: "..." }
             ].map((stat, i) => (
               <div key={i}>
                 <div className="text-5xl md:text-7xl font-black tracking-tighter mb-2">{stat.value}</div>
@@ -195,7 +195,7 @@ const Showcase: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl font-black uppercase tracking-tighter mb-8">GiveBack</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-12">
-            © 2024 Dự án GIVEBACK - Vì một cộng đồng tốt đẹp hơn.
+            © 2026 Dự án GIVEBACK - Vì một cộng đồng tốt đẹp hơn.
           </p>
           <div className="flex justify-center gap-8">
             <a href="#" className="text-slate-400 hover:text-emerald-600 transition-colors"><Globe className="w-5 h-5" /></a>

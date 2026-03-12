@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SocialPost, PostMedia, DonationItem, ClaimRecord, FriendRequest, CharityMission } from '../types';
+import { uploadFile } from '../services/storageService';
 import { 
   doc, 
   updateDoc, 
@@ -203,14 +204,14 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
     const file = e.target.files?.[0];
     if (file) {
       setIsCompressing(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        let base64 = reader.result as string;
-        base64 = await compressImage(base64, 400, 0.7);
-        setFormData(prev => ({ ...prev, avatar: base64 }));
+      try {
+        const url = await uploadFile(file, 'avatars');
+        setFormData(prev => ({ ...prev, avatar: url }));
+      } catch (err) {
+        onNotify('error', "Lỗi tải ảnh đại diện.");
+      } finally {
         setIsCompressing(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 

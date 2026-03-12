@@ -84,7 +84,7 @@ const Contact: React.FC = () => {
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left">
             <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Văn phòng GIVEBACK</h2>
-            <p className="text-emerald-400 font-bold text-sm">Quận 1, Thành phố Hồ Chí Minh, Việt Nam</p>
+            <p className="text-emerald-400 font-bold text-sm">41 Nguyễn Quảng, Thành phố Quy Nhơn Tỉnh Gia lai, Việt Nam</p>
             <p className="text-gray-400 text-xs mt-4 uppercase font-black tracking-widest">Thời gian hỗ trợ: 08:00 - 20:00 hàng ngày</p>
           </div>
           <div className="flex -space-x-4">
