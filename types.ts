@@ -42,7 +42,7 @@ export interface DonationItem {
   author: string;
   authorId: string;
   authorIsGuest?: boolean;
-  status: 'available' | 'claimed' | 'hidden';
+  status: 'available' | 'claimed' | 'hidden' | 'donated';
   createdAt: string;
   updatedAt: string;
   minAge?: number;

@@ -15,6 +15,7 @@ interface ItemCardProps {
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onConfirm, onViewProfile }) => {
   const isOutOfStock = item.quantity <= 0;
+  const isDonated = item.status === 'donated';
   const isAdmin = user?.role === 'admin';
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -41,8 +42,8 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
 
   return (
     <div 
-      onClick={() => onSelect?.(item)}
-      className={`bg-[#151b23] rounded-2xl border border-gray-800/60 overflow-hidden hover:border-emerald-700/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative flex flex-col h-full ${isOutOfStock ? 'opacity-60' : ''}`}
+      onClick={() => !isDonated && onSelect?.(item)}
+      className={`bg-[#151b23] rounded-2xl border border-gray-800/60 overflow-hidden hover:border-emerald-700/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative flex flex-col h-full ${isOutOfStock || isDonated ? 'opacity-70' : ''}`}
     >
       {isAdmin && (
         <button onClick={handleDelete} className="absolute top-3 left-3 z-20 bg-red-500/90 text-white p-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all">
@@ -53,6 +54,13 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
       <div className="relative h-48 bg-gray-900 overflow-hidden">
         <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#151b23] via-transparent to-transparent"></div>
+        {isDonated && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+            <div className="bg-emerald-600/90 backdrop-blur-sm px-4 py-2 rounded-xl rotate-[-8deg] shadow-xl border border-emerald-400/30">
+              <span className="text-white text-xs font-black uppercase tracking-widest">🎁 Đã được tặng</span>
+            </div>
+          </div>
+        )}
         <div className="absolute top-3 right-3">
           <span className="bg-emerald-600/90 text-white text-[9px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-sm">{item.category}</span>
         </div>
@@ -74,7 +82,10 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
           <span className="text-gray-500 text-[10px] ml-1">4.0</span>
         </div>
         <h3 className="text-sm font-bold text-gray-100 mb-1.5 truncate group-hover:text-emerald-400 transition-colors">{item.title}</h3>
-        <p className="text-[11px] text-gray-500 line-clamp-2 mb-4 leading-relaxed flex-1">{item.description || 'Không có mô tả.'}</p>
+        <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">{item.description || 'Không có mô tả.'}</p>
+        <p className={`text-[10px] font-bold mt-1.5 mb-4 flex-1 ${isDonated ? 'text-emerald-400' : 'text-gray-400'}`}>
+          📦 Số lượng: {isDonated ? <span className="text-emerald-400">Đã tặng hết</span> : <span className="text-white">{item.quantity}</span>}
+        </p>
         
         <div className="pt-3 border-t border-gray-800/60 flex items-center justify-between">
           <div className="flex items-center space-x-2 cursor-pointer group/author" onClick={handleAuthorClick}>
@@ -86,12 +97,18 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
               <p className="text-[8px] text-gray-600 truncate">{item.location || 'Toàn quốc'}</p>
             </div>
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onSelect?.(item); }}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-[9px] font-bold tracking-wide shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
-          >
-            xem chi tiết
-          </button>
+          {isDonated ? (
+            <span className="bg-gray-700 text-gray-400 px-4 py-2 rounded-lg text-[9px] font-bold tracking-wide">
+              Đã tặng ✅
+            </span>
+          ) : (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onSelect?.(item); }}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-[9px] font-bold tracking-wide shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
+            >
+              xem chi tiết
+            </button>
+          )}
         </div>
       </div>
     </div>

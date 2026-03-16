@@ -13,6 +13,7 @@ import {
   arrayUnion,
   deleteDoc,
   getDocs,
+  getDoc,
   writeBatch
 } from "firebase/firestore";
 import { db } from '../services/firebase';
@@ -187,12 +188,27 @@ const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onCo
           updatedAt: new Date().toISOString()
         });
 
-        // 2. Cập nhật trạng thái món đồ
+        // 2. Lấy số lượng hiện tại và cập nhật
         if (selectedSession.itemId) {
-          await updateDoc(doc(db, "items", selectedSession.itemId), {
-            status: 'donated',
-            updatedAt: new Date().toISOString()
-          });
+          const itemRef = doc(db, "items", selectedSession.itemId);
+          const itemSnap = await getDoc(itemRef);
+          const currentQuantity = itemSnap.exists() ? (itemSnap.data().quantity || 1) : 1;
+          const newQuantity = currentQuantity - 1;
+
+          if (newQuantity <= 0) {
+            // Hết hàng -> đánh dấu đã tặng hoàn toàn
+            await updateDoc(itemRef, {
+              quantity: 0,
+              status: 'donated',
+              updatedAt: new Date().toISOString()
+            });
+          } else {
+            // Còn hàng -> chỉ trừ số lượng, giữ available
+            await updateDoc(itemRef, {
+              quantity: newQuantity,
+              updatedAt: new Date().toISOString()
+            });
+          }
         }
 
         // 3. Tạo bản ghi nhận quà (ClaimRecord)

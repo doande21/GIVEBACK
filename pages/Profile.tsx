@@ -423,12 +423,32 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                            <img src={item.image} className="w-16 h-16 rounded-2xl object-cover" alt="" />
                            <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-black uppercase text-gray-900 truncate">{item.title}</h4>
-                              <p className={`text-[8px] font-black uppercase tracking-widest ${item.quantity > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>{item.quantity > 0 ? 'Còn sẵn' : 'Đã hết'}</p>
+                              <p className={`text-[8px] font-black uppercase tracking-widest ${item.status === 'donated' ? 'text-emerald-600' : item.quantity > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{item.status === 'donated' ? '🎁 Đã tặng thành công' : item.quantity > 0 ? 'Còn sẵn' : 'Đã hết'}</p>
                            </div>
                         </div>
                       ))}
                     </div>
                   ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa đăng món quà nào...</div>
+                )}
+
+                {activeTab === 'received' && (
+                  receivedClaims.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {receivedClaims.map(claim => (
+                        <div key={claim.id} className="bg-white p-5 rounded-[2rem] border border-emerald-50 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+                           <img src={claim.itemImage} className="w-16 h-16 rounded-2xl object-cover shadow-sm border border-gray-100" alt="" />
+                           <div className="min-w-0 flex-1">
+                              <h4 className="text-xs font-black uppercase text-gray-900 truncate">{claim.itemTitle}</h4>
+                              <p className="text-[9px] text-gray-500 mt-1">Người tặng: <span className="font-bold text-emerald-700 cursor-pointer hover:underline" onClick={() => onViewProfile?.(claim.donorId)}>{claim.donorName}</span></p>
+                              <p className="text-[8px] text-gray-400 mt-0.5">{new Date(claim.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                           </div>
+                           <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+                              <span className="text-emerald-600 text-lg">🎁</span>
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="py-20 text-center text-gray-300 font-black text-[10px] uppercase tracking-widest">Chưa nhận được món quà nào...</div>
                 )}
 
                 {activeTab === 'friends' && (
