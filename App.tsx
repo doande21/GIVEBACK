@@ -136,7 +136,7 @@ const App: React.FC = () => {
       case 'profile': return (
         <Profile 
           user={user} 
-          viewingUserId={viewingUserId} 
+          viewingUserId={viewingUserId || undefined} 
           onUpdateUser={(u) => setUser(u)} 
           onNotify={handleNotify} 
           onConfirm={handleConfirm}
@@ -189,7 +189,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300 overflow-x-hidden">
       <Navbar 
         user={user} 
         activeTab={activeTab} 
@@ -221,7 +221,22 @@ const App: React.FC = () => {
         type={confirmModal.type}
       />
 
-
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-100 dark:border-slate-800 flex items-center justify-around h-20 px-2 pb-1 overflow-x-auto scrollbar-hide shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+         {navItems.map(item => (
+           <button 
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className="flex flex-col items-center justify-center space-y-1.5 transition-all flex-1 min-w-[60px] h-full"
+           >
+             <div className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === item.id ? 'bg-[#045d43] text-white shadow-lg scale-105' : 'bg-gray-50 dark:bg-slate-800 text-gray-400'}`}>
+               {item.icon}
+             </div>
+             <span className={`text-[8px] font-black uppercase tracking-tight transition-colors ${activeTab === item.id ? 'text-[#045d43] dark:text-emerald-400' : 'text-gray-400'}`}>
+               {item.label}
+             </span>
+           </button>
+         ))}
+      </div>
     </div>
   );
 };

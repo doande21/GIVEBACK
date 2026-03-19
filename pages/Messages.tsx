@@ -12,7 +12,9 @@ import {
   updateDoc,
   getDoc,
   serverTimestamp,
-  increment
+  increment,
+  arrayUnion,
+  arrayRemove
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -20,6 +22,7 @@ interface MessagesProps {
   user: User;
   onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 const STICKERS = [
@@ -27,13 +30,21 @@ const STICKERS = [
   '👍', '👎', '❤️', '🔥', '✨', '🎉', '🎁', '🙏', '🤝', '💪'
 ];
 
-const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
+const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewProfile }) => {
   const [chats, setChats] = useState<ChatSession[]>([]);
   const [activeChat, setActiveChat] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showStickers, setShowStickers] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'chats' | 'people' | 'archive'>('chats');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const q = query(
@@ -49,6 +60,25 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
 
     return () => unsubscribe();
   }, [user.id]);
+
+  // Mark as read when active chat has new messages
+  useEffect(() => {
+    if (!activeChat) return;
+    
+    const currentChat = chats.find(c => c.id === activeChat.id);
+    if (currentChat && currentChat.lastSenderId !== user.id && !currentChat.readBy?.includes(user.id)) {
+      const markAsRead = async () => {
+        try {
+          await updateDoc(doc(db, "chats", activeChat.id), {
+            readBy: arrayUnion(user.id)
+          });
+        } catch (err) {
+          console.error("Error marking as read:", err);
+        }
+      };
+      markAsRead();
+    }
+  }, [activeChat?.id, chats, user.id]);
 
   useEffect(() => {
     if (!activeChat) return;
@@ -91,7 +121,8 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
       await updateDoc(doc(db, "chats", activeChat.id), {
         lastMessage: messageText,
         lastSenderId: user.id,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        readBy: [user.id] // Reset readBy to only the sender when a new message is sent
       });
     } catch (err) {
       onNotify('error', "Không thể gửi tin nhắn.");
@@ -172,6 +203,75 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
     }
   };
 
+  const handleArchiveChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateDoc(doc(db, "chats", chatId), {
+        archivedBy: arrayUnion(user.id)
+      });
+      onNotify('success', "Đã lưu trữ cuộc hội thoại.");
+      setOpenMenuId(null);
+      if (activeChat?.id === chatId) setActiveChat(null);
+    } catch (err) {
+      onNotify('error', "Không thể lưu trữ.");
+    }
+  };
+
+  const handleUnarchiveChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateDoc(doc(db, "chats", chatId), {
+        archivedBy: arrayRemove(user.id)
+      });
+      onNotify('success', "Đã bỏ lưu trữ cuộc hội thoại.");
+      setOpenMenuId(null);
+    } catch (err) {
+      onNotify('error', "Không thể bỏ lưu trữ.");
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const performDelete = async () => {
+      try {
+        await updateDoc(doc(db, "chats", chatId), {
+          deletedBy: arrayUnion(user.id)
+        });
+        onNotify('success', "Đã xóa cuộc hội thoại.");
+        setOpenMenuId(null);
+        if (activeChat?.id === chatId) setActiveChat(null);
+      } catch (err) {
+        onNotify('error', "Không thể xóa.");
+      }
+    };
+
+    if (onConfirm) {
+      onConfirm(
+        "Xóa cuộc hội thoại",
+        "Bạn có chắc chắn muốn xóa cuộc hội thoại này không? Hành động này không thể hoàn tác.",
+        performDelete,
+        'danger'
+      );
+    } else {
+      performDelete();
+    }
+  };
+
+  const filteredChats = chats.filter(chat => {
+    const isDeleted = chat.deletedBy?.includes(user.id);
+    const isArchived = chat.archivedBy?.includes(user.id);
+
+    if (isDeleted) return false;
+
+    if (activeSidebarTab === 'chats') {
+      return !isArchived;
+    }
+    if (activeSidebarTab === 'archive') {
+      return isArchived;
+    }
+    return true; // 'people' tab shows all for now
+  });
+
   return (
     <div className="pt-20 h-screen flex bg-[#0d1117] font-['Inter'] overflow-hidden">
       {/* Sidebar */}
@@ -230,21 +330,30 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          {chats.length === 0 ? (
+          {filteredChats.length === 0 ? (
             <div className="p-10 text-center">
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Chưa có tin nhắn</p>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                {activeSidebarTab === 'archive' ? 'Kho lưu trữ trống' : 'Chưa có tin nhắn'}
+              </p>
             </div>
           ) : (
-            chats.map(chat => {
+            filteredChats.map(chat => {
               const otherParticipant = chat.donorId === user.id ? chat.receiverName : chat.donorName;
               const isActive = activeChat?.id === chat.id;
+              const isArchived = chat.archivedBy?.includes(user.id);
+              
               return (
                 <div 
                   key={chat.id} 
                   onClick={() => setActiveChat(chat)}
-                  className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'bg-[#2a3942]' : 'hover:bg-[#202c33]'}`}
+                  className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-all relative group ${isActive ? 'bg-[#2a3942]' : 'hover:bg-[#202c33]'}`}
                 >
-                  <div className="relative">
+                  <div className="relative" onClick={(e) => {
+                    if (onViewProfile) {
+                      e.stopPropagation();
+                      onViewProfile(chat.donorId === user.id ? chat.receiverId : chat.donorId);
+                    }
+                  }}>
                     <div className="w-14 h-14 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xl">
                       {otherParticipant.charAt(0).toUpperCase()}
                     </div>
@@ -257,9 +366,42 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
                     </div>
                     <div className="flex justify-between items-center">
                       <p className="text-[13px] text-gray-400 truncate pr-2">{chat.lastMessage}</p>
-                      <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                      <div className="flex items-center gap-2">
+                        {chat.lastSenderId !== user.id && (!chat.readBy || !chat.readBy.includes(user.id)) && (
+                          <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                        )}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === chat.id ? null : chat.id);
+                          }}
+                          className="p-1 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Dropdown Menu */}
+                  {openMenuId === chat.id && (
+                    <div className="absolute right-4 top-12 bg-[#233138] border border-gray-700 rounded-xl shadow-2xl z-30 py-2 w-48 animate-in fade-in zoom-in-95 duration-100">
+                      <button 
+                        onClick={(e) => isArchived ? handleUnarchiveChat(chat.id, e) : handleArchiveChat(chat.id, e)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-[#182229] flex items-center gap-3"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                        {isArchived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
+                      </button>
+                      <button 
+                        onClick={(e) => handleDeleteChat(chat.id, e)}
+                        className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-[#182229] flex items-center gap-3"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Xóa cuộc trò chuyện
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -268,15 +410,24 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
 
         {/* Sidebar Bottom Nav */}
         <div className="p-2 border-t border-gray-800 flex justify-around bg-[#111b21]">
-          <button className="flex flex-col items-center gap-1 p-2 text-emerald-500">
+          <button 
+            onClick={() => setActiveSidebarTab('chats')}
+            className={`flex flex-col items-center gap-1 p-2 transition-all ${activeSidebarTab === 'chats' ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L1 23l6.71-1.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.47 0-2.84-.39-4.03-1.06l-.29-.17-3.01.88.89-2.93-.18-.3C4.39 15.23 4 13.67 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
             <span className="text-[10px] font-bold">Đoạn chat</span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-gray-300">
+          <button 
+            onClick={() => setActiveSidebarTab('people')}
+            className={`flex flex-col items-center gap-1 p-2 transition-all ${activeSidebarTab === 'people' ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             <span className="text-[10px] font-bold">Mọi người</span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-gray-300">
+          <button 
+            onClick={() => setActiveSidebarTab('archive')}
+            className={`flex flex-col items-center gap-1 p-2 transition-all ${activeSidebarTab === 'archive' ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
             <span className="text-[10px] font-bold">Kho lưu trữ</span>
           </button>
@@ -293,13 +444,21 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
                 <button className="md:hidden text-emerald-500 p-1">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">
+                <div className="relative" onClick={() => {
+                  if (onViewProfile) {
+                    onViewProfile(activeChat.donorId === user.id ? activeChat.receiverId : activeChat.donorId);
+                  }
+                }}>
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm cursor-pointer">
                     {(activeChat.donorId === user.id ? activeChat.receiverName : activeChat.donorName).charAt(0).toUpperCase()}
                   </div>
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#111b21] rounded-full"></div>
                 </div>
-                <div>
+                <div className="cursor-pointer" onClick={() => {
+                  if (onViewProfile) {
+                    onViewProfile(activeChat.donorId === user.id ? activeChat.receiverId : activeChat.donorId);
+                  }
+                }}>
                   <h3 className="text-[15px] font-bold text-white leading-tight">{activeChat.donorId === user.id ? activeChat.receiverName : activeChat.donorName}</h3>
                   <p className="text-[11px] text-gray-400">Đang hoạt động</p>
                 </div>

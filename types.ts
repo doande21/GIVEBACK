@@ -42,7 +42,7 @@ export interface DonationItem {
   author: string;
   authorId: string;
   authorIsGuest?: boolean;
-  status: 'available' | 'claimed' | 'hidden' | 'donated';
+  status: 'available' | 'claimed' | 'hidden';
   createdAt: string;
   updatedAt: string;
   minAge?: number;
@@ -85,6 +85,8 @@ export interface ChatSession {
   lastSenderId?: string;
   updatedAt: string;
   readBy?: string[];
+  archivedBy?: string[];
+  deletedBy?: string[];
   groupName?: string;
   groupAdminId?: string;
 }
@@ -98,7 +100,8 @@ export interface ClaimRecord {
   donorName: string;
   receiverId: string;
   receiverName: string;
-  createdAt: string;
+  claimedAt: string;
+  createdAt?: string;
 }
 
 export interface Sponsor {
