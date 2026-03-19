@@ -51,6 +51,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'individual' | 'organization'>('all');
   
   const [activeSubTab, setActiveSubTab] = useState<'missions' | 'sponsors' | 'auctions' | 'posts' | 'users'>('missions');
   const [loading, setLoading] = useState(false);
@@ -469,24 +470,24 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
            </div>
            <div className="grid grid-cols-1 gap-4">
               {socialPosts.map(post => (
-                <div key={post.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-6 group hover:border-red-200 transition-all">
-                   <img src={post.authorAvatar} className="w-14 h-14 rounded-2xl object-cover border-2 border-gray-50 shadow-sm" alt="" />
-                   <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">"{post.content}"</p>
-                   </div>
-                   <button onClick={() => { 
-                     const performDelete = () => deleteDoc(doc(db, "social_posts", post.id));
-                     if (onConfirm) onConfirm("Xóa bài viết", "Xóa bài viết này khỏi bản tin?", performDelete, 'danger');
-                     else if(window.confirm("Xóa bài này?")) performDelete();
-                   }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
-                   </button>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
+                 <div key={post.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-6 group hover:border-red-200 transition-all">
+                    <img src={post.authorAvatar} className="w-14 h-14 rounded-2xl object-cover border-2 border-gray-50 shadow-sm" alt="" />
+                    <div className="flex-1 min-w-0">
+                       <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white">{post.authorName}</h4>
+                       <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">"{post.content}"</p>
+                    </div>
+                    <button onClick={() => { 
+                      const performDelete = () => deleteDoc(doc(db, "social_posts", post.id));
+                      if (onConfirm) onConfirm("Xóa bài viết", "Xóa bài viết này khỏi bản tin?", performDelete, 'danger');
+                      else if(window.confirm("Xóa bài này?")) performDelete();
+                    }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                 </div>
+               ))}
+            </div>
+         </div>
+       )}
 
        {activeSubTab === 'users' && (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -494,16 +495,52 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
              <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Quản lý thành viên</h2>
              <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Danh sách người dùng tham gia hệ thống.</p>
            </div>
+
+           <div className="flex flex-wrap gap-3">
+             <button 
+               onClick={() => setUserTypeFilter('all')} 
+               className={`px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${userTypeFilter === 'all' ? 'bg-slate-900 text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+             >
+               Tất cả ({allUsers.length})
+             </button>
+             <button 
+               onClick={() => setUserTypeFilter('individual')} 
+               className={`px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${userTypeFilter === 'individual' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+             >
+               Cá nhân ({allUsers.filter(u => u.userType !== 'organization').length})
+             </button>
+             <button 
+               onClick={() => setUserTypeFilter('organization')} 
+               className={`px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${userTypeFilter === 'organization' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+             >
+               Tổ chức ({allUsers.filter(u => u.userType === 'organization').length})
+             </button>
+           </div>
+
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allUsers.map(u => (
-                <div key={u.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-4 group hover:border-slate-300 transition-all">
+              {allUsers.filter(u => {
+                if (userTypeFilter === 'all') return true;
+                if (userTypeFilter === 'individual') return u.userType !== 'organization';
+                return u.userType === 'organization';
+              }).map(u => (
+                <div key={u.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-4 group hover:border-slate-300 transition-all relative overflow-hidden">
+                   {u.userType === 'organization' && (
+                     <div className="absolute top-0 right-0 bg-emerald-500 text-white px-3 py-1 rounded-bl-2xl text-[8px] font-black uppercase">
+                       Tổ chức
+                     </div>
+                   )}
                    <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.name}&background=random`} className="w-12 h-12 rounded-xl object-cover" alt="" />
                    <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white truncate">{u.name}</h4>
                       <p className="text-[10px] text-gray-500 truncate">{u.email}</p>
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {u.role}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {u.role}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${u.userType === 'organization' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'}`}>
+                          {u.userType === 'organization' ? 'Tổ chức' : 'Cá nhân'}
+                        </span>
+                      </div>
                    </div>
                    {u.id !== user.id && (
                      <button onClick={() => handleDeleteUser(u.id)} className="bg-red-50 text-red-500 p-3 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
