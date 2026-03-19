@@ -434,7 +434,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
               <h4 className="text-white font-bold text-sm mb-3">Liên hệ</h4>
               <div className="space-y-2">
                 <p className="text-gray-500 text-xs">📧 hello@giveback.vn</p>
-                <p className="text-gray-500 text-xs">📱 0123 456 789</p>
+                <p className="text-gray-500 text-xs">📱 0333297621</p>
               </div>
             </div>
           </div>

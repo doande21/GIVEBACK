@@ -1,480 +1,459 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, ChatSession, ChatMessage, PostMedia } from '../types';
+import { User, ChatSession, ChatMessage, DonationItem } from '../types';
 import { 
   collection, 
-  onSnapshot, 
   query, 
   where, 
+  onSnapshot, 
   addDoc, 
-  updateDoc, 
-  doc,
-  orderBy,
-  arrayUnion,
-  deleteDoc,
-  getDocs,
-  writeBatch
+  orderBy, 
+  doc, 
+  updateDoc,
+  getDoc,
+  serverTimestamp,
+  increment
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
 interface MessagesProps {
   user: User;
-  onViewProfile: (userId: string) => void;
-  onNotify?: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
+  onNotify: (type: 'success' | 'error' | 'warning' | 'info', message: string, sender?: string) => void;
   onConfirm?: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
-// Hàm nén ảnh tiết kiệm dung lượng
-const compressImage = (base64Str: string, maxWidth = 500, quality = 0.5): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > height) { if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; } } 
-      else { if (height > maxWidth) { width *= maxWidth / height; height = maxWidth; } }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-  });
-};
+const STICKERS = [
+  '😊', '😂', '🥰', '😍', '😒', '😭', '😱', '😴', '🥳', '😎',
+  '👍', '👎', '❤️', '🔥', '✨', '🎉', '🎁', '🙏', '🤝', '💪'
+];
 
-const STICKERS = ["❤️", "🎁", "🙏", "🚚", "✨", "😊", "💪", "🌈", "🔥", "🤝", "👍", "🌸"];
-
-const Messages: React.FC<MessagesProps> = ({ user, onViewProfile, onNotify, onConfirm }) => {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
+const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
+  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [activeChat, setActiveChat] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [showStickers, setShowStickers] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-  
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenuId(null);
-      }
-      if (showStickers && !(event.target as Element).closest('.sticker-container')) {
-        setShowStickers(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showStickers]);
+    const q = query(
+      collection(db, "chats"),
+      where("participants", "array-contains", user.id)
+    );
 
-  useEffect(() => {
-    if (!user.id) return;
-    const q = query(collection(db, "chats"), where("participants", "array-contains", user.id));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatSession));
-      data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      setSessions(data);
-      setLoading(false);
+      const chatData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatSession));
+      chatData.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setChats(chatData);
     });
+
     return () => unsubscribe();
   }, [user.id]);
 
   useEffect(() => {
-    if (selectedSession) {
-      const updated = sessions.find(s => s.id === selectedSession.id);
-      if (updated) setSelectedSession(updated);
-    }
-  }, [sessions]);
+    if (!activeChat) return;
 
-  useEffect(() => {
-    if (selectedSession) {
-      const isUnread = selectedSession.lastSenderId !== user.id && (!selectedSession.readBy || !selectedSession.readBy.includes(user.id));
-      if (isUnread) {
-        updateDoc(doc(db, "chats", selectedSession.id), {
-          readBy: arrayUnion(user.id)
-        });
-      }
+    const q = query(
+      collection(db, "chats", activeChat.id, "messages"),
+      orderBy("createdAt", "asc")
+    );
 
-      const q = query(collection(db, "chats", selectedSession.id, "messages"), orderBy("createdAt", "asc"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatMessage)));
-      });
-      return unsubscribe;
-    } else {
-      setMessages([]);
-    }
-  }, [selectedSession?.id, user.id]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messageData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      setMessages(messageData);
+      scrollToBottom();
+    });
 
-  useEffect(() => {
-    if (chatEndRef.current) { 
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); 
-    }
-  }, [messages]);
+    return () => unsubscribe();
+  }, [activeChat]);
 
-  const handleSendMessage = async (e?: React.FormEvent, media?: PostMedia[]) => {
-    if (e) e.preventDefault();
-    if (!newMessage.trim() && !media && !isUploading) return;
-    if (!selectedSession) return;
-    
-    const messageText = newMessage.trim();
-    setNewMessage('');
-    setShowStickers(false);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSendMessage = async (e?: React.FormEvent, textOverride?: string) => {
+    e?.preventDefault();
+    const text = textOverride || newMessage;
+    if (!activeChat || !text.trim()) return;
 
     try {
-      await addDoc(collection(db, "chats", selectedSession.id, "messages"), {
+      const messageText = text.trim();
+      setNewMessage('');
+      setShowStickers(false);
+
+      await addDoc(collection(db, "chats", activeChat.id, "messages"), {
         senderId: user.id,
         senderName: user.name,
-        senderIsGuest: user.isGuest || false,
         text: messageText,
-        media: media || [],
         createdAt: new Date().toISOString()
       });
 
-      await updateDoc(doc(db, "chats", selectedSession.id), {
-        lastMessage: media ? (media[0].type === 'image' ? '📸 Hình ảnh' : '🎥 Video') : messageText,
+      await updateDoc(doc(db, "chats", activeChat.id), {
+        lastMessage: messageText,
         lastSenderId: user.id,
-        updatedAt: new Date().toISOString(),
-        readBy: [user.id]
+        updatedAt: new Date().toISOString()
       });
-    } catch (err) { 
-      console.error("Lỗi gửi tin nhắn:", err);
+    } catch (err) {
+      onNotify('error', "Không thể gửi tin nhắn.");
     }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && selectedSession) {
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        let finalData = reader.result as string;
-        const isVideo = file.type.startsWith('video/');
-        if (!isVideo) finalData = await compressImage(finalData);
-        
-        await handleSendMessage(undefined, [{ url: finalData, type: isVideo ? 'video' : 'image' }]);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSendSticker = (sticker: string) => {
-    setNewMessage(sticker);
-    // Tự động gửi luôn khi chọn sticker
-    setTimeout(() => {
-        handleSendMessage();
-    }, 100);
   };
 
   const handleConfirmGift = async () => {
-    if (!selectedSession || !selectedSession.itemId || isConfirming) return;
-    
+    if (!activeChat || !activeChat.itemId) return;
+
     const performConfirm = async () => {
-      setIsConfirming(true);
       try {
-        // 1. Cập nhật trạng thái chat
-        await updateDoc(doc(db, "chats", selectedSession.id), {
+        const itemRef = doc(db, "items", activeChat.itemId!);
+        const itemSnap = await getDoc(itemRef);
+        
+        if (!itemSnap.exists()) {
+          onNotify('error', "Món đồ không còn tồn tại.");
+          return;
+        }
+
+        const itemData = itemSnap.data() as DonationItem;
+        const currentQuantity = itemData.quantity || 0;
+
+        if (currentQuantity <= 0) {
+          onNotify('warning', "Món đồ này đã hết hàng!");
+          return;
+        }
+
+        // 1. Update chat status
+        await updateDoc(doc(db, "chats", activeChat.id), {
           giftStatus: 'completed',
-          lastMessage: '✅ Đã xác nhận tặng món đồ',
-          lastSenderId: user.id,
           updatedAt: new Date().toISOString()
         });
 
-        // 2. Cập nhật trạng thái món đồ
-        if (selectedSession.itemId) {
-          await updateDoc(doc(db, "items", selectedSession.itemId), {
-            status: 'donated',
-            updatedAt: new Date().toISOString()
-          });
-        }
-
-        // 3. Tạo bản ghi nhận quà (ClaimRecord)
-        await addDoc(collection(db, "claims"), {
-          itemId: selectedSession.itemId,
-          itemTitle: selectedSession.itemTitle,
-          itemImage: selectedSession.itemImage,
-          donorId: selectedSession.donorId,
-          donorName: selectedSession.donorName,
-          receiverId: selectedSession.receiverId,
-          receiverName: selectedSession.receiverName,
-          createdAt: new Date().toISOString()
+        // 2. Decrement item quantity
+        const newQuantity = currentQuantity - 1;
+        await updateDoc(itemRef, {
+          quantity: increment(-1),
+          status: newQuantity <= 0 ? 'claimed' : 'available',
+          updatedAt: new Date().toISOString()
         });
 
-        // 4. Gửi tin nhắn hệ thống
-        await addDoc(collection(db, "chats", selectedSession.id, "messages"), {
+        // 3. Create claim record
+        await addDoc(collection(db, "claims"), {
+          itemId: activeChat.itemId,
+          itemTitle: activeChat.itemTitle,
+          itemImage: activeChat.itemImage,
+          donorId: activeChat.donorId,
+          donorName: activeChat.donorName,
+          receiverId: activeChat.receiverId,
+          receiverName: activeChat.receiverName,
+          claimedAt: new Date().toISOString()
+        });
+
+        // 4. Send system message
+        await addDoc(collection(db, "chats", activeChat.id, "messages"), {
           senderId: 'system',
           senderName: 'Hệ thống',
-          text: `✅ ${user.name} đã xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}. Chúc mừng hai bạn! 🎉`,
+          text: `🎁 Chúc mừng! Món quà "${activeChat.itemTitle}" đã được xác nhận tặng thành công.`,
           createdAt: new Date().toISOString()
         });
 
-        onNotify?.('success', "Đã xác nhận tặng quà thành công!");
-
+        onNotify('success', "Đã xác nhận tặng quà thành công!");
       } catch (err) {
-        console.error("Lỗi xác nhận tặng quà:", err);
-        onNotify?.('error', "Có lỗi xảy ra khi xác nhận tặng quà.");
-      } finally {
-        setIsConfirming(false);
+        console.error("Confirm Gift Error:", err);
+        onNotify('error', "Có lỗi xảy ra khi xác nhận.");
       }
     };
 
     if (onConfirm) {
-      onConfirm("Xác nhận tặng quà", `Xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}?`, performConfirm, 'info');
-    } else if (window.confirm(`Xác nhận tặng món đồ "${selectedSession.itemTitle}" cho ${selectedSession.receiverName}?`)) {
+      onConfirm(
+        "Xác nhận tặng quà",
+        `Bạn có chắc chắn muốn tặng "${activeChat.itemTitle}" cho ${activeChat.receiverName} không?`,
+        performConfirm,
+        'info'
+      );
+    } else {
       performConfirm();
     }
   };
 
-  const handleDeleteChat = async (sessionId: string) => {
-    if (!sessionId) return;
-    
-    const performDelete = async () => {
-      try {
-        const msgsQuery = query(collection(db, "chats", sessionId, "messages"));
-        const msgsSnap = await getDocs(msgsQuery);
-        const batch = writeBatch(db);
-        msgsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-        await deleteDoc(doc(db, "chats", sessionId));
-        if (selectedSession?.id === sessionId) setSelectedSession(null);
-        setActiveMenuId(null);
-        onNotify?.('success', "Đã xóa đoạn hội thoại.");
-      } catch (err) {
-        console.error("Lỗi xóa hội thoại:", err);
-        onNotify?.('error', "Lỗi khi xóa đoạn hội thoại.");
-      }
-    };
-
-    if (onConfirm) {
-      onConfirm("Xóa hội thoại", "mình bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?", performDelete, 'danger');
-    } else if (window.confirm("mình bạn có chắc chắn muốn xóa toàn bộ đoạn chat này không?")) {
-      performDelete();
-    }
-  };
-
-  const getPartnerName = (session: ChatSession) => {
-    if (session.type === 'group') return session.groupName || 'Nhóm chat';
-    return session.donorId === user.id ? session.receiverName : session.donorName;
-  };
-
-  const getPartnerId = (session: ChatSession) => {
-    return session.donorId === user.id ? session.receiverId : session.donorId;
-  };
-
   return (
-    <div className="pt-20 pb-4 px-2 md:px-4 max-w-[1600px] mx-auto h-[calc(100vh-80px)] flex flex-col transition-colors">
-      <div className="flex-1 flex gap-4 overflow-hidden">
-        
-        {/* SIDEBAR */}
-        <div className={`lg:flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 overflow-hidden ${selectedSession ? 'hidden' : 'flex'} lg:w-[400px] p-6 shadow-sm`}>
-          <div className="mb-8 flex justify-between items-center">
-             <h1 className="text-3xl font-black text-emerald-950 dark:text-emerald-400 uppercase tracking-tighter">Tâm sự</h1>
-             <button className="p-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 rounded-full">
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-             </button>
+    <div className="pt-20 h-screen flex bg-[#0d1117] font-['Inter'] overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-80 md:w-96 border-r border-gray-800 flex flex-col bg-[#111b21]">
+        {/* Sidebar Header */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-black text-lg">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Chats</h2>
+            </div>
+            <div className="flex gap-2">
+              <button className="p-2 text-gray-400 hover:bg-gray-800 rounded-full transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </button>
+              <button className="p-2 text-gray-400 hover:bg-gray-800 rounded-full transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              </button>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar">
-            {sessions.map(s => {
-              const isUnread = s.lastSenderId !== user.id && (!s.readBy || !s.readBy.includes(user.id));
-              const isSelected = selectedSession?.id === s.id;
-              return (
-                <div 
-                  key={s.id} 
-                  onClick={() => setSelectedSession(s)} 
-                  className={`p-4 rounded-3xl cursor-pointer transition-all border-2 flex items-center space-x-3 ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-gray-50 dark:bg-slate-800 border-transparent text-gray-900 dark:text-white'}`}
-                >
-                   <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black">
-                     {getPartnerName(s).charAt(0)}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                      <h4 className={`text-sm truncate uppercase font-black ${isSelected ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{getPartnerName(s)}</h4>
-                      <p className={`text-[10px] truncate ${isSelected ? 'text-white/70' : 'text-gray-500'}`}>{s.lastMessage || '...'}</p>
-                   </div>
-                   {isUnread && !isSelected && <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>}
+          
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm" 
+              className="w-full bg-[#202c33] border-none rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all text-white placeholder:text-gray-500"
+            />
+          </div>
+
+          {/* Stories / Quick Contacts */}
+          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+            <div className="flex flex-col items-center gap-1 min-w-[60px]">
+              <button className="w-12 h-12 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-500 hover:border-emerald-500 hover:text-emerald-500 transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+              </button>
+              <span className="text-[10px] text-gray-500 font-medium">Ghi chú</span>
+            </div>
+            {['Thanh Ph...', 'Người dù...', 'Admin', 'Hệ thống'].map((name, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 min-w-[60px]">
+                <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-emerald-500/20 p-0.5">
+                  <div className="w-full h-full rounded-full bg-emerald-900/20 flex items-center justify-center text-emerald-500 text-xs font-bold">
+                    {name.charAt(0)}
+                  </div>
                 </div>
-              );
-            })}
+                <span className="text-[10px] text-gray-500 font-medium truncate w-full text-center">{name}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* CHAT WINDOW */}
-        <div className={`flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-[3rem] border border-gray-100 dark:border-slate-800 overflow-hidden shadow-2xl relative ${!selectedSession ? 'hidden lg:flex' : 'flex'}`}>
-          {selectedSession ? (
-            <React.Fragment>
-              {/* HEADER */}
-              <div className="px-6 py-4 border-b dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <button onClick={() => setSelectedSession(null)} className="lg:hidden text-emerald-600"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg></button>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black">{getPartnerName(selectedSession).charAt(0)}</div>
-                  <h3 className="font-black dark:text-white uppercase text-sm">{getPartnerName(selectedSession)}</h3>
-                </div>
-                <div className="relative">
-                  <button onClick={() => setActiveMenuId('header')} className="text-gray-400 hover:text-emerald-500 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 12c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2zm14 0c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2zm-7 0c0 1.104.896 2 2 2s2-.896 2-2-.896-2-2-2-2 .896-2 2z"/></svg>
-                  </button>
-                  {activeMenuId === 'header' && (
-                    <div ref={menuRef} className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border dark:border-slate-700 z-50 py-2">
-                      <button onClick={() => { onViewProfile(getPartnerId(selectedSession)); setActiveMenuId(null); }} className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 text-xs font-bold uppercase">Hồ sơ</button>
-                      <button onClick={() => handleDeleteChat(selectedSession.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-xs font-bold uppercase">Xóa chat</button>
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto no-scrollbar">
+          {chats.length === 0 ? (
+            <div className="p-10 text-center">
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Chưa có tin nhắn</p>
+            </div>
+          ) : (
+            chats.map(chat => {
+              const otherParticipant = chat.donorId === user.id ? chat.receiverName : chat.donorName;
+              const isActive = activeChat?.id === chat.id;
+              return (
+                <div 
+                  key={chat.id} 
+                  onClick={() => setActiveChat(chat)}
+                  className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'bg-[#2a3942]' : 'hover:bg-[#202c33]'}`}
+                >
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xl">
+                      {otherParticipant.charAt(0).toUpperCase()}
                     </div>
-                  )}
+                    <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#111b21] rounded-full"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <h4 className="text-[15px] font-bold text-white truncate">{otherParticipant}</h4>
+                      <span className="text-[11px] text-gray-500">{new Date(chat.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-[13px] text-gray-400 truncate pr-2">{chat.lastMessage}</p>
+                      <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Sidebar Bottom Nav */}
+        <div className="p-2 border-t border-gray-800 flex justify-around bg-[#111b21]">
+          <button className="flex flex-col items-center gap-1 p-2 text-emerald-500">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L1 23l6.71-1.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm0 18c-1.47 0-2.84-.39-4.03-1.06l-.29-.17-3.01.88.89-2.93-.18-.3C4.39 15.23 4 13.67 4 12c0-4.41 3.59-8 8-8s8 3.59 8 8-3.59 8-8 8z"/></svg>
+            <span className="text-[10px] font-bold">Đoạn chat</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-gray-300">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            <span className="text-[10px] font-bold">Mọi người</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-gray-300">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+            <span className="text-[10px] font-bold">Kho lưu trữ</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Chat Window */}
+      <div className="flex-1 flex flex-col bg-[#0d1117] relative">
+        {activeChat ? (
+          <>
+            {/* Chat Header */}
+            <div className="px-4 py-2 border-b border-gray-800 bg-[#111b21] flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <button className="md:hidden text-emerald-500 p-1">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">
+                    {(activeChat.donorId === user.id ? activeChat.receiverName : activeChat.donorName).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#111b21] rounded-full"></div>
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-bold text-white leading-tight">{activeChat.donorId === user.id ? activeChat.receiverName : activeChat.donorName}</h3>
+                  <p className="text-[11px] text-gray-400">Đang hoạt động</p>
                 </div>
               </div>
+              
+              <div className="flex items-center gap-4 text-emerald-500">
+                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </button>
+                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                </button>
+                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+              </div>
+            </div>
 
-              {/* GIFT STATUS BAR */}
-              {selectedSession.itemId && (
-                <React.Fragment>
-                  {selectedSession.giftStatus === 'negotiating' && selectedSession.donorId === user.id && (
-                    <div className="px-6 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-b dark:border-slate-800 flex items-center justify-between animate-in slide-in-from-top-2">
-                      <div className="flex items-center space-x-3">
-                        <img src={selectedSession.itemImage} className="w-10 h-10 rounded-lg object-cover border-2 border-white dark:border-slate-700 shadow-sm" alt="" />
-                        <div>
-                          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">Đang trao đổi món quà</p>
-                          <h4 className="text-xs font-bold dark:text-white truncate max-w-[150px] md:max-w-[300px]">{selectedSession.itemTitle}</h4>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={handleConfirmGift}
-                        disabled={isConfirming}
-                        className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                      >
-                        {isConfirming ? 'Đang xử lý...' : 'Xác nhận tặng quà 🎁'}
-                      </button>
-                    </div>
-                  )}
-                  {selectedSession.giftStatus === 'negotiating' && selectedSession.receiverId === user.id && (
-                    <div className="px-6 py-3 bg-amber-50 dark:bg-amber-900/20 border-b dark:border-slate-800 flex items-center justify-between animate-in slide-in-from-top-2">
-                      <div className="flex items-center space-x-3">
-                        <img src={selectedSession.itemImage} className="w-10 h-10 rounded-lg object-cover border-2 border-white dark:border-slate-700 shadow-sm" alt="" />
-                        <div>
-                          <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase">Đang chờ xác nhận</p>
-                          <h4 className="text-xs font-bold dark:text-white truncate max-w-[150px] md:max-w-[300px]">{selectedSession.itemTitle}</h4>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase italic animate-pulse">Đang đợi người tặng...</span>
-                    </div>
-                  )}
-                  {selectedSession.giftStatus === 'completed' && (
-                    <div className="px-6 py-3 bg-gray-50 dark:bg-slate-800 border-b dark:border-slate-800 flex items-center justify-center space-x-2 animate-in fade-in">
-                      <span className="text-emerald-600">✅</span>
-                      <span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Món quà đã được trao tặng thành công</span>
-                    </div>
-                  )}
-                </React.Fragment>
-              )}
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-[#0d1117]">
+              <div className="flex justify-center my-6">
+                <span className="bg-gray-800/50 text-gray-500 text-[11px] font-bold px-3 py-1 rounded-md uppercase tracking-widest">Hôm nay</span>
+              </div>
 
-              {/* MESSAGES */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-slate-950/20 custom-scrollbar">
-                {messages.map((m, i) => (
-                  <div key={i} className={`flex ${m.senderId === user.id ? 'justify-end' : m.senderId === 'system' ? 'justify-center' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] flex flex-col ${m.senderId === user.id ? 'items-end' : m.senderId === 'system' ? 'items-center' : 'items-start'}`}>
-                      {m.text && (
-                        <div className={`px-5 py-3 rounded-[2rem] text-sm font-bold shadow-sm mb-1 ${
-                          m.senderId === user.id 
-                            ? 'bg-emerald-600 text-white rounded-tr-none' 
-                            : m.senderId === 'system'
-                              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs italic border border-emerald-100 dark:border-emerald-800'
-                              : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-tl-none border dark:border-slate-700'
-                        }`}>
-                          {m.text}
-                        </div>
-                      )}
-                      {m.media && m.media.length > 0 && (
-                        <div className="mt-1">
-                          {m.media[0].type === 'video' ? (
-                            <video src={m.media[0].url} controls className="max-w-[250px] rounded-2xl shadow-lg border-2 border-white" />
-                          ) : (
-                            <img src={m.media[0].url} className="max-w-[250px] rounded-2xl shadow-lg border-2 border-white" alt="Chat Media" />
-                          )}
+              {activeChat.itemId && (
+                <div className="flex justify-center mb-6">
+                  <div className="bg-[#161b22] border border-gray-800 p-3 rounded-2xl flex items-center gap-4 max-w-sm w-full shadow-xl">
+                    <img src={activeChat.itemImage} className="w-16 h-16 rounded-xl object-cover" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-black uppercase text-emerald-500 mb-1">Đang trao đổi món quà</p>
+                      <p className="text-sm font-bold text-gray-200 truncate mb-2">{activeChat.itemTitle}</p>
+                      {activeChat.donorId === user.id && activeChat.giftStatus !== 'completed' ? (
+                        <button 
+                          onClick={handleConfirmGift}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-[11px] font-bold uppercase transition-all"
+                        >
+                          Xác nhận tặng quà 🎁
+                        </button>
+                      ) : (
+                        <div className="text-center py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-lg text-[11px] font-bold uppercase">
+                          {activeChat.giftStatus === 'completed' ? 'Đã hoàn tất tặng' : 'Đang chờ xác nhận'}
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
-                {isUploading && (
-                   <div className="flex justify-end animate-pulse">
-                      <div className="bg-emerald-100 px-4 py-2 rounded-2xl text-[10px] font-black uppercase text-emerald-600">Đang tải ảnh...</div>
-                   </div>
-                )}
-                <div ref={chatEndRef}></div>
-              </div>
+                </div>
+              )}
 
-              {/* STICKER PICKER */}
+              {messages.map((msg, idx) => {
+                const isMe = msg.senderId === user.id;
+                const isSystem = msg.senderId === 'system';
+                
+                if (isSystem) {
+                  return (
+                    <div key={msg.id || idx} className="flex justify-center my-4">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                    <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-[15px] leading-relaxed shadow-md ${isMe ? 'bg-emerald-600 text-white' : 'bg-[#202c33] text-gray-200'}`}>
+                      {msg.text}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 px-1">
+                      <span className="text-[10px] text-gray-600 font-medium">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                      {isMe && idx === messages.length - 1 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[9px] text-gray-600 font-bold">Đã xem</span>
+                          <div className="w-3 h-3 rounded-full bg-gray-700 overflow-hidden">
+                            <div className="w-full h-full bg-emerald-600 flex items-center justify-center text-[6px] text-white font-bold">
+                              {(activeChat.donorId === user.id ? activeChat.receiverName : activeChat.donorName).charAt(0)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-3 bg-[#111b21]">
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                  </button>
+                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </button>
+                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  </button>
+                </div>
+                
+                <div className="flex-1 relative">
+                  <input 
+                    type="text" 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Aa"
+                    className="w-full bg-[#2a3942] border-none rounded-full px-5 py-2.5 text-[15px] outline-none text-white placeholder:text-gray-500"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowStickers(!showStickers)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-emerald-400"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </button>
+                </div>
+
+                <button 
+                  type="submit"
+                  className="text-emerald-500 p-2 hover:bg-gray-800 rounded-full transition-all active:scale-90"
+                >
+                  <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+              </form>
+
               {showStickers && (
-                <div className="sticker-container absolute bottom-24 left-6 right-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] shadow-2xl border border-emerald-50 dark:border-slate-700 z-[100] animate-in slide-in-from-bottom-4">
-                  <div className="grid grid-cols-6 gap-3">
-                    {STICKERS.map((s, idx) => (
+                <div className="absolute bottom-20 left-4 right-4 bg-[#111b21] border border-gray-800 rounded-3xl p-4 shadow-2xl z-20 animate-in slide-in-from-bottom-4">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                    {STICKERS.map(sticker => (
                       <button 
-                        key={idx} 
-                        onClick={() => handleSendSticker(s)}
-                        className="text-2xl p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-xl transition-all active:scale-90"
+                        key={sticker}
+                        onClick={() => handleSendMessage(undefined, sticker)}
+                        className="text-2xl hover:bg-gray-800 p-2 rounded-xl transition-all hover:scale-110"
                       >
-                        {s}
+                        {sticker}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* INPUT BAR */}
-              <div className="p-4 md:p-6 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
-                   <input 
-                    type="file" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    accept="image/*,video/*" 
-                    onChange={handleFileChange}
-                   />
-                   <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-emerald-600 p-2 hover:bg-emerald-50 rounded-full transition-all"
-                   >
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                   </button>
-                   <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full px-6 py-2 flex items-center">
-                      <input 
-                        type="text" 
-                        value={newMessage} 
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Aa" 
-                        className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold dark:text-white py-2"
-                      />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowStickers(!showStickers)}
-                        className={`transition-colors ${showStickers ? 'text-emerald-600' : 'text-emerald-500'}`}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" /></svg>
-                      </button>
-                   </div>
-                   <button 
-                    type="submit" 
-                    disabled={!newMessage.trim() && !isUploading} 
-                    className={`p-3 rounded-full transition-all ${newMessage.trim() ? 'text-emerald-600 scale-110 send-active' : 'text-gray-300'}`}
-                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 rotate-45" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-                   </button>
-                </form>
-              </div>
-            </React.Fragment>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-               <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-8 border-4 border-white dark:border-slate-800">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-emerald-600/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-               </div>
-               <h3 className="text-xl font-black text-gray-400 dark:text-emerald-400/20 uppercase tracking-widest">Chọn một người để trò chuyện</h3>
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-10 text-center bg-[#0d1117]">
+            <div className="w-24 h-24 bg-emerald-900/20 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-500/20">
+              <svg className="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            </div>
+            <h3 className="text-xl font-black uppercase tracking-widest text-white mb-2">Chọn một cuộc hội thoại</h3>
+            <p className="text-gray-500 text-sm max-w-xs font-medium leading-relaxed">Kết nối với những người bạn mới để trao đổi những món quà ý nghĩa từ GIVEBACK.</p>
+          </div>
+        )}
       </div>
     </div>
   );

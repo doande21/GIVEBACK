@@ -53,8 +53,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
       <div className="relative h-48 bg-gray-900 overflow-hidden">
         <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#151b23] via-transparent to-transparent"></div>
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
           <span className="bg-emerald-600/90 text-white text-[9px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-sm">{item.category}</span>
+          {isOutOfStock && (
+            <span className="bg-red-600 text-white text-[8px] font-black uppercase px-2 py-1 rounded-lg animate-pulse shadow-lg">HẾT HÀNG</span>
+          )}
         </div>
         <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
           {(item.minAge !== undefined && item.minAge > 0) && (
