@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CharityMission } from '../types';
+import { calculateItemsProgress, calculateBudgetProgress } from '../utils/missionUtils';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
@@ -49,7 +50,8 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
       ) : missions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {missions.map(m => {
-            const progress = Math.min(100, Math.round((m.currentBudget / m.targetBudget) * 100));
+            const itemsProgress = calculateItemsProgress(m);
+            const budgetProgress = calculateBudgetProgress(m);
             return (
               <div key={m.id} className="bg-white dark:bg-slate-900 rounded-[4rem] shadow-xl border border-gray-50 dark:border-slate-800 overflow-hidden group hover:-translate-y-3 transition-all duration-700">
                 <div className="h-72 relative overflow-hidden">
@@ -63,13 +65,25 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                 <div className="p-10">
                   <p className="text-gray-500 dark:text-slate-400 text-base font-medium mb-8 line-clamp-2 leading-relaxed">"{m.description}"</p>
                   
-                  <div className="space-y-4 mb-10">
-                    <div className="flex justify-between items-end">
-                      <span className="text-[11px] font-black uppercase text-emerald-600 tracking-widest">Tiến độ quyên góp</span>
-                      <span className="text-2xl font-black text-emerald-950 dark:text-white">{progress}%</span>
+                  <div className="space-y-6 mb-10">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Tiến độ nhu yếu phẩm</span>
+                        <span className="text-xl font-black text-emerald-950 dark:text-white">{itemsProgress}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50" style={{ width: `${itemsProgress}%` }}></div>
+                      </div>
                     </div>
-                    <div className="w-full h-4 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
-                      <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000 shadow-lg shadow-emerald-500/50" style={{ width: `${progress}%` }}></div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Tiến độ chi phí chuyến đi</span>
+                        <span className="text-xl font-black text-emerald-950 dark:text-white">{budgetProgress}%</span>
+                      </div>
+                      <div className="w-full h-3 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 shadow-inner">
+                        <div className="h-full bg-blue-500 rounded-full transition-all duration-1000 shadow-lg shadow-blue-500/50" style={{ width: `${budgetProgress}%` }}></div>
+                      </div>
                     </div>
                   </div>
 
@@ -106,8 +120,11 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                       <img src={selectedMission.image} className="w-full h-64 object-cover" alt="" />
                    </div>
                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-10 rounded-[3.5rem] border border-emerald-100 dark:border-emerald-800">
-                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 text-center">Mục tiêu tài chính</p>
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 text-center">Tiến độ chi phí chuyến đi</p>
                       <p className="text-3xl font-black text-emerald-950 dark:text-white tracking-tighter text-center">{selectedMission.currentBudget.toLocaleString()} / {selectedMission.targetBudget.toLocaleString()} VNĐ</p>
+                      <div className="w-full h-3 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden mt-4 p-0.5">
+                         <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${calculateBudgetProgress(selectedMission)}%` }}></div>
+                      </div>
                       <div className="mt-8 text-center">
                          <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-6">Quét mã để quyên góp</p>
                          <div className="bg-white p-6 rounded-[2.5rem] inline-block shadow-xl border-4 border-emerald-50">
@@ -191,7 +208,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                    </div>
 
                    <div className="p-8 bg-amber-50 dark:bg-amber-900/10 rounded-[2.5rem] border border-amber-100 dark:border-amber-800">
-                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed">"Mỗi tấm hình bạn thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
+                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed">"Mỗi tấm hình Đệ thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
                    </div>
                 </div>
              </div>

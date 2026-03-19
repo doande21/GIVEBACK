@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SocialPost, CharityMission, PostMedia, PostComment } from '../types';
-import { calculateMissionProgress } from '../utils/missionUtils';
+import { calculateItemsProgress } from '../utils/missionUtils';
 import { uploadFile, getFileType } from '../services/storageService';
 import { 
   collection, 
@@ -168,7 +168,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
   };
 
   const currentMission = missions[0];
-  const missionProgress = currentMission ? calculateMissionProgress(currentMission) : 0;
+  const missionProgress = currentMission ? calculateItemsProgress(currentMission) : 0;
 
   return (
     <div className="pt-20 pb-24 max-w-4xl mx-auto px-4 space-y-8">
@@ -191,7 +191,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
               <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-200 rounded-full transition-all duration-1000 shadow-emerald-500/50" style={{ width: `${missionProgress}%` }}></div>
             </div>
             <div className="flex justify-between items-center mt-4">
-              <p className="text-[10px] font-black uppercase text-emerald-200 tracking-[0.2em]">Tiến độ quyên góp: {missionProgress}%</p>
+              <p className="text-[10px] font-black uppercase text-emerald-200 tracking-[0.2em]">Tiến độ nhu yếu phẩm: {missionProgress}%</p>
               <button className="bg-white/10 hover:bg-white text-white hover:text-[#045d43] px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/20">Chi tiết &rarr;</button>
             </div>
           </div>
