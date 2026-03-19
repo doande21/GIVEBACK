@@ -10,7 +10,12 @@ import {
   doc, 
   orderBy,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  getDoc,
+  getDocs,
+  limit,
+  where,
+  deleteField
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 import { generateMissionImage } from '../services/geminiService';
@@ -47,7 +52,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   
-  const [activeSubTab, setActiveSubTab] = useState<'missions' | 'sponsors' | 'auctions' | 'posts'>('missions');
+  const [activeSubTab, setActiveSubTab] = useState<'missions' | 'sponsors' | 'auctions' | 'posts' | 'users'>('missions');
   const [loading, setLoading] = useState(false);
   const [isProcessingImg, setIsProcessingImg] = useState(false);
   const [isGeneratingAIVision, setIsGeneratingAIVision] = useState(false);
@@ -141,7 +146,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
   const handleSaveAuction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (auctionForm.gallery.length === 0) {
-      onNotify('warning', 'bạn hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
+      onNotify('warning', 'Đệ hãy chọn ít nhất 1 tấm hình nhé!', 'Hệ thống');
       return;
     }
     setLoading(true);
@@ -187,19 +192,102 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
     const performDelete = async () => {
       try {
         await deleteDoc(doc(db, "auctions", auctionId, "bids", bidId));
-        onNotify('success', "Đã xóa lượt đấu giá.");
         
+        // Nếu xóa lượt cao nhất, tìm lượt cao nhất tiếp theo
         if (bidAmount === selectedAuctionForBids?.currentBid) {
-          onNotify('warning', "Bạn vừa xóa lượt đấu giá cao nhất. Hãy cập nhật lại giá hiện tại của vật phẩm nếu cần!");
+          const bidsRef = collection(db, "auctions", auctionId, "bids");
+          const q = query(bidsRef, orderBy("amount", "desc"), limit(1));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const nextBid = querySnapshot.docs[0].data();
+            await updateDoc(doc(db, "auctions", auctionId), {
+              currentBid: nextBid.amount,
+              highestBidderId: nextBid.bidderId,
+              highestBidderName: nextBid.bidderName
+            });
+            onNotify('info', `Đã cập nhật người dẫn đầu mới: ${nextBid.bidderName} (${nextBid.amount.toLocaleString()}đ)`);
+          } else {
+            // Không còn lượt nào, quay về giá khởi điểm
+            const auctionDoc = await getDoc(doc(db, "auctions", auctionId));
+            const auctionData = auctionDoc.data() as AuctionItem;
+            await updateDoc(doc(db, "auctions", auctionId), {
+              currentBid: auctionData.startingPrice,
+              highestBidderId: deleteField(),
+              highestBidderName: deleteField()
+            });
+            onNotify('info', "Không còn lượt đấu giá nào. Giá đã quay về mức khởi điểm.");
+          }
         }
+        
+        onNotify('success', "Đã xóa lượt đấu giá.");
       } catch (err) {
         onNotify('error', "Lỗi xóa lượt đấu giá.");
       }
     };
 
     if (onConfirm) {
-      onConfirm("Xóa lượt đấu giá", "Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.", performDelete, 'danger');
-    } else if (window.confirm("Xóa lượt đấu giá này? Nếu đây là lượt cao nhất, hệ thống sẽ cần cập nhật lại giá hiện tại thủ công.")) {
+      onConfirm("Xóa lượt đấu giá", "Xóa lượt đấu giá này? Hệ thống sẽ tự động cập nhật người dẫn đầu tiếp theo.", performDelete, 'danger');
+    } else if (window.confirm("Xóa lượt đấu giá này? Hệ thống sẽ tự động cập nhật người dẫn đầu tiếp theo.")) {
+      performDelete();
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const performDelete = async () => {
+      setLoading(true);
+      try {
+        // 1. Tìm tất cả các phiên đấu giá mà user này đang dẫn đầu
+        const auctionsRef = collection(db, "auctions");
+        const q = query(auctionsRef, where("highestBidderId", "==", userId));
+        const querySnapshot = await getDocs(q);
+        
+        for (const auctionDoc of querySnapshot.docs) {
+          const auctionId = auctionDoc.id;
+          const auctionData = auctionDoc.data() as AuctionItem;
+          
+          const bidsRef = collection(db, "auctions", auctionId, "bids");
+          
+          // Xóa tất cả lượt thầu của user này trong phiên này
+          const userBidsQuery = query(bidsRef, where("bidderId", "==", userId));
+          const userBidsSnap = await getDocs(userBidsQuery);
+          for (const bidDoc of userBidsSnap.docs) {
+            await deleteDoc(bidDoc.ref);
+          }
+          
+          // Tìm lượt thầu cao nhất còn lại
+          const remainingBidsQuery = query(bidsRef, orderBy("amount", "desc"), limit(1));
+          const remainingBidsSnap = await getDocs(remainingBidsQuery);
+          
+          if (!remainingBidsSnap.empty) {
+            const nextBid = remainingBidsSnap.docs[0].data();
+            await updateDoc(doc(db, "auctions", auctionId), {
+              currentBid: nextBid.amount,
+              highestBidderId: nextBid.bidderId,
+              highestBidderName: nextBid.bidderName
+            });
+          } else {
+            await updateDoc(doc(db, "auctions", auctionId), {
+              currentBid: auctionData.startingPrice,
+              highestBidderId: deleteField(),
+              highestBidderName: deleteField()
+            });
+          }
+        }
+        
+        // 2. Xóa user
+        await deleteDoc(doc(db, "users", userId));
+        onNotify('success', "Đã xóa tài khoản và cập nhật lại các phiên đấu giá liên quan.");
+      } catch (err) {
+        onNotify('error', "Lỗi khi xóa tài khoản.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (onConfirm) {
+      onConfirm("Xóa tài khoản", "Xóa tài khoản này sẽ gỡ bỏ tất cả lượt đấu giá của họ và cập nhật lại người dẫn đầu. Đệ chắc chứ?", performDelete, 'danger');
+    } else if (window.confirm("Xóa tài khoản này?")) {
       performDelete();
     }
   };
@@ -244,7 +332,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
 
   const handleGenAIVision = async () => {
     if (!missionForm.location || !missionForm.description) {
-      onNotify('warning', "bạn hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
+      onNotify('warning', "Đệ hãy nhập Địa điểm và Mô tả trước nhé!", "Hệ thống");
       return;
     }
     setIsGeneratingAIVision(true);
@@ -270,6 +358,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
           <button onClick={() => setActiveSubTab('sponsors')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'sponsors' ? 'bg-amber-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Vinh danh</button>
           <button onClick={() => setActiveSubTab('auctions')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'auctions' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Đấu giá</button>
           <button onClick={() => setActiveSubTab('posts')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'posts' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Kiểm duyệt</button>
+          <button onClick={() => setActiveSubTab('users')} className={`px-5 md:px-6 py-3 rounded-[2rem] text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'users' ? 'bg-slate-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>Thành viên</button>
         </div>
       </div>
 
@@ -291,7 +380,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                       <button onClick={() => { setEditingMissionId(m.id); setMissionForm({ location: m.location, description: m.description, date: m.date, targetBudget: m.targetBudget, image: m.image, qrCode: m.qrCode || '', itemsNeeded: m.itemsNeeded || [], donors: m.donors || [], gallery: m.gallery || [] }); setIsMissionModalOpen(true); }} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
                       <button onClick={() => { 
                         const performDelete = () => deleteDoc(doc(db, "missions", m.id));
-                        if (onConfirm) onConfirm("Xóa sứ mệnh", "bạn chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
+                        if (onConfirm) onConfirm("Xóa sứ mệnh", "Đệ chắc chắn muốn xóa sứ mệnh này?", performDelete, 'danger');
                         else if(window.confirm("Xóa sứ mệnh này?")) performDelete();
                       }} className="p-3 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                    </div>
@@ -393,6 +482,34 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
                    }} className="bg-red-50 text-red-500 p-4 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
                    </button>
+                </div>
+              ))}
+           </div>
+        </div>
+      )}
+
+       {activeSubTab === 'users' && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+           <div className="bg-slate-900 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl">
+             <h2 className="text-2xl md:text-3xl font-black uppercase mb-2">Quản lý thành viên</h2>
+             <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Danh sách người dùng tham gia hệ thống.</p>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allUsers.map(u => (
+                <div key={u.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border-2 border-gray-100 dark:border-slate-800 flex items-center gap-4 group hover:border-slate-300 transition-all">
+                   <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.name}&background=random`} className="w-12 h-12 rounded-xl object-cover" alt="" />
+                   <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-black uppercase text-gray-900 dark:text-white truncate">{u.name}</h4>
+                      <p className="text-[10px] text-gray-500 truncate">{u.email}</p>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                        {u.role}
+                      </span>
+                   </div>
+                   {u.id !== user.id && (
+                     <button onClick={() => handleDeleteUser(u.id)} className="bg-red-50 text-red-500 p-3 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2 -2V6m3 0V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path></svg>
+                     </button>
+                   )}
                 </div>
               ))}
            </div>
@@ -689,7 +806,7 @@ const Admin: React.FC<AdminProps> = ({ user, onNotify, onConfirm }) => {
 
              <div className="mt-10 p-6 bg-amber-50 rounded-[2rem] border border-amber-100">
                 <p className="text-[10px] font-black text-amber-700 uppercase mb-2">Lưu ý cho Admin:</p>
-                <p className="text-[10px] text-amber-600 leading-relaxed font-medium italic">Nếu phát hiện người dùng phá giá hoặc đấu giá ảo, Admin có quyền xóa lượt đấu giá đó. Nếu lượt bị xóa là lượt cao nhất, Admin cần vào phần chỉnh sửa vật phẩm để cập nhật lại "Giá hiện tại" về mức giá của người dẫn đầu mới.</p>
+                <p className="text-[10px] text-amber-600 leading-relaxed font-medium italic">Nếu phát hiện người dùng phá giá hoặc đấu giá ảo, Admin có quyền xóa lượt đấu giá đó hoặc xóa tài khoản. Hệ thống sẽ tự động cập nhật lại người dẫn đầu mới dựa trên lịch sử đấu giá còn lại.</p>
              </div>
           </div>
         </div>
