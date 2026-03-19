@@ -11,11 +11,13 @@ import {
   limit,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   arrayUnion,
   arrayRemove
 } from "firebase/firestore";
 import { db } from '../services/firebase';
+import PostMediaGrid from '../components/PostMediaGrid';
 
 const STICKERS = ["❤️", "🎁", "🙏", "🚚", "✨", "😊", "💪", "🌈", "🔥", "🤝", "👍", "🌸"];
 
@@ -53,6 +55,13 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
   const [postContent, setPostContent] = useState('');
   const [postMediaList, setPostMediaList] = useState<PostMedia[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // States cho Media Viewer
+  const [viewingMediaPost, setViewingMediaPost] = useState<SocialPost | null>(null);
+  const [viewingMediaIndex, setViewingMediaIndex] = useState(0);
+
+  // States cho Quản lý bài viết
+  const [activeMenuPostId, setActiveMenuPostId] = useState<string | null>(null);
   
   // States cho Bình luận
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
@@ -95,7 +104,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
       setIsPostModalOpen(false);
       onNotify('success', "Khoảnh khắc đã được sẻ chia!", "GIVEBACK");
     } catch (err: any) {
-      onNotify('error', "Gặp sự cố khi đăng bài. bạn thử lại nhé!", "Hệ thống");
+      onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
     } finally {
       setIsSubmitting(false);
     }
@@ -140,6 +149,24 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    const performDelete = async () => {
+      try {
+        await deleteDoc(doc(db, "social_posts", postId));
+        onNotify('success', "Đã xóa bài viết thành công.");
+      } catch (err) {
+        onNotify('error', "Không thể xóa bài viết.");
+      }
+    };
+
+    if (onConfirm) {
+      onConfirm("Xóa bài viết", "Bạn có chắc chắn muốn xóa bài viết này không?", performDelete, 'danger');
+    } else if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) {
+      performDelete();
+    }
+    setActiveMenuPostId(null);
+  };
+
   const currentMission = missions[0];
   const missionProgress = currentMission ? calculateMissionProgress(currentMission) : 0;
 
@@ -178,7 +205,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
           const isHearted = post.hearts?.includes(user.id);
           return (
             <div key={post.id} className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-sm border border-gray-50 dark:border-slate-800 overflow-hidden hover:shadow-2xl transition-all duration-500">
-              <div className="p-8 flex items-center justify-between">
+              <div className="p-8 flex items-center justify-between relative">
                 <div className="flex items-center space-x-5 cursor-pointer" onClick={() => onViewProfile(post.authorId)}>
                   <img src={post.authorAvatar} className="w-16 h-16 rounded-[2rem] border-4 border-emerald-50 dark:border-slate-800 object-cover shadow-md" alt="" />
                   <div>
@@ -186,18 +213,43 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
                     <p className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] mt-1.5">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</p>
                   </div>
                 </div>
+
+                {(post.authorId === user.id || user.role === 'admin') && (
+                  <div className="relative">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuPostId(activeMenuPostId === post.id ? null : post.id);
+                      }}
+                      className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                    </button>
+
+                    {activeMenuPostId === post.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-30 animate-in fade-in zoom-in-95 duration-200">
+                        <button 
+                          onClick={() => handleDeletePost(post.id)}
+                          className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center space-x-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          <span>Xóa bài viết</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="px-12 pb-8"><p className="text-lg text-emerald-950 dark:text-slate-200 font-medium leading-relaxed">"{post.content}"</p></div>
               {post.media && post.media.length > 0 && (
-                <div className="px-8 pb-10 space-y-4">
-                  {post.media.map((m, idx) => (
-                    <div key={idx}>
-                      {m.type === 'video' ? 
-                        <video src={m.url} className="w-full max-h-[500px] rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800 object-contain bg-black" controls /> : 
-                        <img src={m.url} className="w-full rounded-[4rem] shadow-2xl border-4 border-white dark:border-slate-800" alt="" />
-                      }
-                    </div>
-                  ))}
+                <div className="px-8 pb-10">
+                  <PostMediaGrid 
+                    media={post.media} 
+                    onSelect={(idx) => {
+                      setViewingMediaPost(post);
+                      setViewingMediaIndex(idx);
+                    }}
+                  />
                 </div>
               )}
               
@@ -354,6 +406,62 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
                   {isSubmitting ? 'ĐANG XỬ LÝ...' : 'Đăng ngay'}
                 </button>
              </form>
+          </div>
+        </div>
+      )}
+
+      {/* Media Viewer Modal */}
+      {viewingMediaPost && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+          <button 
+            onClick={() => setViewingMediaPost(null)}
+            className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-50 p-2"
+          >
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+
+          <div className="w-full h-full flex items-center justify-center p-4 md:p-12">
+            {viewingMediaPost.media?.[viewingMediaIndex].type === 'video' ? (
+              <video 
+                src={viewingMediaPost.media[viewingMediaIndex].url} 
+                className="max-w-full max-h-full rounded-2xl shadow-2xl" 
+                controls 
+                autoPlay
+              />
+            ) : (
+              <img 
+                src={viewingMediaPost.media?.[viewingMediaIndex].url} 
+                className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl" 
+                alt="" 
+              />
+            )}
+          </div>
+
+          {viewingMediaPost.media && viewingMediaPost.media.length > 1 && (
+            <>
+              <button 
+                onClick={() => setViewingMediaIndex(prev => (prev > 0 ? prev - 1 : viewingMediaPost.media!.length - 1))}
+                className="absolute left-6 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors p-4 bg-white/5 rounded-full backdrop-blur-md"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button 
+                onClick={() => setViewingMediaIndex(prev => (prev < viewingMediaPost.media!.length - 1 ? prev + 1 : 0))}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors p-4 bg-white/5 rounded-full backdrop-blur-md"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </>
+          )}
+
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex space-x-3">
+            {viewingMediaPost.media?.map((_, i) => (
+              <button 
+                key={i} 
+                onClick={() => setViewingMediaIndex(i)}
+                className={`w-2 h-2 rounded-full transition-all ${i === viewingMediaIndex ? 'bg-emerald-500 w-8' : 'bg-white/30'}`}
+              />
+            ))}
           </div>
         </div>
       )}
