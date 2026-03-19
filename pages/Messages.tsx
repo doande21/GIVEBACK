@@ -7,12 +7,13 @@ import {
   where, 
   onSnapshot, 
   addDoc, 
-  orderBy, 
-  doc, 
-  updateDoc,
-  getDoc,
-  serverTimestamp,
-  increment
+  updateDoc, 
+  doc,
+  orderBy,
+  arrayUnion,
+  deleteDoc,
+  getDocs,
+  writeBatch
 } from "firebase/firestore";
 import { db } from '../services/firebase';
 
@@ -125,13 +126,13 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm }) => {
           updatedAt: new Date().toISOString()
         });
 
-        // 2. Decrement item quantity
-        const newQuantity = currentQuantity - 1;
-        await updateDoc(itemRef, {
-          quantity: increment(-1),
-          status: newQuantity <= 0 ? 'claimed' : 'available',
-          updatedAt: new Date().toISOString()
-        });
+        // 2. Cập nhật trạng thái món đồ
+        if (selectedSession.itemId) {
+          await updateDoc(doc(db, "items", selectedSession.itemId), {
+            status: 'donated',
+            updatedAt: new Date().toISOString()
+          });
+        }
 
         // 3. Create claim record
         await addDoc(collection(db, "claims"), {
