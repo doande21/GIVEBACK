@@ -80,7 +80,7 @@ export interface ChatSession {
   itemId?: string;
   itemTitle?: string;
   itemImage?: string;
-  giftStatus?: 'pending' | 'completed' | 'negotiating';
+  giftStatus?: 'pending' | 'completed' | 'negotiating' | 'rejected';
   lastMessage?: string;
   lastSenderId?: string;
   updatedAt: string;
