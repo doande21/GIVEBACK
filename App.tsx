@@ -193,7 +193,10 @@ const App: React.FC = () => {
       <Navbar 
         user={user} 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={(tab) => {
+          if (tab === 'profile') setViewingUserId(null);
+          setActiveTab(tab);
+        }} 
         onLogout={handleLogout} 
         onConfirm={handleConfirm}
         pendingRequestsCount={pendingRequestsCount}
@@ -207,6 +210,37 @@ const App: React.FC = () => {
       
       {/* AI SIDEBAR COMPONENT */}
       <AIHelper isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+
+      {/* FLOAT AI BUTTON */}
+      {activeTab !== 'messages' && (
+        <button
+          onClick={async () => {
+            const win = window as any;
+            if (win.aistudio && typeof win.aistudio.hasSelectedApiKey === 'function') {
+              const hasKey = await win.aistudio.hasSelectedApiKey();
+              if (!hasKey) {
+                await win.aistudio.openSelectKey();
+              }
+            }
+            setIsAiOpen(!isAiOpen);
+          }}
+          className="fixed bottom-6 right-6 z-[90] bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-full shadow-2xl shadow-emerald-900/50 transition-all hover:scale-110 active:scale-95 group"
+          title="Trò chuyện với AI"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 8V4H8" />
+            <rect width="16" height="12" x="4" y="8" rx="2" />
+            <path d="M2 14h2" />
+            <path d="M20 14h2" />
+            <path d="M15 13v2" />
+            <path d="M9 13v2" />
+          </svg>
+          <span className="absolute top-0 right-0 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white dark:border-slate-950"></span>
+          </span>
+        </button>
+      )}
 
       {/* TOAST NOTIFICATIONS */}
       <Toast toasts={toasts} onClose={removeToast} />
