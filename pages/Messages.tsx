@@ -42,11 +42,11 @@ const calculateAITrustScore = (donated: number, received: number) => {
     };
   }
 
-  let score = 50;
-  score = score + (donated * 15) - (received * 10);
-  if (score > 100) score = 100;
-  if (score < 10) score = 10;
+  // Tính điểm RAW không giới hạn trên (để phản ánh đúng thực tế)
+  let score = 50 + (donated * 15) - (received * 10);
+  if (score < 10) score = 10; // Chỉ giới hạn tối thiểu
 
+  // Ngưỡng tier: >=70 ưu tiên, >=40 bình thường, <40 cảnh báo
   if (score >= 70) {
     return { score, label: 'Đề cử ưu tiên', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: '🏅', desc: `Tài khoản uy tín. Tỷ lệ Xin/Tặng rất tốt (Đã tặng ${donated} món, nhận ${received} món).` };
   } else if (score >= 40) {
@@ -55,6 +55,7 @@ const calculateAITrustScore = (donated: number, received: number) => {
     return { score, label: 'Cảnh báo thu gom', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: '⚠️', desc: `Nguy cơ gom hàng! Cần xác minh (Đã nhận ${received} món nhưng chỉ tặng ${donated} món).` };
   }
 };
+
 
 const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewProfile }) => {
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -65,6 +66,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
   const [activeSidebarTab, setActiveSidebarTab] = useState<'chats' | 'people' | 'archive'>('chats');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [aiScores, setAiScores] = useState<Record<string, any>>({});
+  const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,29 +75,43 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
+
+  // Hàm tính lại điểm cho một user cụ thể (dùng sau khi xác nhận tặng quà)
+  const refreshScoreForUser = async (userId: string) => {
+    try {
+      const donatedQuery = query(collection(db, "items"), where("authorId", "==", userId));
+      const receivedQuery = query(collection(db, "claims"), where("receiverId", "==", userId));
+      const [dSnap, rSnap] = await Promise.all([getDocs(donatedQuery), getDocs(receivedQuery)]);
+      const newScore = calculateAITrustScore(dSnap.size, rSnap.size);
+      setAiScores(prev => ({ ...prev, [userId]: newScore }));
+    } catch (err) {
+      console.error("refreshScoreForUser error:", err);
+    }
+  };
+
   useEffect(() => {
     const fetchScores = async () => {
       if (!chats.length) return;
-      
-      const newScores = { ...aiScores };
-      let updated = false;
-      
+
       const relevantUserIds = new Set<string>();
       chats.forEach(c => {
-        const otherId = (c.participants && Array.isArray(c.participants)) 
-          ? c.participants.find(p => p !== user.id) 
+        const otherId = (c.participants && Array.isArray(c.participants))
+          ? c.participants.find(p => p !== user.id)
           : (c.donorId === user.id ? c.receiverId : c.donorId);
         if (otherId) relevantUserIds.add(otherId);
       });
 
+      const newScores = { ...aiScores };
+      let updated = false;
+
       for (const rId of relevantUserIds) {
+        // Chỉ fetch nếu chưa có điểm (tránh gọi lại không cần thiết)
+        // Điểm sẽ được refresh thủ công qua refreshScoreForUser khi có giao dịch
         if (!newScores[rId]) {
           try {
             const donatedQuery = query(collection(db, "items"), where("authorId", "==", rId));
             const receivedQuery = query(collection(db, "claims"), where("receiverId", "==", rId));
-            
             const [dSnap, rSnap] = await Promise.all([getDocs(donatedQuery), getDocs(receivedQuery)]);
-            
             newScores[rId] = calculateAITrustScore(dSnap.size, rSnap.size);
             updated = true;
           } catch (err) {
@@ -103,10 +119,10 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
           }
         }
       }
-      
+
       if (updated) setAiScores(newScores);
     };
-    
+
     fetchScores();
   }, [chats, user.id]);
 
@@ -249,6 +265,12 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
         });
 
         onNotify('success', "Đã xác nhận tặng quà thành công!");
+
+        // Cập nhật điểm AI tức thì cho cả người nhận và người tặng
+        await Promise.all([
+          refreshScoreForUser(activeChat.receiverId),
+          refreshScoreForUser(activeChat.donorId)
+        ]);
       } catch (err) {
         console.error("Confirm Gift Error:", err);
         onNotify('error', "Có lỗi xảy ra khi xác nhận.");
@@ -280,7 +302,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
         await addDoc(collection(db, "chats", activeChat.id, "messages"), {
           senderId: 'system',
           senderName: 'Hệ thống',
-          text: `❌ Rất tiếc, người tặng đã từ chối yêu cầu nhận món quà "${activeChat.itemTitle}".`,
+          text: `❌ Rất tiếc, món quà "${activeChat.itemTitle}" đã bị từ chối yêu cầu .`,
           createdAt: new Date().toISOString()
         });
 
@@ -363,6 +385,17 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
 
     if (isDeleted) return false;
 
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const otherName = (chat.donorId === user.id ? chat.receiverName : chat.donorName) || '';
+      const itemTitle = chat.itemTitle || '';
+      const lastMsg = chat.lastMessage || '';
+      if (!otherName.toLowerCase().includes(q) && !itemTitle.toLowerCase().includes(q) && !lastMsg.toLowerCase().includes(q)) {
+        return false;
+      }
+    }
+
     if (activeSidebarTab === 'chats') {
       return !isArchived;
     }
@@ -379,7 +412,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
       // Thuật toán lấy đoạn chat MỚI NHẤT của món đồ A so với món đồ B để nâng cả cụm lên
       const maxTimeA = Math.max(...chats.filter(c => (c.itemId || `direct_${c.id}`) === itemGroupIdA).map(c => new Date(c.updatedAt).getTime()));
       const maxTimeB = Math.max(...chats.filter(c => (c.itemId || `direct_${c.id}`) === itemGroupIdB).map(c => new Date(c.updatedAt).getTime()));
-      
+
       if (maxTimeA !== maxTimeB) {
         return maxTimeB - maxTimeA;
       }
@@ -387,10 +420,10 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
 
     // 2. NẾU CÙNG 1 MÓN ĐỒ: Dùng điểm AI để xem ai uy tín hơn được phép trồi lên đầu
     const getScore = (c: ChatSession) => {
-      const otherUserId = (c.participants && Array.isArray(c.participants)) 
-        ? c.participants.find(p => p !== user.id) 
+      const otherUserId = (c.participants && Array.isArray(c.participants))
+        ? c.participants.find(p => p !== user.id)
         : (c.donorId === user.id ? c.receiverId : c.donorId);
-        
+
       if (!otherUserId) return 50;
       const aiData = aiScores[otherUserId];
       return aiData ? aiData.score : 50;
@@ -413,54 +446,25 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
       <div className="w-80 md:w-96 border-r border-gray-800 flex flex-col bg-[#111b21]">
         {/* Sidebar Header */}
         <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-black text-lg">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Chats</h2>
-            </div>
-            <div className="flex gap-2">
-              <button className="p-2 text-gray-400 hover:bg-gray-800 rounded-full transition-all">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </button>
-              <button className="p-2 text-gray-400 hover:bg-gray-800 rounded-full transition-all">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-              </button>
-            </div>
+          <div className="flex items-center mb-4">
+            <h2 className="text-xl font-bold text-white tracking-tight">Chats</h2>
           </div>
 
           {/* Search Bar */}
-          <div className="relative mb-6">
+          <div className="relative mb-4">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </span>
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm"
               className="w-full bg-[#202c33] border-none rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-emerald-500/50 transition-all text-white placeholder:text-gray-500"
             />
           </div>
 
-          {/* Stories / Quick Contacts */}
-          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-            <div className="flex flex-col items-center gap-1 min-w-[60px]">
-              <button className="w-12 h-12 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-500 hover:border-emerald-500 hover:text-emerald-500 transition-all">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-              </button>
-              <span className="text-[10px] text-gray-500 font-medium">Ghi chú</span>
-            </div>
-            {['Thanh Ph...', 'Người dù...', 'Admin', 'Hệ thống'].map((name, i) => (
-              <div key={i} className="flex flex-col items-center gap-1 min-w-[60px]">
-                <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-emerald-500/20 p-0.5">
-                  <div className="w-full h-full rounded-full bg-emerald-900/20 flex items-center justify-center text-emerald-500 text-xs font-bold">
-                    {name.charAt(0)}
-                  </div>
-                </div>
-                <span className="text-[10px] text-gray-500 font-medium truncate w-full text-center">{name}</span>
-              </div>
-            ))}
-          </div>
+
         </div>
 
         {/* Chat List */}
@@ -499,8 +503,8 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
                       <div className="flex items-center gap-2 overflow-hidden mr-2">
                         <h4 className="text-[15px] font-bold text-white truncate">{otherParticipant}</h4>
                         {(() => {
-                          const otherUserId = (chat.participants && Array.isArray(chat.participants)) 
-                            ? chat.participants.find(p => p !== user.id) 
+                          const otherUserId = (chat.participants && Array.isArray(chat.participants))
+                            ? chat.participants.find(p => p !== user.id)
                             : (chat.donorId === user.id ? chat.receiverId : chat.donorId);
                           if (!otherUserId) return null;
                           const aiData = aiScores[otherUserId];
@@ -613,17 +617,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-emerald-500">
-                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
-                </button>
-                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" /></svg>
-                </button>
-                <button className="p-2 hover:bg-gray-800 rounded-full transition-all">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </button>
-              </div>
+
             </div>
 
             {/* Messages Area */}
@@ -641,13 +635,13 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
                       <p className="text-sm font-bold text-gray-200 truncate mb-2">{activeChat.itemTitle}</p>
                       {activeChat.donorId === user.id && activeChat.giftStatus !== 'completed' && activeChat.giftStatus !== 'rejected' ? (
                         <div className="flex gap-2 w-full">
-                          <button 
+                          <button
                             onClick={handleRejectGift}
                             className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 py-2 rounded-lg text-[11px] font-bold uppercase transition-all"
                           >
                             Từ chối ❌
                           </button>
-                          <button 
+                          <button
                             onClick={handleConfirmGift}
                             className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-[11px] font-bold uppercase transition-all"
                           >
@@ -656,17 +650,17 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
                         </div>
                       ) : (
                         <div className={`text-center py-2 border rounded-lg text-[11px] font-bold uppercase ${activeChat.giftStatus === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-                          {activeChat.giftStatus === 'completed' ? 'Đã hoàn tất tặng' 
-                            : activeChat.giftStatus === 'rejected' ? 'Đã từ chối tặng' 
-                            : 'Đang chờ xác nhận'}
+                          {activeChat.giftStatus === 'completed' ? 'Đã hoàn tất tặng'
+                            : activeChat.giftStatus === 'rejected' ? 'Đã từ chối tặng'
+                              : 'Đang chờ xác nhận'}
                         </div>
                       )}
                     </div>
                   </div>
 
                   {(() => {
-                    const otherUserId = (activeChat.participants && Array.isArray(activeChat.participants)) 
-                      ? activeChat.participants.find(p => p !== user.id) 
+                    const otherUserId = (activeChat.participants && Array.isArray(activeChat.participants))
+                      ? activeChat.participants.find(p => p !== user.id)
                       : (activeChat.donorId === user.id ? activeChat.receiverId : activeChat.donorId);
                     if (!otherUserId) return null;
                     const aiData = aiScores[otherUserId];
@@ -679,7 +673,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
                             <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8" /><rect width="16" height="12" x="4" y="8" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></svg>
                             <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">GIVEBACK AI Đánh giá</span>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${aiData.color}`}>Điểm: {aiData.score}/100</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${aiData.color}`}>Điểm: {aiData.score}</span>
                         </div>
 
                         <div className="flex items-start gap-3 relative z-10 bg-[#0d1117]/50 p-3 rounded-xl">
@@ -738,17 +732,7 @@ const Messages: React.FC<MessagesProps> = ({ user, onNotify, onConfirm, onViewPr
             {/* Input Area */}
             <div className="p-3 bg-[#111b21]">
               <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                  </button>
-                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  </button>
-                  <button type="button" className="p-2 text-emerald-500 hover:bg-gray-800 rounded-full transition-all">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  </button>
-                </div>
+
 
                 <div className="flex-1 relative">
                   <input
