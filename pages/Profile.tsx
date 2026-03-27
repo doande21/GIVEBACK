@@ -16,6 +16,30 @@ import { db } from '../services/firebase';
 import ItemCard from '../components/ItemCard';
 import { uploadFile } from '../services/storageService';
 
+const calculateAITrustScore = (donated: number, received: number) => {
+  if (donated === 0 && received === 0) {
+    return {
+      score: 50,
+      label: 'Tài khoản mới',
+      color: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
+      icon: '🌱',
+      desc: 'Tài khoản mới tạo. Tỷ lệ Xin/Tặng bằng 0. Chưa có dữ liệu giao dịch trên hệ thống.'
+    };
+  }
+
+  // Tính điểm RAW không giới hạn trên (để phản ánh đúng thực tế)
+  let score = 50 + (donated * 15) - (received * 10);
+  if (score < 10) score = 10; // Chỉ giới hạn tối thiểu
+
+  if (score >= 70) {
+    return { score, label: 'Đề cử ưu tiên', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: '🏅', desc: `Tài khoản uy tín. Tỷ lệ Xin/Tặng rất tốt (Đã tặng ${donated} món, nhận ${received} món).` };
+  } else if (score >= 40) {
+    return { score, label: 'Bình thường', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20', icon: '⚖️', desc: `Tài khoản tiêu chuẩn. Hoạt động bình thường (Đã tặng ${donated} món, nhận ${received} món).` };
+  } else {
+    return { score, label: 'Cảnh báo thu gom', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: '⚠️', desc: `Nguy cơ gom hàng! Cần xác minh (Đã nhận ${received} món nhưng chỉ tặng ${donated} món).` };
+  }
+};
+
 interface ProfileProps {
   user: User;
   viewingUserId?: string;
@@ -138,6 +162,8 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
 
   if (!profileUser) return <div className="pt-32 text-center text-gray-500 font-black uppercase tracking-widest animate-pulse">Đang tải hồ sơ...</div>;
 
+  const aiData = calculateAITrustScore(donations.length, receivedItems.length);
+
   return (
     <div className="pt-20 pb-12 px-4 max-w-6xl mx-auto font-['Inter'] bg-[#0d1117] min-h-screen">
       {/* Header Card */}
@@ -164,6 +190,9 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                 <span className="bg-emerald-500/10 text-emerald-500 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
                   {profileUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên'}
                 </span>
+                <span title={aiData.desc} className={`flex-shrink-0 text-[10px] font-black uppercase tracking-widest px-4 py-1 rounded-full border flex items-center gap-1.5 cursor-help shadow-lg ${aiData.color}`}>
+                  <span className="text-sm">{aiData.icon}</span> {aiData.label}
+                </span>
               </div>
               <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mb-4">Tham gia từ {profileUser.createdAt ? new Date(profileUser.createdAt).toLocaleDateString() : '...'}</p>
               
@@ -177,8 +206,16 @@ const Profile: React.FC<ProfileProps> = ({ user, viewingUserId, onUpdateUser, on
                   <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Đã tặng</p>
                 </div>
                 <div className="text-center md:text-left">
+                  <p className="text-2xl font-black text-white">{receivedItems.length}</p>
+                  <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Đã nhận</p>
+                </div>
+                <div className="text-center md:text-left">
                   <p className="text-2xl font-black text-white">{friends.length}</p>
                   <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Bạn bè</p>
+                </div>
+                <div className="text-center md:text-left cursor-help" title={aiData.desc}>
+                  <p className={`text-2xl font-black ${aiData.color.split(' ')[0]}`}>{aiData.score}</p>
+                  <p className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Điểm uy tín</p>
                 </div>
               </div>
             </div>

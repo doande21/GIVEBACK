@@ -12,13 +12,27 @@ import {
   query, 
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  getDocs,
+  where
 } from "firebase/firestore";
 
 import { db } from '../services/firebase';
 import { analyzeDonationItem } from '../services/geminiService';
 // Tự động load file ảnh có sẵn trong thư mục gốc
 import logoImg from '../giveback_logo.png';
+
+const calculateAITrustScore = (donated: number, received: number) => {
+  if (donated === 0 && received === 0) {
+    return { score: 50, label: 'Tài khoản mới', color: 'text-gray-400 bg-gray-500/10 border-gray-500/20', icon: '🌱', desc: 'Tài khoản mới tạo. Chưa có dữ liệu giao dịch.' };
+  }
+  let score = 50 + (donated * 15) - (received * 10);
+  if (score > 100) score = 100;
+  if (score < 10) score = 10;
+  if (score >= 70) return { score, label: 'Uy tín cao', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: '🏅', desc: `Tài khoản uy tín. Đã tặng ${donated} món, nhận ${received} món.` };
+  if (score >= 40) return { score, label: 'Bình thường', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20', icon: '⚖️', desc: `Tài khoản tiêu chuẩn. Đã tặng ${donated} món, nhận ${received} món.` };
+  return { score, label: 'Cảnh báo thu gom', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: '⚠️', desc: `Nguy cơ gom hàng! Đã nhận ${received} món nhưng chỉ tặng ${donated} món.` };
+};
 
 const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise<string>((resolve) => {
@@ -59,6 +73,7 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
   const [isAiScanning, setIsAiScanning] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<PostMedia[]>([]);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [authorAiData, setAuthorAiData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPost, setNewPost] = useState<any>({
     title: '', category: CATEGORIES[0], condition: 'good',
@@ -76,6 +91,20 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!selectedItem) { setAuthorAiData(null); return; }
+    const fetchAuthorScore = async () => {
+      try {
+        const [dSnap, rSnap] = await Promise.all([
+          getDocs(query(collection(db, "items"), where("authorId", "==", selectedItem.authorId))),
+          getDocs(query(collection(db, "claims"), where("receiverId", "==", selectedItem.authorId)))
+        ]);
+        setAuthorAiData(calculateAITrustScore(dSnap.size, rSnap.size));
+      } catch { setAuthorAiData(null); }
+    };
+    fetchAuthorScore();
+  }, [selectedItem]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -500,7 +529,17 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
               <div className="flex flex-col gap-3 mb-6">
                 <div className="flex items-center space-x-4 cursor-pointer group/author bg-gray-800/20 p-3.5 rounded-2xl hover:bg-gray-800/40 transition-all border border-transparent hover:border-gray-700" onClick={() => onViewProfile(selectedItem.authorId)}>
                   <div className="w-11 h-11 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400 font-bold text-lg group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all shadow-inner shrink-0">{selectedItem.author.charAt(0)}</div>
-                  <div className="flex-1 min-w-0"><p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-0.5">Người tặng</p><p className="text-[14px] font-bold text-gray-200 group-hover/author:text-emerald-400 transition-colors break-words">{selectedItem.author}</p></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-0.5">Người tặng</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[14px] font-bold text-gray-200 group-hover/author:text-emerald-400 transition-colors break-words">{selectedItem.author}</p>
+                      {authorAiData && (
+                        <span title={authorAiData.desc} className={`text-[9px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${authorAiData.color}`}>
+                          {authorAiData.icon} {authorAiData.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-4 bg-gray-800/20 p-3.5 rounded-2xl border border-transparent">
                   <div className="w-11 h-11 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400 shadow-inner shrink-0"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg></div>
