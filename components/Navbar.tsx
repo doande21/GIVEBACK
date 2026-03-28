@@ -32,16 +32,7 @@
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff&bold=true`;
     };
 
-    const handleAIToggle = async () => {
-      const win = window as any;
-      if (win.aistudio && typeof win.aistudio.hasSelectedApiKey === 'function') {
-        const hasKey = await win.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await win.aistudio.openSelectKey();
-        }
-      }
-      if (toggleAI) toggleAI();
-    };
+
 
     const isAdmin = user?.role === 'admin';
 
@@ -101,20 +92,7 @@
               </svg>
             </button>
 
-            {/* AI Toggle */}
-            <button 
-              onClick={handleAIToggle}
-              className="p-2 rounded-xl text-emerald-400 hover:bg-emerald-500/20 transition-all relative"
-              title="Trò chuyện với AI"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span className="absolute top-1 right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            </button>
+
 
             {isAdmin && (
               <button 

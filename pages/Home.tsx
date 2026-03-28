@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { User, SocialPost, CharityMission, PostMedia, PostComment } from '../types';
 import { calculateItemsProgress } from '../utils/missionUtils';
 import { uploadFile, getFileType } from '../services/storageService';
@@ -340,9 +341,9 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
       </div>
 
       {/* Post Modal - Giữ nguyên logic cũ nhưng nén ảnh chuẩn hơn */}
-      {isPostModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-emerald-950/90 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
+      {isPostModalOpen && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-emerald-950/95 backdrop-blur-md" onClick={() => setIsPostModalOpen(false)}></div>
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
              <div className="flex justify-between items-center mb-10">
                <h3 className="text-3xl font-black uppercase text-emerald-950 dark:text-emerald-400 tracking-tighter">Tạo bài viết</h3>
@@ -407,7 +408,8 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
                 </button>
              </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Media Viewer Modal */}

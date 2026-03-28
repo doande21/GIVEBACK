@@ -42,8 +42,8 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
 
   return (
     <div 
-      onClick={() => onSelect?.(item)}
-      className={`bg-[#151b23] rounded-2xl border border-gray-800/60 overflow-hidden hover:border-emerald-700/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative flex flex-col h-full ${isOutOfStock ? 'opacity-60' : ''}`}
+      onClick={() => { if (!isOutOfStock) onSelect?.(item); }}
+      className={`bg-[#151b23] rounded-2xl border border-gray-800/60 overflow-hidden transition-all duration-300 group relative flex flex-col h-full ${isOutOfStock ? 'opacity-60 cursor-default' : 'hover:border-emerald-700/50 hover:-translate-y-1 cursor-pointer'}`}
     >
       {isAdmin && (
         <button onClick={handleDelete} className="absolute top-3 left-3 z-20 bg-red-500/90 text-white p-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all">
@@ -93,10 +93,15 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, user, onSelect, onNotify, onC
             </div>
           </div>
           <button 
-            onClick={(e) => { e.stopPropagation(); onSelect?.(item); }}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-[9px] font-bold tracking-wide shadow-lg shadow-emerald-900/30 transition-all active:scale-95"
+            onClick={(e) => { e.stopPropagation(); if (!isOutOfStock) onSelect?.(item); }}
+            disabled={isOutOfStock}
+            className={`px-4 py-2 rounded-lg text-[9px] font-bold tracking-wide shadow-lg transition-all ${
+              isOutOfStock 
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30 active:scale-95'
+            }`}
           >
-            xem chi tiết
+            {isOutOfStock ? (isClaimed ? 'đã tặng' : 'hết hàng') : 'xem chi tiết'}
           </button>
         </div>
       </div>

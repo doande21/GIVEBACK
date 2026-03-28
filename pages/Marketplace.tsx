@@ -12,13 +12,27 @@ import {
   query, 
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  getDocs,
+  where
 } from "firebase/firestore";
 
 import { db } from '../services/firebase';
 import { analyzeDonationItem } from '../services/geminiService';
 // Tự động load file ảnh có sẵn trong thư mục gốc
 import logoImg from '../giveback_logo.png';
+
+const calculateAITrustScore = (donated: number, received: number) => {
+  if (donated === 0 && received === 0) {
+    return { score: 50, label: 'Tài khoản mới', color: 'text-gray-400 bg-gray-500/10 border-gray-500/20', icon: '🌱', desc: 'Tài khoản mới tạo. Chưa có dữ liệu giao dịch.' };
+  }
+  let score = 50 + (donated * 15) - (received * 10);
+  if (score > 100) score = 100;
+  if (score < 10) score = 10;
+  if (score >= 70) return { score, label: 'Uy tín cao', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: '🏅', desc: `Tài khoản uy tín. Đã tặng ${donated} món, nhận ${received} món.` };
+  if (score >= 40) return { score, label: 'Bình thường', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20', icon: '⚖️', desc: `Tài khoản tiêu chuẩn. Đã tặng ${donated} món, nhận ${received} món.` };
+  return { score, label: 'Cảnh báo thu gom', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: '⚠️', desc: `Nguy cơ gom hàng! Đã nhận ${received} món nhưng chỉ tặng ${donated} món.` };
+};
 
 const compressImage = (base64Str: string, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise<string>((resolve) => {
@@ -58,6 +72,8 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiScanning, setIsAiScanning] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<PostMedia[]>([]);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [authorAiData, setAuthorAiData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPost, setNewPost] = useState<any>({
     title: '', category: CATEGORIES[0], condition: 'good',
@@ -75,6 +91,20 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!selectedItem) { setAuthorAiData(null); return; }
+    const fetchAuthorScore = async () => {
+      try {
+        const [dSnap, rSnap] = await Promise.all([
+          getDocs(query(collection(db, "items"), where("authorId", "==", selectedItem.authorId))),
+          getDocs(query(collection(db, "claims"), where("receiverId", "==", selectedItem.authorId)))
+        ]);
+        setAuthorAiData(calculateAITrustScore(dSnap.size, rSnap.size));
+      } catch { setAuthorAiData(null); }
+    };
+    fetchAuthorScore();
+  }, [selectedItem]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -446,39 +476,79 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
 
       {/* ===== MODALS (giữ nguyên logic) ===== */}
       {selectedItem && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 py-10">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 py-8 md:py-12">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setSelectedItem(null)}></div>
-          <div className="relative bg-[#151b23] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-gray-800">
-            <div className="h-[350px] relative bg-gray-900">
-              <img src={selectedItem.image} className="w-full h-full object-cover opacity-90" alt="" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#151b23] via-transparent to-transparent"></div>
-              <button onClick={() => setSelectedItem(null)} className="absolute top-6 right-6 bg-black/40 text-white p-2.5 rounded-xl hover:bg-black/60 transition-all z-10 backdrop-blur-sm">
+          <div className="relative bg-[#151b23] w-full max-w-5xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in-95 duration-300 border border-gray-800 max-h-[90vh]">
+            
+            {/* Ảnh bên trái */}
+            <div className="w-full md:w-1/2 shrink-0 relative bg-gray-900 h-[250px] md:h-auto border-b md:border-b-0 md:border-r border-gray-800 overflow-hidden group">
+              <img 
+                src={selectedItem.image} 
+                className="w-full h-full object-cover opacity-90 absolute inset-0 cursor-pointer transition-transform duration-500 group-hover:scale-105" 
+                alt="" 
+                onClick={() => setFullscreenImage(selectedItem.image)}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#151b23] via-transparent to-transparent md:bg-gradient-to-r md:from-[#151b23]/10 md:to-[#151b23] pointer-events-none transition-opacity group-hover:opacity-60"></div>
+              
+              {/* Nút phóng to ảnh */}
+              <button 
+                onClick={() => setFullscreenImage(selectedItem.image)}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60 text-white p-4 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-black/90 hover:scale-110 z-20 backdrop-blur-md shadow-2xl hidden md:flex items-center justify-center gap-2"
+                title="Phóng to ảnh"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              </button>
+              
+              {/* Nút tắt trên Mobile */}
+              <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 bg-black/40 text-white p-2.5 rounded-full hover:bg-black/60 transition-all z-10 backdrop-blur-sm md:hidden">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-              <div className="absolute bottom-6 left-6 flex gap-2">
+
+              <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-2 z-10">
                 <span className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-wide">{selectedItem.category}</span>
                 <span className="bg-gray-800/80 backdrop-blur-sm text-gray-200 px-4 py-1.5 rounded-lg text-[10px] font-bold">{selectedItem.condition === 'new' ? 'Mới 100%' : 'Đã sử dụng'}</span>
               </div>
             </div>
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-black text-white leading-tight">{selectedItem.title}</h3>
-                <span className="text-xs font-bold text-gray-500">SL: {selectedItem.quantity}</span>
+
+            {/* Nội dung bên phải */}
+            <div className="w-full md:w-1/2 p-6 md:p-8 xl:p-10 overflow-y-auto flex flex-col relative bg-[#151b23]">
+              {/* Nút tắt trên Desktop */}
+              <button onClick={() => setSelectedItem(null)} className="hidden md:flex absolute top-6 right-6 bg-gray-800/40 text-gray-400 hover:text-white hover:bg-gray-700/80 p-2.5 rounded-2xl transition-all z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+
+              <div className="flex flex-col mb-4 pr-0 md:pr-14">
+                <h3 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2">{selectedItem.title}</h3>
+                <span className="text-xs font-bold text-gray-500">Số lượng: {selectedItem.quantity}</span>
               </div>
-              <div className="bg-[#0d1117] p-5 rounded-2xl border border-gray-800 mb-6">
-                <p className="text-gray-300 text-sm leading-relaxed">{selectedItem.description || 'Chưa có mô tả.'}</p>
+
+              <div className="bg-[#0d1117] p-5 md:p-6 rounded-2xl border border-gray-800/60 mb-8 flex-grow">
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{selectedItem.description || 'Chưa có mô tả chi tiết cho món đồ này.'}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="flex items-center space-x-3 cursor-pointer group/author" onClick={() => onViewProfile(selectedItem.authorId)}>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400 font-bold text-xs group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all">{selectedItem.author.charAt(0)}</div>
-                  <div><p className="text-[10px] font-bold text-gray-500">Người tặng</p><p className="text-xs font-semibold text-gray-200 group-hover/author:text-emerald-400 transition-colors">{selectedItem.author}</p></div>
+
+              <div className="flex flex-col gap-3 mb-6">
+                <div className="flex items-center space-x-4 cursor-pointer group/author bg-gray-800/20 p-3.5 rounded-2xl hover:bg-gray-800/40 transition-all border border-transparent hover:border-gray-700" onClick={() => onViewProfile(selectedItem.authorId)}>
+                  <div className="w-11 h-11 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400 font-bold text-lg group-hover/author:bg-emerald-600 group-hover/author:text-white transition-all shadow-inner shrink-0">{selectedItem.author.charAt(0)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-0.5">Người tặng</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[14px] font-bold text-gray-200 group-hover/author:text-emerald-400 transition-colors break-words">{selectedItem.author}</p>
+                      {authorAiData && (
+                        <span title={authorAiData.desc} className={`text-[9px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${authorAiData.color}`}>
+                          {authorAiData.icon} {authorAiData.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg></div>
-                  <div><p className="text-[10px] font-bold text-gray-500">Khu vực</p><p className="text-xs font-semibold text-gray-200 truncate">{selectedItem.location || 'Chưa xác định'}</p></div>
+                <div className="flex items-center space-x-4 bg-gray-800/20 p-3.5 rounded-2xl border border-transparent">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-900/40 flex items-center justify-center text-emerald-400 shadow-inner shrink-0"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg></div>
+                  <div className="flex-1 min-w-0"><p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-0.5">Khu vực</p><p className="text-[14px] font-bold text-gray-200 break-words">{selectedItem.location || 'Chưa xác định'}</p></div>
                 </div>
               </div>
-              <button onClick={() => handleStartChat(selectedItem)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl font-bold tracking-wide shadow-xl shadow-emerald-900/30 transition-all hover:scale-[1.01] active:scale-95">
+
+              <button onClick={() => handleStartChat(selectedItem)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 md:py-5 rounded-2xl font-black tracking-wide shadow-xl shadow-emerald-900/20 transition-all hover:scale-[1.02] active:scale-[0.98] mt-auto flex items-center justify-center gap-3 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 BẮT ĐẦU TRÒ CHUYỆN
               </button>
             </div>
@@ -535,6 +605,23 @@ const Marketplace: React.FC<MarketplaceProps> = ({ user, onNotify, onConfirm, se
             </form>
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
           </div>
+        </div>
+      )}
+
+      {/* FULLSCREEN IMAGE VIEWER */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 z-[400] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setFullscreenImage(null)}>
+          <button 
+            onClick={() => setFullscreenImage(null)}
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all backdrop-blur-md z-10"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <img 
+            src={fullscreenImage} 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300 pointer-events-none" 
+            alt="Fullscreen View"
+          />
         </div>
       )}
     </div>
