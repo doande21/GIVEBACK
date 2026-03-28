@@ -208,7 +208,7 @@ const Missions: React.FC<MissionsProps> = ({ setActiveTab }) => {
                    </div>
 
                    <div className="p-8 bg-amber-50 dark:bg-amber-900/10 rounded-[2.5rem] border border-amber-100 dark:border-amber-800">
-                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed">"Mỗi tấm hình Đệ thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
+                      <p className="text-[11px] font-black text-amber-700 uppercase leading-relaxed">"Mỗi tấm hình Bạn thấy là một minh chứng cho tình người rộng mở. Hãy cùng GIVEBACK viết tiếp những câu chuyện đẹp này nhé!"</p>
                    </div>
                 </div>
              </div>

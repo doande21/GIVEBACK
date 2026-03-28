@@ -104,7 +104,7 @@ const Home: React.FC<HomeProps> = ({ user, onNotify, onConfirm, onViewProfile, s
       setIsPostModalOpen(false);
       onNotify('success', "Khoảnh khắc đã được sẻ chia!", "GIVEBACK");
     } catch (err: any) {
-      onNotify('error', "Gặp sự cố khi đăng bài. Đệ thử lại nhé!", "Hệ thống");
+      onNotify('error', "Gặp sự cố khi đăng bài. Bạn thử lại nhé!", "Hệ thống");
     } finally {
       setIsSubmitting(false);
     }
